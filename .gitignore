@@ -1,0 +1,62 @@
+/vendor/
+/.vscode/
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ds stores
+*.DS_Store
+
+# intellij
+*.idea/
+
+# certificates and private keys
+*.crt
+*.key
+
+# build artifacts
+get-pip.py
+
+# bin
+bin/*-e
+bin/composer
+bin/composer.phar
+bin/php
+bin/phpunit
+
+# etc
+etc/php/php.ini
+etc/php-fpm.conf.default
+etc/php-fpm.d/php-fpm.conf
+etc/php-fpm.d/www.conf.default
+etc/ssl/certs/dhparam.pem
+
+# opt
+opt/php*/*
+opt/openresty*/*
+opt/MacOSX-authbind/
+opt/pear*/*
+
+# cache and logs
+error.log
+error.docker.log
+var/*
+
+# tmp
+tmp/*
+
+# node
+node_modules/
+
+# misc
+.mcol-cfg.yml
+
+# vendor
+vendor/
+
+storage/*.key
+.env
+Homestead.yaml
+Homestead.json
+/.vagrant
+.phpunit.result.cache
