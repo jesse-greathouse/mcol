@@ -3,7 +3,7 @@
 #   +---------------------------------------------------------------------------------+
 #   | This file is part of mcol                                                 |
 #   +---------------------------------------------------------------------------------+
-#   | Copyright (c) 2023 Wheel Pros Inc (https://github.com/Wheel-Pros-IT/mcol) |
+#   | Copyright (c) 2023 Jesse Greathouse (https://github.com/jesse-greathouse/mcol) |
 #   +---------------------------------------------------------------------------------+
 #   | mcol is free software: you can redistribute it and/or modify              |
 #   | it under the terms of the GNU General Public License as published by            |

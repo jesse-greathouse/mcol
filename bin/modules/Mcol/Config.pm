@@ -19,16 +19,10 @@ our @EXPORT_OK = qw(
 
 my $bin = abs_path(dirname(__FILE__) . '/../../');
 my $applicationRoot = abs_path(dirname($bin));
-my $applicatioHiddenFolder = $applicationRoot . '/.wpc';
 my $configurationFileName = '.mcol-cfg.yml';
 
 if (! -d $applicationRoot) {
     die "Directory: \"$applicationRoot\" doesn't exist\n $!";
-}
-
-# Create Hidden folder if it does not exist.
-if (! -d $applicatioHiddenFolder) {
-    mkdir($applicatioHiddenFolder) or die( "Could not create hidden folder: \"$applicatioHiddenFolder\""); 
 }
 
 1;

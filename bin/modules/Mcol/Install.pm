@@ -66,12 +66,13 @@ sub install {
         install_imagick($applicationRoot);
     }
 
+    install_symlinks($applicationRoot);
+
     if ($options{'composer'}) {
         install_composer($applicationRoot);
         install_composer_dependencies($applicationRoot);
     }
 
-    install_symlinks($applicationRoot);
     cleanup($applicationRoot);
 }
 

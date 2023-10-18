@@ -105,7 +105,7 @@ sub splash {
   print ('+--------------------------------------------------------------------------------------+'."\n");
   print ('| Thank you for choosing mcol                                                    |'."\n");
   print ('+--------------------------------------------------------------------------------------+'."\n");
-  print ('| Copyright (c) 2023 Jesse Greathouse (https://github.com/Wheel-Pros-IT/mcol)    |'."\n");
+  print ('| Copyright (c) 2023 Jesse Greathouse (https://github.com/jesse-greathouse/mcol)       |'."\n");
   print ('+--------------------------------------------------------------------------------------+'."\n");
   print ('| mcol is free software: you can redistribute it and/or modify it under the      |'."\n");
   print ('| terms of thethe Free Software Foundation, either version 3 of the License, or GNU    |'."\n");
