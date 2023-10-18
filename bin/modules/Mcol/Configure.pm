@@ -33,7 +33,7 @@ my $defaultKey = generate_rand_str();
 
 my %defaults = (
     lumen => {
-        APP_NAME                => 'WP-Toolkit',
+        APP_NAME                => 'mcol',
         APP_ENV                 => 'local',
         APP_KEY                 => $defaultKey,
         APP_DEBUG               => 'true',
@@ -45,13 +45,10 @@ my %defaults = (
         DB_HOST                 => '127.0.0.1',
         DB_PORT                 => '3306',
         DB_DATABASE             => 'mcol',
-        DB_USERNAME             => 'wheelpros',
-        DB_PASSWORD             => 'wheelpros',
+        DB_USERNAME             => 'mcol',
+        DB_PASSWORD             => 'mcol',
         CACHE_DRIVER            => 'file',
         QUEUE_CONNECTION        => 'sync',
-        WP_FITMENT_API_TOKEN    => 'none',
-        WP_FITMENT_API_HOST     => 'none',
-        WP_FITMENT_API_DEBUG    => '1',
     }
 );
 
@@ -130,15 +127,6 @@ sub request_user_input {
     
     # QUEUE_CONNECTION
     input('lumen', 'QUEUE_CONNECTION', 'Queue Connection');
-    
-    # WP_FITMENT_API_TOKEN
-    input('lumen', 'WP_FITMENT_API_TOKEN', 'Fitment API Token');
-    
-    # WP_FITMENT_API_HOST
-    input('lumen', 'WP_FITMENT_API_HOST', 'Fitment API Host');
-    
-    # WP_FITMENT_API_DEBUG
-    input_boolean('lumen', 'WP_FITMENT_API_DEBUG', 'Fitment API Debug Flag');
 }
 
 sub merge_lumen_env {
