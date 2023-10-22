@@ -39,7 +39,7 @@ sub get_operating_system {
         linux   => 'Ubuntu',
         darwin  => 'MacOS');
 
-    return $osNames{$^O} || 'Ubuntu';
+    return $osNames{$^O} or 'Ubuntu';
 }
 
 sub str_replace_in_file {

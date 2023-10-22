@@ -1,8 +1,26 @@
 /vendor/
 /.vscode/
+.vstags
 node_modules/
 npm-debug.log
 yarn-error.log
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+#vscode junk
+.history/*
+.vscode/*
+# !.vscode/settings.json
+# !.vscode/tasks.json
+# !.vscode/launch.json
+# !.vscode/extensions.json
 
 # ds stores
 *.DS_Store
@@ -29,13 +47,38 @@ etc/php/php.ini
 etc/php-fpm.conf.default
 etc/php-fpm.d/php-fpm.conf
 etc/php-fpm.d/www.conf.default
-etc/ssl/certs/dhparam.pem
+etc/nginx/nginx.conf
+etc/nginx/nginx.docker.conf
+etc/nginx/ssl-params.conf
+etc/nginx/ssl-params.docker.conf
+etc/nginx/force-ssl.conf
+etc/nginx/force-ssl.docker.conf
+etc/supervisor/conf.d/supervisord.service.conf
+etc/*.service
+etc/*.conf
+etc/init.d/*
+etc/*.plist
+etc/config.inc.php
+etc/ssl/openssl.cnf
+etc/ssl/CA/*
+etc/ssl/certs/*
+etc/ssl/private/*
+etc/ssl/.rnd
+etc/ssl/.oid
+etc/ssl/openssl.cnf
+etc/ssl/openssl.docker.cnf
 
 # opt
-opt/php*/*
-opt/openresty*/*
+opt/php/
+opt/php*/
+opt/pear/
+opt/pear*/
+opt/openresty/
+opt/openresty*/
 opt/MacOSX-authbind/
-opt/pear*/*
+
+# web
+web/
 
 # cache and logs
 error.log
@@ -60,3 +103,4 @@ Homestead.yaml
 Homestead.json
 /.vagrant
 .phpunit.result.cache
+nohup.out

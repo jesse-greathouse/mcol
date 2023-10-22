@@ -16,6 +16,7 @@ use Mcol::Config qw(
     save_configuration
     parse_env_file
     write_env_file
+    write_config_file
 );
 use Mcol::Utility qw(splash generate_rand_str);
 
@@ -25,17 +26,54 @@ our @EXPORT_OK = qw(configure);
 
 warn $@ if $@; # handle exception
 
-my $bin = abs_path(dirname(__FILE__) . '/../../');
-my $applicationRoot = abs_path(dirname($bin));
-my $lumenEnvFile = "$applicationRoot/src/.env";
+my $binDir = abs_path(dirname(__FILE__) . '/../../');
+my $applicationRoot = abs_path(dirname($binDir));
+my $srcDir = "$applicationRoot/src";
+my $webDir = "$srcDir/public";
+my $varDir = "$applicationRoot/var";
+my $etcDir = "$applicationRoot/etc";
+my $tmpDir = "$applicationRoot/tmp";
+my $logDir = "$varDir/log";
+my $uploadDir = "$varDir/upload";
+my $saveDir = "$varDir/cache";
+my $appKey = `$binDir/php $srcDir/artisan key:generate`;
+my $secret = generate_rand_str();
+
+# Files and Dist
+my $laravelEnvFile = "$applicationRoot/src/.env";
+my $errorLog = "$logDir/error.log";
+my $sslCertificate = "$etcDir/ssl/certs/mcol.cert";
+my $sslKey = "$etcDir/ssl/private/mcol.key";
+
+my $initdDist = "$etcDir/init.d/init-template.sh.dist";
+my $initdFile = "$etcDir/init.d/mcol";
+
+my $phpFpmDist = "$etcDir/php-fpm.d/php-fpm.dist.conf";
+my $phpFpmFile = "$etcDir/php-fpm.d/php-fpm.conf";
+
+my $forceSslDist = "$etcDir/nginx/force-ssl.dist.conf";
+my $forceSslFile = "$etcDir/nginx/force-ssl.conf";
+
+my $sslParamsDist = "$etcDir/nginx/ssl-params.dist.conf";
+my $sslParamsFile = "$etcDir/nginx/ssl-params.conf";
+
+my $opensslConfDist = "$etcDir/ssl/openssl.dist.cnf";
+my $opensslConfFile = "$etcDir/ssl/openssl.cnf";
+
+my $nginxConfDist = "$etcDir/nginx/nginx.dist.conf";
+my $nginxConfFile = "$etcDir/nginx/nginx.conf";
+
+my $supervisordServiceDist = "$etcDir/supervisor/conf.d/supervisord.service.conf.dist";
+my $supervisordServiceFile = "$etcDir/supervisor/conf.d/supervisord.service.conf";
+
+# Get Configuration and Defaults
 my %cfg = get_configuration();
-my $defaultKey = generate_rand_str();
 
 my %defaults = (
-    lumen => {
+    laravel => {
         APP_NAME                => 'mcol',
         APP_ENV                 => 'local',
-        APP_KEY                 => $defaultKey,
+        APP_KEY                 => $appKey,
         APP_DEBUG               => 'true',
         APP_URL                 => 'http://localhost',
         APP_TIMEZONE            => 'UTC',
@@ -49,6 +87,16 @@ my %defaults = (
         DB_PASSWORD             => 'mcol',
         CACHE_DRIVER            => 'file',
         QUEUE_CONNECTION        => 'sync',
+    },
+    nginx => {
+        DOMAINS                 => '127.0.0.1',
+        IS_SSL                  => 'no',
+        PORT                    => '8080',
+        SSL_CERT                => $sslCertificate,
+        SSL_KEY                 => $sslKey,
+    },
+    redis => {
+        REDIS_HOST              => 'localhost',
     }
 );
 
@@ -70,79 +118,220 @@ sub configure {
     print (''."\n");
 
     request_user_input();
+
+    merge_defaults();
+
     save_configuration(%cfg);
-    write_lumen_env();
+
+    # Create configuration files
+    write_initd_script();
+    write_phpfpm_conf();
+    write_force_ssl_conf();
+    write_ssl_params_conf();
+    write_openssl_conf();
+    write_nginx_conf();
+    write_supervisord_service_conf();
+    write_laravel_env();
 }
 
-# Runs the user through a series of setup config questions.
-# Confirms the answers.
-# Returns Hash Table
-sub request_user_input {
-    merge_lumen_env();
+sub write_initd_script {
+    my $mode = 0755;
+    my %c = %{$cfg{nginx}};
 
-    # APP_NAME
-    input('lumen', 'APP_NAME', 'App Name');
-    
-    # APP_ENV
-    input('lumen', 'APP_ENV', 'App Environment');
-    
-    # APP_KEY
-    input('lumen', 'APP_KEY', 'App Key (Security String)');
-    
-    # APP_DEBUG
-    input_boolean('lumen', 'APP_DEBUG', 'App Debug Flag');
-    
-    # APP_URL
-    input('lumen', 'APP_URL', 'App Url');
-    
-    # APP_TIMEZONE
-    input('lumen', 'APP_TIMEZONE', 'App Timezone');
-    
-    # LOG_CHANNEL
-    input('lumen', 'LOG_CHANNEL', 'Log Channel');
-    
-    # LOG_SLACK_WEBHOOK_URL
-    input('lumen', 'LOG_SLACK_WEBHOOK_URL', 'Slack Webhook Url');
-    
-    # DB_CONNECTION
-    input('lumen', 'DB_CONNECTION', 'Database Connection (driver)');
-    
-    # DB_HOST
-    input('lumen', 'DB_HOST', 'Database Hostname');
-    
-    # DB_PORT
-    input('lumen', 'DB_PORT', 'Database Port');
-    
-    # DB_DATABASE
-    input('lumen', 'DB_DATABASE', 'Database Schema Name');
-    
-    # DB_USERNAME
-    input('lumen', 'DB_USERNAME', 'Database Username');
-    
-    # DB_PASSWORD
-    input('lumen', 'DB_PASSWORD', 'Database Password');
-    
-    # CACHE_DRIVER
-    input('lumen', 'CACHE_DRIVER', 'Cache Driver');
-    
-    # QUEUE_CONNECTION
-    input('lumen', 'QUEUE_CONNECTION', 'Queue Connection');
+    $c{'APP_NAME'} = $cfg{laravel}{'APP_NAME'};
+
+    write_config_file($initdDist, $initdFile, %c);
+    chmod $mode, $initdFile;
 }
 
-sub merge_lumen_env {
-    if (-e $lumenEnvFile) {
-        my $env = parse_env_file($lumenEnvFile);
+sub write_phpfpm_conf {
+    my %c = %{$cfg{nginx}};
+
+    $c{'APP_NAME'} = $cfg{laravel}{'APP_NAME'};
+
+    write_config_file($phpFpmDist, $phpFpmFile, %c);
+}
+
+sub write_force_ssl_conf {
+    my %c = %{$cfg{nginx}};
+    write_config_file($forceSslDist, $forceSslFile, %c);
+}
+
+sub write_ssl_params_conf {
+    my %c = %{$cfg{nginx}};
+    write_config_file($sslParamsDist, $sslParamsFile, %c);
+}
+
+sub write_openssl_conf {
+    my %c = %{$cfg{nginx}};
+    write_config_file($opensslConfDist, $opensslConfFile, %c);
+}
+
+sub write_nginx_conf {
+    my %c = %{$cfg{nginx}};
+    write_config_file($nginxConfDist, $nginxConfFile, %c);
+}
+
+sub write_supervisord_service_conf {
+    my %c = %{$cfg{supervisor}};
+    write_config_file($supervisordServiceDist, $supervisordServiceFile, %c);
+}
+
+sub write_laravel_env {
+    write_env_file($laravelEnvFile, %{$cfg{laravel}});
+}
+
+sub merge_laravel_env {
+    if (-e $laravelEnvFile) {
+        my $env = parse_env_file($laravelEnvFile);
 
         foreach my $key (keys %$env) {
-            $cfg{lumen}{$key} = $env->{$key};
+            $cfg{laravel}{$key} = $env->{$key};
         }
 
         save_configuration(%cfg);
     }
 }
 
-sub write_lumen_env{
-    write_env_file($lumenEnvFile, %{$cfg{lumen}});
+# Runs the user through a series of setup config questions.
+# Confirms the answers.
+# Returns Hash Table
+sub request_user_input {
+    merge_laravel_env();
+
+    # APP_NAME
+    input('laravel', 'APP_NAME', 'App Name');
+    
+    # APP_ENV
+    input('laravel', 'APP_ENV', 'App Environment');
+    
+    # APP_KEY
+    input('laravel', 'APP_KEY', 'App Key (Security String)');
+    
+    # APP_DEBUG
+    input_boolean('laravel', 'APP_DEBUG', 'App Debug Flag');
+    
+    # APP_URL
+    input('laravel', 'APP_URL', 'App Url');
+    
+    # APP_TIMEZONE
+    input('laravel', 'APP_TIMEZONE', 'App Timezone');
+    
+    # LOG_CHANNEL
+    input('laravel', 'LOG_CHANNEL', 'Log Channel');
+    
+    # LOG_SLACK_WEBHOOK_URL
+    input('laravel', 'LOG_SLACK_WEBHOOK_URL', 'Slack Webhook Url');
+    
+    # DB_CONNECTION
+    input('laravel', 'DB_CONNECTION', 'Database Connection (driver)');
+    
+    # DB_HOST
+    input('laravel', 'DB_HOST', 'Database Hostname');
+    
+    # DB_PORT
+    input('laravel', 'DB_PORT', 'Database Port');
+    
+    # DB_DATABASE
+    input('laravel', 'DB_DATABASE', 'Database Schema Name');
+    
+    # DB_USERNAME
+    input('laravel', 'DB_USERNAME', 'Database Username');
+    
+    # DB_PASSWORD
+    input('laravel', 'DB_PASSWORD', 'Database Password');
+    
+    # CACHE_DRIVER
+    input('laravel', 'CACHE_DRIVER', 'Cache Driver');
+    
+    # QUEUE_CONNECTION
+    input('laravel', 'QUEUE_CONNECTION', 'Queue Connection');
+
+    # DOMAINS
+    input('nginx', 'DOMAINS', 'Web Domains');
+
+    # SSL
+    input_boolean('nginx', 'IS_SSL', 'Use SSL (https)');
+
+    if ('true' eq $cfg{nginx}{IS_SSL}) {
+        $cfg{nginx}{SSL} = 'ssl';
+        $cfg{nginx}{PORT} = '443';
+
+        # SSL_CERT
+        input('nginx', 'SSL_CERT', 'SSL Certificate Path');
+        $cfg{nginx}{SSL_CERT_LINE} = 'ssl_certificate ' . $cfg{nginx}{SSL_CERT};
+
+        # SSL_KEY
+        input('nginx', 'SSL_KEY', 'SSL Key Path');
+        $cfg{nginx}{SSL_CERT_LINE} = 'ssl_certificate_key ' . $cfg{nginx}{SSL_KEY};
+        $cfg{nginx}{INCLUDE_FORCE_SSL_LINE} = "include $etcDir/nginx/force-ssl.conf";
+
+        # SUPERVISORCTL_PORT
+        input('supervisor', 'SUPERVISORCTL_PORT', 'Application Control Port (5000 - 9000)');
+    } else {
+        # PORT
+        input('nginx', 'PORT', 'Web Port');
+
+        # Configure supervisorctl port
+        my $portInt = int($cfg{nginx}{PORT});
+        $portInt++;
+        $cfg{supervisor}{SUPERVISORCTL_PORT} = "$portInt";
+
+        $cfg{nginx}{SSL} = '';
+        $cfg{nginx}{SSL_CERT_LINE} = '';
+        $cfg{nginx}{SSL_KEY_LINE} = '';
+        $cfg{nginx}{INCLUDE_FORCE_SSL_LINE} = '';
+    }
+    
+    # REDIS_HOST
+    input('redis', 'REDIS_HOST', 'Redis Host');
+}
+
+sub merge_defaults {
+
+    if (!exists($cfg{laravel}{LOG_URI})) {
+        $cfg{laravel}{LOG_URI} = $errorLog;
+    }
+
+    if (!exists($cfg{supervisor}{SUPERVISORCTL_USER})) {
+        $cfg{supervisor}{SUPERVISORCTL_USER} = $ENV{"LOGNAME"};
+    }
+
+    if (!exists($cfg{supervisor}{SUPERVISORCTL_SECRET})) {
+        $cfg{supervisor}{SUPERVISORCTL_SECRET} = $secret;
+    }
+
+    if (!exists($cfg{nginx}{USER})) {
+        $cfg{nginx}{USER} = $ENV{"LOGNAME"};
+    }
+
+    if (!exists($cfg{nginx}{SESSION_SECRET})) {
+        $cfg{nginx}{SESSION_SECRET} = $secret;
+    }
+
+    if (!exists($cfg{nginx}{LOG})) {
+        $cfg{nginx}{LOG} = $errorLog;
+    }
+
+    if (!exists($cfg{nginx}{DIR})) {
+        $cfg{nginx}{DIR} = $applicationRoot;
+    }
+
+    if (!exists($cfg{nginx}{VAR})) {
+        $cfg{nginx}{VAR} = $varDir;
+    }
+
+    if (!exists($cfg{nginx}{ETC})) {
+        $cfg{nginx}{ETC} = $etcDir;
+    }
+
+    if (!exists($cfg{nginx}{WEB})) {
+        $cfg{nginx}{WEB} = $webDir;
+    }
+
+    if (!exists($cfg{nginx}{SRC})) {
+        $cfg{nginx}{SRC} = $srcDir;
+    }
 }
 
 sub input {

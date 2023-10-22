@@ -25,6 +25,7 @@ eval "use $osModule qw(install_system_dependencies install_php)";
 my @perlModules = (
     'JSON',
     'Archive::Zip',
+    'Bytes::Random::Secure',
     'Config::File',
     'LWP::Protocol::https',
     'LWP::UserAgent',
@@ -59,6 +60,10 @@ sub install {
         install_perl_modules();
     }
 
+    if ($options{'openresty'}) {
+        install_openresty($applicationRoot);
+    }
+
     if ($options{'php'}) {
         configure_php($applicationRoot);
         install_php($applicationRoot);
@@ -66,27 +71,29 @@ sub install {
         install_imagick($applicationRoot);
     }
 
-    install_symlinks($applicationRoot);
-
     if ($options{'composer'}) {
         install_composer($applicationRoot);
         install_composer_dependencies($applicationRoot);
     }
+
+    install_symlinks($applicationRoot);
 
     cleanup($applicationRoot);
 }
 
 sub handle_options {
     my $defaultInstall = 1;
-    my @components =  ('system', 'perl', 'php', 'composer');
+    my @components =  ('system', 'perl', 'openresty', 'php', 'composer');
     my %skips;
     my %installs;
 
     GetOptions ("skip-system"       => \$skips{'system'},
+                "skip-openresty"    => \$skips{'openresty'},
                 "skip-perl"         => \$skips{'perl'},
                 "skip-php"          => \$skips{'php'},
                 "skip-composer"     => \$skips{'composer'},
                 "system"            => \$installs{'system'},
+                "openresty"         => \$installs{'openresty'},
                 "perl"              => \$installs{'perl'},
                 "php"               => \$installs{'php'},
                 "composer"          => \$installs{'composer'})
@@ -104,6 +111,7 @@ sub handle_options {
     # Set up an options hash with the default install flag.
     my  %options = (
         system      => $defaultInstall,
+        openresty   => $defaultInstall,
         perl        => $defaultInstall,
         php         => $defaultInstall,
         composer    => $defaultInstall
@@ -128,6 +136,41 @@ sub handle_options {
     return %options;
 }
 
+# installs Openresty.
+sub install_openresty {
+    my ($dir) = @_;
+    my @configureOpenresty = ('./configure');
+    push @configureOpenresty, '--prefix=' . $dir . '/opt/openresty';
+    push @configureOpenresty, '--with-pcre-jit';
+    push @configureOpenresty, '--with-ipv6';
+    push @configureOpenresty, '--with-http_iconv_module';
+    push @configureOpenresty, '--with-http_realip_module';
+    push @configureOpenresty, '--with-http_ssl_module';
+    push @configureOpenresty, '-j2';
+
+    my $originalDir = getcwd();
+
+    # Unpack
+    system(('bash', '-c', "tar -xzf $dir/opt/openresty-*.tar.gz -C $dir/opt/"));
+    command_result($?, $!, 'Unpack Openresty Archive...', 'tar -xzf ' . $dir . '/opt/openresty-*.tar.gz -C ' . $dir . ' /opt/');
+
+    chdir glob("$dir/opt/openresty-*/");
+
+    # configure
+    system(@configureOpenresty);
+    command_result($?, $!, 'Configure Openresty...', \@configureOpenresty);
+
+    # make
+    system('make');
+    command_result($?, $!, 'Make Openresty...', 'make');
+
+    # install
+    system(('make', 'install'));
+    command_result($?, $!, 'Install Openresty...', 'make install');
+
+    chdir $originalDir;
+}
+
 # configures PHP.
 sub configure_php {
     my ($dir) = @_;
@@ -138,13 +181,13 @@ sub configure_php {
     my $phpIniDist = "$etcDir/php/php.dist.ini";
     my $phpFpmConfFile = "$etcDir/php-fpm.d/php-fpm.conf";
     my $phpFpmConfDist = "$etcDir/php-fpm.d/php-fpm.dist.conf";
-    my $username = getlogin || getpwuid($<) or die "Copy failed: $!";
 
     copy($phpIniDist, $phpIniFile) or die "Copy $phpIniDist failed: $!";
     copy($phpFpmConfDist, $phpFpmConfFile) or die "Copy $phpFpmConfDist failed: $!";
     str_replace_in_file('__DIR__', $dir, $phpIniFile);
     str_replace_in_file('__DIR__', $dir, $phpFpmConfFile);
-    str_replace_in_file('__USER__', $username, $phpFpmConfFile);
+    str_replace_in_file('__APP_NAME__', 'mcol', $phpFpmConfFile);
+    str_replace_in_file('__USER__', $ENV{"LOGNAME"}, $phpFpmConfFile);
 }
 
 # installs symlinks.
@@ -152,13 +195,9 @@ sub install_symlinks {
     my ($dir) = @_;
     my $binDir = $dir . '/bin';
     my $optDir = $dir . '/opt';
-    my $vendorDir = $dir . '/src/vendor';
 
     unlink "$binDir/php";
     symlink("$optDir/php/bin/php", "$binDir/php");
-
-    unlink "$binDir/phpunit";
-    symlink("$vendorDir/bin/phpunit", "$binDir/phpunit");
 }
 
 # installs Perl Modules.
@@ -256,12 +295,9 @@ sub install_composer_dependencies {
     my $originalDir = getcwd();
     my $binDir = $dir . '/bin';
     my $srcDir = $dir . '/src';
-    my $phpExecutable = $binDir . '/php';
+    my $phpExecutable = $dir . '/opt/php/bin/php';
     my $composerExecutable = "$phpExecutable $binDir/composer";
     my $composerInstallCommand = "$composerExecutable install";
-
-    system(('bash', '-c', $composerInstallCommand));
-    command_result($?, $!, 'Installing Composer Dependencies...', $composerInstallCommand);
 
     chdir $srcDir;
 
@@ -274,6 +310,9 @@ sub install_composer_dependencies {
 sub cleanup {
     my ($dir) = @_;
     my $phpBuildDir = glob("$dir/opt/php-*/");
+    my $openrestyBuildDir = glob("$dir/opt/openresty-*/");
     system(('bash', '-c', "rm -rf $phpBuildDir"));
     command_result($?, $!, 'Remove PHP Build Dir...', "rm -rf $phpBuildDir");
+    system(('bash', '-c', "rm -rf $openrestyBuildDir"));
+    command_result($?, $!, 'Remove Openresty Build Dir...', "rm -rf $openrestyBuildDir");
 }
