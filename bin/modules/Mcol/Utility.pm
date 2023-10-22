@@ -118,7 +118,7 @@ sub splash {
   print ('| You should have received a copy of the GNU General Public License along with         |'."\n");
   print ('| mcol. If not, see <http://www.gnu.org/licenses/>.                                    |'."\n");
   print ('+--------------------------------------------------------------------------------------+'."\n");
-  print ('| Author: Jesse Greathouse <jesseg@wheelpros.com>                                      |'."\n");
+  print ('| Author: Jesse Greathouse <jesse.greathouse@gmail.com>                                |'."\n");
   print ('+--------------------------------------------------------------------------------------+'."\n");
   print (''."\n");
 }
