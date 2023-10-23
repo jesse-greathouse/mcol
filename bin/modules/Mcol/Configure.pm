@@ -293,6 +293,14 @@ sub merge_defaults {
         $cfg{laravel}{LOG_URI} = $errorLog;
     }
 
+    if (!exists($cfg{laravel}{CACHE_DIR})) {
+        $cfg{laravel}{CACHE_DIR} = $varDir;
+    }
+
+    if (!exists($cfg{laravel}{LOG_DIR})) {
+        $cfg{laravel}{LOG_DIR} = $logDir;
+    }
+
     if (!exists($cfg{supervisor}{SUPERVISORCTL_USER})) {
         $cfg{supervisor}{SUPERVISORCTL_USER} = $ENV{"LOGNAME"};
     }
