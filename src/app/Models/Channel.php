@@ -11,6 +11,8 @@ class Channel extends Model
 {
     use HasFactory;
 
+    protected $guarded = [];
+
     public function children(): HasMany
     {
         return $this->hasMany(Channel::class, 'channel_id');

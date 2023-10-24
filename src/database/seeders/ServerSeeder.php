@@ -15,7 +15,6 @@ class ServerSeeder extends Seeder
     */
    protected Array $servers = [
        'Abjects' => 'irc.abjects.net',
-       'Abjects' => 'tennessee.abjects.net',
    ];
 
     /**
