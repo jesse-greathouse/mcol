@@ -3,6 +3,7 @@
 package Mcol::Configure;
 use strict;
 use File::Basename;
+use File::Touch;
 use Cwd qw(getcwd abs_path);
 use List::Util 1.29 qw( pairs );
 use Exporter 'import';
@@ -12,13 +13,14 @@ use Term::Prompt qw(termwrap);
 use Term::ANSIScreen qw(cls);
 use lib(dirname(abs_path(__FILE__))  . "/../modules");
 use Mcol::Config qw(
+    get_config_file
     get_configuration
     save_configuration
     parse_env_file
     write_env_file
     write_config_file
 );
-use Mcol::Utility qw(splash generate_rand_str);
+use Mcol::Utility qw(splash generate_rand_str write_file);
 
 use Data::Dumper;
 
@@ -36,10 +38,9 @@ my $tmpDir = "$applicationRoot/tmp";
 my $logDir = "$varDir/log";
 my $uploadDir = "$varDir/upload";
 my $saveDir = "$varDir/cache";
-my $appKey = `$binDir/php $srcDir/artisan key:generate`;
-my $secret = generate_rand_str();
 
 # Files and Dist
+my $configFile = get_config_file();
 my $laravelEnvFile = "$applicationRoot/src/.env";
 my $errorLog = "$logDir/error.log";
 my $sslCertificate = "$etcDir/ssl/certs/mcol.cert";
@@ -65,6 +66,19 @@ my $nginxConfFile = "$etcDir/nginx/nginx.conf";
 
 my $supervisordServiceDist = "$etcDir/supervisor/conf.d/supervisord.service.conf.dist";
 my $supervisordServiceFile = "$etcDir/supervisor/conf.d/supervisord.service.conf";
+
+my $instanceManagerDist = "$etcDir/supervisor/instance-manager.conf.dist";
+my $instanceManagerFile = "$etcDir/supervisor/instance-manager.conf";
+
+# Initialize files.
+if (!-e $laravelEnvFile) {
+    touch($laravelEnvFile);
+    write_file($laravelEnvFile, "APP_KEY=");
+}
+
+# Generate secret strings.
+my $appKey = `$binDir/php $srcDir/artisan key:generate`;
+my $secret = generate_rand_str();
 
 # Get Configuration and Defaults
 my %cfg = get_configuration();
@@ -131,6 +145,7 @@ sub configure {
     write_openssl_conf();
     write_nginx_conf();
     write_supervisord_service_conf();
+    write_instance_manager_conf();
     write_laravel_env();
 }
 
@@ -175,6 +190,11 @@ sub write_nginx_conf {
 sub write_supervisord_service_conf {
     my %c = %{$cfg{supervisor}};
     write_config_file($supervisordServiceDist, $supervisordServiceFile, %c);
+}
+
+sub write_instance_manager_conf {
+    my %c = %{$cfg{instance_manager}};
+    write_config_file($instanceManagerDist, $instanceManagerFile, %c);
 }
 
 sub write_laravel_env {
@@ -282,6 +302,11 @@ sub request_user_input {
         $cfg{nginx}{SSL_KEY_LINE} = '';
         $cfg{nginx}{INCLUDE_FORCE_SSL_LINE} = '';
     }
+
+    # Set Instance Control Port.
+    my $supervisorPortInt = int($cfg{supervisor}{SUPERVISORCTL_PORT});
+    $supervisorPortInt++;
+    $cfg{instance_manager}{INSTANCECTL_PORT} = "$supervisorPortInt";
     
     # REDIS_HOST
     input('redis', 'REDIS_HOST', 'Redis Host');
@@ -307,6 +332,14 @@ sub merge_defaults {
 
     if (!exists($cfg{supervisor}{SUPERVISORCTL_SECRET})) {
         $cfg{supervisor}{SUPERVISORCTL_SECRET} = $secret;
+    }
+
+    if (!exists($cfg{instance_manager}{INSTANCECTL_USER})) {
+        $cfg{instance_manager}{INSTANCECTL_USER} = $ENV{"LOGNAME"};
+    }
+
+    if (!exists($cfg{instance_manager}{INSTANCECTL_SECRET})) {
+        $cfg{instance_manager}{INSTANCECTL_SECRET} = $secret;
     }
 
     if (!exists($cfg{nginx}{USER})) {

@@ -15,6 +15,7 @@ use Mcol::Utility qw(
     write_file
 );
 our @EXPORT_OK = qw(
+    get_config_file
     get_configuration
     save_configuration
     parse_env_file
@@ -25,6 +26,7 @@ our @EXPORT_OK = qw(
 my $bin = abs_path(dirname(__FILE__) . '/../../');
 my $applicationRoot = abs_path(dirname($bin));
 my $configurationFileName = '.mcol-cfg.yml';
+my $configFile = "$applicationRoot/$configurationFileName";
 
 if (! -d $applicationRoot) {
     die "Directory: \"$applicationRoot\" doesn't exist\n $!";
@@ -36,13 +38,17 @@ if (! -d $applicationRoot) {
 #    Subroutines below this point
 # ====================================
 
+sub get_config_file {
+    return $configFile;
+}
+
 # Returns the configuration hash.
 sub get_configuration {
     my %cfg;
 
     # Read configuration if it exists. Create it if it does not exist
-    if (-e "$applicationRoot/$configurationFileName") {
-        %cfg = LoadFile("$applicationRoot/$configurationFileName");
+    if (-e $configFile) {
+        %cfg = LoadFile($configFile);
     } else {
         print "Creating configuration file\n";
         my $libyaml = YAML::XS::LibYAML::libyaml_version();

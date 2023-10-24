@@ -32,6 +32,7 @@ my @perlModules = (
     'File::Slurper',
     'File::HomeDir',
     'File::Find::Rule',
+    'File::Touch',
     'Term::ANSIScreen',
     'Term::Menus',
     'Term::Prompt',
