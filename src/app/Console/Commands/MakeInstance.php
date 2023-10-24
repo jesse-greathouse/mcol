@@ -8,9 +8,7 @@ use App\Models\Nick,
     App\Models\Network,
     App\Models\Channel;
 
-use Jerodev\PhpIrcClient\IrcClient,
-    Jerodev\PhpIrcClient\IrcChannel,
-    Jerodev\PhpIrcClient\Options\ClientOptions;
+use App\Chat\Client;
 
 class MakeInstance extends Command
 {
@@ -66,24 +64,9 @@ class MakeInstance extends Command
 
         if (!$nick || !$network || !$channel) return;
 
-        $options = new ClientOptions($nick->nick, [$channel->name]);
-
-        $client = new IrcClient("{$network->firstServer->host}:6667", $options);
-        
-        $client->on('registered', function() {
-            $this->info('connected');
-        });
-
-        $client->on('names', function (IrcChannel $channel) {
-            $userList = $channel->getUsers();
-            if (count($userList) > 0) {
-                $this->table(['num', 'users'], $userList);
-            }
-        });
-
+        $client = new Client($nick, $network, $channel, $this);
         $client->connect();
-
-        $client->send('/names');
+        print("last message\n");
     }
 
     /**

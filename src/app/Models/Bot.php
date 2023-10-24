@@ -6,17 +6,17 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Instance extends Model
+class Bot extends Model
 {
     use HasFactory;
 
     protected $guarded = [];
 
     /**
-     * Get the content for the nick.
+     * Get the content for the network.
      */
-    public function client(): BelongsTo
+    public function network(): BelongsTo
     {
-        return $this->belongsTo(Client::class);
+        return $this->belongsTo(Network::class);
     }
 }
