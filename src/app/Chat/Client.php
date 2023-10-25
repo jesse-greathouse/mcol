@@ -8,9 +8,12 @@ use Jerodev\PhpIrcClient\IrcClient,
     Jerodev\PhpIrcClient\IrcChannel,
     Jerodev\PhpIrcClient\Options\ClientOptions;
 
-use App\Models\Nick,
+use App\Models\Client as ClientModel,
+    App\Models\Instance,
+    App\Models\Nick,
     App\Models\Network,
     App\Models\Channel;
+
 use Illuminate\Database\Eloquent\Collection;
 
 class Client 
@@ -36,6 +39,13 @@ class Client
      * @var Command
      */
     protected $console;
+
+    /**
+     * Instance Associated with this client.
+     *
+     * @var Instance
+     */
+    protected $instance;
 
     /**
      * ChannelUpdater instance for this client.
@@ -71,11 +81,49 @@ class Client
     protected function assignHandlers(): void
     {
         $this->registeredHandler();
+        $this->disconnectHandler();
         $this->pingHandler();
         $this->namesHandler();
         $this->messageHandler();
         $this->privMessageHandler();
         $this->kickHandler();
+    }
+
+    protected function registerInstance()
+    {
+        $logUri = $this->getInstanceLogUri();
+        $pid = ($pid = getmypid()) ? $pid : null;
+        $clientId = $this->getClientId();
+
+        $this->instance =  Instance::updateOrCreate(
+            ['client_id' => $clientId],
+            ['status' => Instance::STATUS_UP, 'log_uri' => $logUri, 'pid' => $pid]
+        );
+    }
+
+    protected function getInstanceLogUri(): string
+    {
+        $logDir = env('LOG_DIR', '/var/log');
+
+        $instanceLogDir = "$logDir/instances/{$this->nick->nick}";
+        if (!file_exists($instanceLogDir)) {
+            mkdir($instanceLogDir, 0755, true);
+        }
+
+        return "$instanceLogDir/{$this->network->name}.log";
+    }
+
+    protected function getClientId(): int|null
+    {
+        $client = ClientModel::where('enabled', true)
+                    ->where('network_id', $this->network->id)
+                    ->where('nick_id', $this->nick->id)->first();
+
+        if (null === $client) {
+            return null;
+        } else {
+            return $client->id;
+        }
     }
 
     /**
@@ -104,6 +152,8 @@ class Client
         $this->client->on('registered', function() {
             $this->console->info('connected');
 
+            $this->registerInstance();
+
             $channels = $this->getAllParentChannelsForNetwork($this->network);
 
             foreach($channels as $channel) {
@@ -112,6 +162,20 @@ class Client
                     $this->client->join($child->name);
                 }
             }  
+        });
+    }
+
+    /**
+     * Handles the event of when the client disconnects.
+     *
+     * @return void
+     */
+    public function disconnectHandler(): void
+    {
+        $this->client->on('close', function() {
+            $this->instance->status = Instance::STATUS_DOWN;
+            $this->instance->save();
+            $this->console->error('disconnected');
         });
     }
 

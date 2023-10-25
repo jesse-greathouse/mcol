@@ -27,13 +27,5 @@ class Client extends Model
     {
         return $this->belongsTo(Network::class);
     }
-
-    /**
-     * Get the content for the channel.
-     */
-    public function channel(): BelongsTo
-    {
-        return $this->belongsTo(Channel::class);
-    }
     
 }
