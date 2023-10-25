@@ -22,12 +22,8 @@ class ClientSeeder extends Seeder
     /**
      * @var Array $networks
      */
-    protected Array $channels = [
-        'Abjects' => [
-            'name' => 'moviegods',
-            'nick'  => 'MediaEnjoyer_201',
-            'enabled'  => 1,
-        ]
+    protected Array $clients = [
+        'Abjects' => ['MediaEnjoyer_201'],
     ];
 
 
@@ -40,19 +36,17 @@ class ClientSeeder extends Seeder
         foreach ($this->getNetworks() as $networkName) {
             $network = $this->getNetworkByName($networkName);
 
-            if (isset($this->channels[$network->name])) {
-                ['name' => $name, 'nick' => $nick, 'enabled' => $enabled] = $this->channels[$network->name];
+            if (isset($this->clients[$network->name])) {
+                foreach($this->clients[$network->name] as $name) {
 
-                $channel = $this->getChannelByName($name);
-                if (null === $channel) continue;
+                    $nick = $this->getNickByName($name);
+                    if (null === $nick) continue;
 
-                $n = $this->getNickByName($nick);
-                if (null === $n) continue;
-
-                Client::updateOrCreate(
-                    ['network_id' => $network->id, 'channel_id' => $channel->id, 'nick_id' => $n->id],
-                    ['enabled' => $enabled]
-                );
+                    Client::updateOrCreate(
+                        ['network_id' => $network->id, 'nick_id' => $nick->id],
+                        ['enabled' => true]
+                    );
+                }
             }
         }
     }
@@ -65,16 +59,6 @@ class ClientSeeder extends Seeder
     public function getNetworks(): array
     {
         return $this->networks;
-    }
-
-    /**
-     * Get $networks
-     *
-     * @return  Array
-     */ 
-    public function getChannels(): array
-    {
-        return $this->channels;
     }
 
     /**

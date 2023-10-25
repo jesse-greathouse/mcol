@@ -4,11 +4,12 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 
-use App\Models\Nick,
-    App\Models\Network,
-    App\Models\Channel;
+use App\Models\CLient,
+    App\Models\Instance,
+    App\Models\Nick,
+    App\Models\Network;
 
-use App\Chat\Client\PacketLocatorClient as Client;
+use App\Chat\Client\PacketLocatorClient as IrcClient;
 
 class MakeInstance extends Command
 {
@@ -54,8 +55,27 @@ class MakeInstance extends Command
         
         if (!$nick || !$network) return;
 
-        $client = new Client($nick, $network, $this);
+        $liveInstance = $this->liveInstanceCheck($nick, $network);
+
+        if (null !== $liveInstance) {
+            $this->error("Live instance id:  {$liveInstance->id} status: {$liveInstance->status} found for $nick->nick");
+        }
+
+        $client = new IrcClient($nick, $network, $this);
         $client->connect();
+    }
+
+    protected function liveInstanceCheck(Nick $nick, Network $network): Instance
+    {
+        $client = Client::updateOrCreate(
+            ['network_id' => $network->id, 'nick_id' => $nick->id],
+            ['enabled' => true]
+        );
+
+        return Instance::where('status', Instance::STATUS_UP)
+                        ->where('client_id', $client->id)
+                        ->where('enabled', true)
+                        ->first();
     }
 
     /**

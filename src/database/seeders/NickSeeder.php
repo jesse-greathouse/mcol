@@ -17,7 +17,7 @@ class NickSeeder extends Seeder
      * @var Array
      */
     protected Array $nicks = [
-        'Abjects' => 'MediaEnjoyer_201',
+        'Abjects' => 'MediaEnjoyer_201'
     ];
 
     /**
