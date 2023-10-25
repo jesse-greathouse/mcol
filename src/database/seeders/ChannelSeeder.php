@@ -12,11 +12,11 @@ class ChannelSeeder extends Seeder
 {
     protected Array $channels = [
         'Abjects' => [
-            'moviegods' => [
+            '#moviegods' => [
                 'topic' => '!donate or !donate_de - BoxOwners/Rooters/Donations Needed  #MOVIEGODS - Only channel supporting SSL XDCC -//- If you are new to this type !help -//- Join #MG-Lounge for requests/questions/tv-subs/spam free chat -//- Join #mg-chat', 
                 'users' => 1395,
             ],
-            'beast-xdcc' => [
+            '#beast-xdcc' => [
                 'topic' => ' .:||:. BEAST-XDCC \\\\ FAST speeds, SCENE releases //// NEVER throttled \\\\  join #BEAST-CHAT   ::: http://ixirc.com/?cid=218 NO THROTTLES | NO LOGGING | NO HOMO  :::  BEAST-XDCC ',
                 'users' => 336
             ]
@@ -24,14 +24,14 @@ class ChannelSeeder extends Seeder
     ];
 
     protected Array $children = [
-        'moviegods' => [
-            'mg-chat' => [
+        '#moviegods' => [
+            '#mg-chat' => [
                 'topic' => '!donate or !donate_de - BoxOwners/Rooters/Donations Needed  #MOVIEGODS - Only channel supporting SSL XDCC --//- If you are new to this type !help -//- Join #MG-Lounge for requests/questions/comments/tv-subs/spam free chat -//- Join #MG-Help for help', 
                 'users' => 1369,
             ],
         ],
-        'beast-xdcc' => [
-            'BEAST-CHAT' => [
+        '#beast-xdcc' => [
+            '#BEAST-CHAT' => [
                 'topic' => '', 
                 'users' => 335,
             ],

@@ -8,7 +8,7 @@ use App\Models\Nick,
     App\Models\Network,
     App\Models\Channel;
 
-use App\Chat\Client;
+use App\Chat\Client\PacketLocatorClient as Client;
 
 class MakeInstance extends Command
 {
@@ -27,25 +27,18 @@ class MakeInstance extends Command
     protected $network;
 
     /**
-     * network selected for run
-     *
-     * @var Channel
-     */
-    protected $channel;
-
-    /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'mcol:make-instance {--nick=} {--network=} {--channel=}';
+    protected $signature = 'mcol:make-instance {--nick=} {--network=}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Instantiates an IRC client.';
 
     /**
      * Execute the console command.
@@ -59,14 +52,10 @@ class MakeInstance extends Command
         $network = $this->getNetwork();
         if (!$network) $this->error('A valid --network is required.');
         
-        $channel = $this->getChannel();
-        if (!$channel) $this->error('A valid --$channel is required.');
+        if (!$nick || !$network) return;
 
-        if (!$nick || !$network || !$channel) return;
-
-        $client = new Client($nick, $network, $channel, $this);
+        $client = new Client($nick, $network, $this);
         $client->connect();
-        print("last message\n");
     }
 
     /**
@@ -108,26 +97,5 @@ class MakeInstance extends Command
         }
 
         return $this->network;
-    }
-
-
-    /**
-     * Returns an instance of Channel by any given name.
-     *
-     * @return Channel|null
-     */
-    protected function getChannel(): Channel|null
-    {
-        if (null === $this->channel) {
-            $name = $this->option('channel');
-
-            if (null === $name) {
-                $this->error('A valid --channel is required.');
-            }
-
-            $this->channel = Channel::where('name', $name)->first();
-        }
-
-        return $this->channel;
     }
 }
