@@ -21,7 +21,6 @@ use Mcol::Config qw(
     write_config_file
 );
 use Mcol::Utility qw(splash generate_rand_str write_file);
-
 use Data::Dumper;
 
 our @EXPORT_OK = qw(configure);
@@ -37,7 +36,8 @@ my $etcDir = "$applicationRoot/etc";
 my $tmpDir = "$applicationRoot/tmp";
 my $logDir = "$varDir/log";
 my $uploadDir = "$varDir/upload";
-my $saveDir = "$varDir/cache";
+my $cacheDir = "$varDir/cache";
+my $downloadDir = "$varDir/download";
 
 # Files and Dist
 my $configFile = get_config_file();
@@ -46,6 +46,13 @@ my $errorLog = "$logDir/error.log";
 my $sslCertificate = "$etcDir/ssl/certs/mcol.cert";
 my $sslKey = "$etcDir/ssl/private/mcol.key";
 
+# Config files
+#  -template
+#  -configuration
+#
+# These lines declare the configuration files,
+# and the template files that they will be created from.
+#
 my $initdDist = "$etcDir/init.d/init-template.sh.dist";
 my $initdFile = "$etcDir/init.d/mcol";
 
@@ -70,14 +77,10 @@ my $supervisordServiceFile = "$etcDir/supervisor/conf.d/supervisord.service.conf
 my $instanceManagerDist = "$etcDir/supervisor/instance-manager.conf.dist";
 my $instanceManagerFile = "$etcDir/supervisor/instance-manager.conf";
 
-# Initialize files.
-if (!-e $laravelEnvFile) {
-    touch($laravelEnvFile);
-    write_file($laravelEnvFile, "APP_KEY=");
-}
+# Initialize laravel .env
+my $appKey = generate_app_key();
 
-# Generate secret strings.
-my $appKey = `$binDir/php $srcDir/artisan key:generate`;
+# Generate secret string.
 my $secret = generate_rand_str();
 
 # Get Configuration and Defaults
@@ -91,6 +94,7 @@ my %defaults = (
         APP_DEBUG               => 'true',
         APP_URL                 => 'http://localhost',
         APP_TIMEZONE            => 'UTC',
+        DOWNLOAD_DIR            => $downloadDir,
         LOG_CHANNEL             => 'stack',
         LOG_SLACK_WEBHOOK_URL   => 'none',
         DB_CONNECTION           => 'mysql',
@@ -127,14 +131,12 @@ sub configure {
 
     print (''."\n");
     print ('================================================================='."\n");
-    print (' This will create your application\'s runtime configuration'."\n");
+    print (" This will create the mcol configuration                            \n");
     print ('================================================================='."\n");
     print (''."\n");
 
     request_user_input();
-
     merge_defaults();
-
     save_configuration(%cfg);
 
     # Create configuration files
@@ -147,6 +149,16 @@ sub configure {
     write_supervisord_service_conf();
     write_instance_manager_conf();
     write_laravel_env();
+}
+
+sub generate_app_key {
+    # Laravel needs an .env file with this empty APP_KEY to encrypt a key with the console.
+    if (!-e $laravelEnvFile) {
+        touch($laravelEnvFile);
+        write_file($laravelEnvFile, "APP_KEY=");
+    }
+
+    return `$binDir/php $srcDir/artisan key:generate`;
 }
 
 sub write_initd_script {
@@ -236,6 +248,9 @@ sub request_user_input {
     
     # APP_TIMEZONE
     input('laravel', 'APP_TIMEZONE', 'App Timezone');
+
+    # DOWNLOAD_DIR
+    input('laravel', 'DOWNLOAD_DIR', 'Download Directory');
     
     # LOG_CHANNEL
     input('laravel', 'LOG_CHANNEL', 'Log Channel');
@@ -295,7 +310,7 @@ sub request_user_input {
         # Configure supervisorctl port
         my $portInt = int($cfg{nginx}{PORT});
         $portInt++;
-        $cfg{supervisor}{SUPERVISORCTL_PORT} = "$portInt";
+        $cfg{supervisor}{SUPERVISORCTL_PORT} = $portInt;
 
         $cfg{nginx}{SSL} = '';
         $cfg{nginx}{SSL_CERT_LINE} = '';
@@ -306,7 +321,7 @@ sub request_user_input {
     # Set Instance Control Port.
     my $supervisorPortInt = int($cfg{supervisor}{SUPERVISORCTL_PORT});
     $supervisorPortInt++;
-    $cfg{instance_manager}{INSTANCECTL_PORT} = "$supervisorPortInt";
+    $cfg{instance_manager}{INSTANCECTL_PORT} = $supervisorPortInt;
     
     # REDIS_HOST
     input('redis', 'REDIS_HOST', 'Redis Host');
@@ -314,64 +329,79 @@ sub request_user_input {
 
 sub merge_defaults {
 
+    if (!exists($cfg{supervisor}{SUPERVISORCTL_USER})) {
+        $cfg{supervisor}{SUPERVISORCTL_USER} = $ENV{"LOGNAME"};
+        $cfg{laravel}{SUPERVISORCTL_USER} = $ENV{"LOGNAME"};
+    }
+
+    if (!exists($cfg{supervisor}{SUPERVISORCTL_SECRET})) {
+        $cfg{supervisor}{SUPERVISORCTL_SECRET} = $secret;
+        $cfg{laravel}{SUPERVISORCTL_SECRET} = $secret;
+    }
+
+    if (!exists($cfg{instance_manager}{INSTANCECTL_USER})) {
+        $cfg{instance_manager}{INSTANCECTL_USER} = $ENV{"LOGNAME"};
+        $cfg{laravel}{INSTANCECTL_USER} = $ENV{"LOGNAME"};
+    }
+
+    if (!exists($cfg{instance_manager}{INSTANCECTL_SECRET})) {
+        $cfg{instance_manager}{INSTANCECTL_SECRET} = $secret;
+        $cfg{laravel}{INSTANCECTL_SECRET} = $secret;
+    }
+
     if (!exists($cfg{laravel}{LOG_URI})) {
         $cfg{laravel}{LOG_URI} = $errorLog;
     }
 
+    if (!exists($cfg{laravel}{DOWNLOAD_DIR})) {
+        $cfg{laravel}{DOWNLOAD_DIR} = $downloadDir;
+    }
+
     if (!exists($cfg{laravel}{CACHE_DIR})) {
-        $cfg{laravel}{CACHE_DIR} = $varDir;
+        $cfg{laravel}{CACHE_DIR} = $cacheDir;
     }
 
     if (!exists($cfg{laravel}{LOG_DIR})) {
         $cfg{laravel}{LOG_DIR} = $logDir;
     }
 
-    if (!exists($cfg{supervisor}{SUPERVISORCTL_USER})) {
-        $cfg{supervisor}{SUPERVISORCTL_USER} = $ENV{"LOGNAME"};
-    }
-
-    if (!exists($cfg{supervisor}{SUPERVISORCTL_SECRET})) {
-        $cfg{supervisor}{SUPERVISORCTL_SECRET} = $secret;
-    }
-
-    if (!exists($cfg{instance_manager}{INSTANCECTL_USER})) {
-        $cfg{instance_manager}{INSTANCECTL_USER} = $ENV{"LOGNAME"};
-    }
-
-    if (!exists($cfg{instance_manager}{INSTANCECTL_SECRET})) {
-        $cfg{instance_manager}{INSTANCECTL_SECRET} = $secret;
-    }
-
     if (!exists($cfg{nginx}{USER})) {
+        $cfg{laravel}{USER} = $ENV{"LOGNAME"};
         $cfg{nginx}{USER} = $ENV{"LOGNAME"};
     }
 
-    if (!exists($cfg{nginx}{SESSION_SECRET})) {
-        $cfg{nginx}{SESSION_SECRET} = $secret;
-    }
-
     if (!exists($cfg{nginx}{LOG})) {
+        $cfg{laravel}{LOG} = $errorLog;
         $cfg{nginx}{LOG} = $errorLog;
     }
 
     if (!exists($cfg{nginx}{DIR})) {
+        $cfg{laravel}{DIR} = $applicationRoot;
         $cfg{nginx}{DIR} = $applicationRoot;
     }
 
     if (!exists($cfg{nginx}{VAR})) {
+        $cfg{laravel}{VAR} = $varDir;
         $cfg{nginx}{VAR} = $varDir;
     }
 
     if (!exists($cfg{nginx}{ETC})) {
+        $cfg{laravel}{ETC} = $etcDir;
         $cfg{nginx}{ETC} = $etcDir;
     }
 
     if (!exists($cfg{nginx}{WEB})) {
+        $cfg{laravel}{WEB} = $webDir;
         $cfg{nginx}{WEB} = $webDir;
     }
 
     if (!exists($cfg{nginx}{SRC})) {
+        $cfg{laravel}{SRC} = $srcDir;
         $cfg{nginx}{SRC} = $srcDir;
+    }
+
+    if (!exists($cfg{nginx}{SESSION_SECRET})) {
+        $cfg{nginx}{SESSION_SECRET} = $secret;
     }
 }
 

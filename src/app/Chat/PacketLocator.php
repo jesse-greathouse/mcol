@@ -11,6 +11,15 @@ class PacketLocator
 {
     const PACKET_MASK = '/#([0-9]+)\s+([0-9]+)x\s+\[([0-9B-k\.\s]+)\]\s+(.+)/';
 
+    /**
+     * Locates a packet in the Message and returns a Packet Object.
+     *
+     * @param string $message
+     * @param string $botName
+     * @param Network $network
+     * @param Channel $channel
+     * @return Packet|null
+     */
     public function locate(string $message, string $botName, Network $network, Channel $channel): Packet|null
     {
         $message = $this->cleanMessage($message);
@@ -33,6 +42,13 @@ class PacketLocator
         return $packet;
     }
 
+    /**
+     * Clean's the message to remove any unwanted ascii characters,
+     * and remove redundant spaces.
+     *
+     * @param string $message
+     * @return string
+     */
     protected function cleanMessage(string $message): string
     {
         // Removes control characters from string.
@@ -44,21 +60,28 @@ class PacketLocator
         return $text;
     }
 
-    protected function extractPacket($text): array
+    /**
+     * Extract packet data from the message.
+     *
+     * @param [type] $text
+     * @return array|null
+     */
+    protected function extractPacket($text): array|null
     {
-        $text = preg_replace("/\[/", "", $text);
-        $text = preg_replace("/\]/", "", $text);
-        $text = preg_replace("/\s+/", " ", $text);
-        $parts = explode(' ', $text);
-        $number = $this->matchPacket($parts[0]);
-        $gets = str_replace('x', '', $parts[1]);
-        $size = $parts[2];
-        $fileName = $parts[3];
-        $fileName = preg_replace('/[\x00-\x1F\x7F]/', '', $fileName);
+        $matches = [];
+        if (preg_match(self::PACKET_MASK, $text, $matches)) {
+            return [$matches[1], $matches[2], $matches[3], $matches[4]];
+        }
 
-        return [$number, $gets, $size, $fileName];
+        return null;
     }
 
+    /**
+     * Tests if a packet can be extracted from the message.
+     *
+     * @param string $text
+     * @return boolean
+     */
     protected function isPacket(string $text): bool
     {
         $match = $this->matchPacket($text);
@@ -70,11 +93,17 @@ class PacketLocator
         }
     }
 
+    /**
+     * Matches packet data.
+     *
+     * @param string $text
+     * @return string|null
+     */
     protected function matchPacket(string $text): string|null
     {
         $matches = [];
 
-        if (preg_match('/#([0-9]+)/', $text, $matches)) {
+        if (preg_match(self::PACKET_MASK, $text, $matches)) {
             return $matches[1];
         }
 
