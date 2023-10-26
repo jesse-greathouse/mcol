@@ -17,8 +17,6 @@ use App\Chat\LogDiverter,
 
 use Illuminate\Database\Eloquent\Collection;
 
-use function Ramsey\Uuid\v1;
-
 class Client 
 {
 
@@ -204,7 +202,6 @@ class Client
     public function DccHandler(): void
     {
         $this->client->on('dcc', function($action, $fileName, $ip, $port, $fileSize) {
-            
             $this->console->warn("A DCC event has been sent, with the following information:\n\n");
             $this->console->warn("action $action, fileName: $fileName, ip: $ip, port: $port, fileSize: $fileSize\n\n");
         });
