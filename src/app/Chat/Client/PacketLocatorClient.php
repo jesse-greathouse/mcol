@@ -66,11 +66,11 @@ class PacketLocatorClient extends Client
         $this->client->on('message', function (string $from, IrcChannel $channel = null, string $message) {
             # Record downloadable packet #'s in the message.
             # Only record packet #'s if this is a parent channel.
-            $c = $this->getChannelFromName($channel->getName());
-            if (null !== $channel && null === $c->parent) {
-                $packet = $this->packetLocator->locate($message, $from, $this->network, $c);
-                if (null !== $packet) {
-                    $this->console->info("{$packet->size} {$packet->file_name} [ /msg {$packet->bot->nick}: XDCC send #{$packet->number} ]");
+            
+            if (null !== $channel) {
+                $c = $this->getChannelFromName($channel->getName());
+                if (null === $c->parent) {
+                    $this->packetLocator->locate($message, $from, $this->network, $c);
                 }
             }
         });

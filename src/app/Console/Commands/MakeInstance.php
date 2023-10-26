@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 
-use App\Models\CLient,
+use App\Models\Client,
     App\Models\Instance,
     App\Models\Nick,
     App\Models\Network;
@@ -65,7 +65,14 @@ class MakeInstance extends Command
         $client->connect();
     }
 
-    protected function liveInstanceCheck(Nick $nick, Network $network): Instance
+    /**
+     * Return an instance of a "liveInstance" or null.
+     *
+     * @param Nick $nick
+     * @param Network $network
+     * @return Instance|null
+     */
+    protected function liveInstanceCheck(Nick $nick, Network $network): Instance|null
     {
         $client = Client::updateOrCreate(
             ['network_id' => $network->id, 'nick_id' => $nick->id],

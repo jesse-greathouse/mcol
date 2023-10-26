@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('operations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('command')->constrained();
+            $table->longText('command')->constrained();
             $table->string('status')->index()->default(Operation::STATUS_PENDING);
             $table->boolean('enabled')->index()->default(true);
             $table->foreignId('instance_id')->constrained();
