@@ -11,13 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('clients', function (Blueprint $table) {
-            $table->id();
+        Schema::table('operations', function (Blueprint $table) {
             $table->timestamps();
-            $table->boolean('enabled')->default(true);
-            $table->foreignId('network_id')->constrained();
-            $table->foreignId('nick_id')->constrained();
-            $table->unique(['network_id', 'nick_id']);
         });
     }
 
@@ -26,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('clients');
+        Schema::table('operations', function (Blueprint $table) {
+            //
+        });
     }
 };

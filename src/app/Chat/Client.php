@@ -8,7 +8,8 @@ use Jerodev\PhpIrcClient\IrcClient,
     Jerodev\PhpIrcClient\IrcChannel,
     Jerodev\PhpIrcClient\Options\ClientOptions;
 
-use App\Models\Client as ClientModel,
+use App\Chat\LogDiverter,
+    App\Models\Client as ClientModel,
     App\Models\Instance,
     App\Models\Nick,
     App\Models\Network,
@@ -16,8 +17,17 @@ use App\Models\Client as ClientModel,
 
 use Illuminate\Database\Eloquent\Collection;
 
+use function Ramsey\Uuid\v1;
+
 class Client 
 {
+
+    /**
+     * Client Id
+     *
+     * @var Int
+     */
+    protected $clientId;
 
     /**
      * Nick selected for run
@@ -55,6 +65,20 @@ class Client
     protected $channelUpdater;
 
     /**
+     * LogDiverter instance for this client.
+     *
+     * @var LogDiverter
+     */
+    protected $logDiverter;
+
+    /**
+     * OperationManager instance for this client.
+     *
+     * @var OperationManager
+     */
+    protected $operationManager;
+
+    /**
      * IRC client
      * 
      * @var IrcClient
@@ -66,6 +90,7 @@ class Client
         $this->network = $network;
         $this->console = $console;
         $this->channelUpdater = new ChannelUpdater();
+        $this->logDiverter = new LogDiverter($this->getInstanceLogUri());
 
         $options = new ClientOptions($nick->nick);
 
@@ -80,6 +105,8 @@ class Client
      */
     protected function assignHandlers(): void
     {
+        $this->noticeHandler();
+        $this->joinHandler();
         $this->registeredHandler();
         $this->disconnectHandler();
         $this->pingHandler();
@@ -93,12 +120,13 @@ class Client
     {
         $logUri = $this->getInstanceLogUri();
         $pid = ($pid = getmypid()) ? $pid : null;
-        $clientId = $this->getClientId();
 
         $this->instance =  Instance::updateOrCreate(
-            ['client_id' => $clientId],
+            ['client_id' => $this->getClientId()],
             ['status' => Instance::STATUS_UP, 'log_uri' => $logUri, 'pid' => $pid]
         );
+
+        $this->operationManager = new OperationManager($this->client, $this->instance);
     }
 
     protected function getInstanceLogUri(): string
@@ -110,20 +138,46 @@ class Client
             mkdir($instanceLogDir, 0755, true);
         }
 
-        return "$instanceLogDir/{$this->network->name}.log";
+        $logfile = "$instanceLogDir/{$this->network->name}.log";
+        touch($logfile);
+        return $logfile;
     }
 
+    /**
+     * Returns the client id of the currently running client.
+     * Null if the client has not been instantiated.
+     *
+     * @return integer|null
+     */
     protected function getClientId(): int|null
     {
-        $client = ClientModel::where('enabled', true)
-                    ->where('network_id', $this->network->id)
-                    ->where('nick_id', $this->nick->id)->first();
+        // Returns the id of a Client Model. 
+        // Save id to refrain future DBAL client calls in long-running processes.
+        if (null === $this->clientId) {
+            $client = ClientModel::where('enabled', true)
+                        ->where('network_id', $this->network->id)
+                        ->where('nick_id', $this->nick->id)->first();
 
-        if (null === $client) {
-            return null;
-        } else {
-            return $client->id;
+            if (null === $client) {
+                return null;
+            } else {
+                $this->clientId = $client->id;
+            }
         }
+
+        return $this->clientId;
+    }
+
+    /**
+     * Handles a join event.
+     *
+     * @return void
+     */
+    public function joinHandler(): void
+    {
+        $this->client->on('joinInfo', function(string $user, string $channelName) {
+            $this->console->info("$user joined $channelName");
+        });
     }
 
     /**
@@ -139,6 +193,20 @@ class Client
 
             # Update the Channel Metadata
             $this->channelUpdater->update($channel);
+        });
+    }
+
+    /**
+     * Handles a dcc event.
+     *
+     * @return void
+     */
+    public function DccHandler(): void
+    {
+        $this->client->on('dcc', function($action, $fileName, $ip, $port, $fileSize) {
+            
+            $this->console->warn("A DCC event has been sent, with the following information:\n\n");
+            $this->console->warn("action $action, fileName: $fileName, ip: $ip, port: $port, fileSize: $fileSize\n\n");
         });
     }
 
@@ -187,6 +255,8 @@ class Client
     public function privMessageHandler(): void
     {
         $this->client->on('privmsg', function (string $userName, $target, string $message) {
+            # Divert message to the log for this instance.
+            $this->logDiverter->log("$userName to: $target: $message");
             $this->console->warn("$userName to $target says: $message");
         });
     }
@@ -198,13 +268,65 @@ class Client
      */
     public function messageHandler(): void
     {
-        $this->client->on('message', function (string $from, IrcChannel $channel, string $message) {
-            $this->console->line($channel->getName() . " @$from: $message");
+        $this->client->on('message', function (string $from, IrcChannel $channel = null, string $message) {
+            $line = '';
 
-            # Update the Channel Metadata
-            $this->channelUpdater->update($channel);
+            if (null !== $channel) {
+                # Update the Channel Metadata.
+                $this->channelUpdater->update($channel);
+                $line .= $channel->getName();
+            } else {
+                $this->console->warn("$from says: $message");
+            }
+
+            $line .= " @$from: $message";
+
+            # Divert message to the log for this instance.
+            $this->logDiverter->log($line);
+
+            # Do any pending operations.
+            $this->operationManager->doOperations();
+        });
+
+        $this->client->on("message{$this->nick->nick}", function (string $from, IrcChannel $channel = null, string $message) {
+            $line = '';
+
+            if (null !== $channel) {
+                # Update the Channel Metadata.
+                $this->channelUpdater->update($channel);
+                $line .= $channel->getName();
+            }
+
+            $line .= " @$from: $message";
+
+            $this->console->warn($line);
+
+            # Divert message to the log for this instance.
+            $this->logDiverter->log($line);
         });
     }
+
+    /**
+     * Handles notices.
+     *
+     * @return void
+     */
+    public function noticeHandler(): void
+    {
+        $this->client->on('notice', function (string $notice) {
+            $clean  = PacketLocator::cleanMessage($notice);
+            $parts = explode(' ', $clean);
+            $subject = array_shift($parts);
+            $txt = implode(' ', $parts);
+            
+            if ($subject !== $this->nick->nick) {
+                $txt = "$subject $txt";
+            }
+    
+            $this->console->warn(" ========[  $txt ");
+        });
+    }
+
 
     /**
      * Handles Ping events.
@@ -259,6 +381,12 @@ class Client
         return Channel::where('name', $name)->first();
     }
 
+    /**
+     * Get only channels that are parents.
+     *
+     * @param NetWork $network
+     * @return Collection
+     */
     protected function getAllParentChannelsForNetwork(NetWork $network): Collection
     {
         return Channel::where('channel_id', null)

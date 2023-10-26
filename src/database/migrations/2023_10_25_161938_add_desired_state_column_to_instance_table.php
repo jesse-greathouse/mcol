@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('instance', function (Blueprint $table) {
+        Schema::table('instances', function (Blueprint $table) {
             $table->string('desired_status')->default(Instance::STATUS_UP);
             $table->string('status')->default(Instance::STATUS_DOWN)->change();
         });
@@ -24,7 +24,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('instance', function (Blueprint $table) {
+        Schema::table('instances', function (Blueprint $table) {
             $table->dropColumn('desired_status');
             $table->string('status')->default('down')->change();
         });

@@ -22,7 +22,7 @@ class PacketLocator
      */
     public function locate(string $message, string $botName, Network $network, Channel $channel): Packet|null
     {
-        $message = $this->cleanMessage($message);
+        $message = self::cleanMessage($message);
 
         if (!$this->isPacket($message)) {
             return null;
@@ -49,7 +49,7 @@ class PacketLocator
      * @param string $message
      * @return string
      */
-    protected function cleanMessage(string $message): string
+    public static function cleanMessage(string $message): string
     {
         // Removes control characters from string.
         $text = preg_replace('/[\x00-\x1F\x7F]/', '', $message);
