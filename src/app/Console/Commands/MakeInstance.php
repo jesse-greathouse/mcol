@@ -58,7 +58,7 @@ class MakeInstance extends Command
         $liveInstance = $this->liveInstanceCheck($nick, $network);
 
         if (null !== $liveInstance) {
-            $this->error("Live instance id:  {$liveInstance->id} status: {$liveInstance->status} found for $nick->nick");
+            $this->info("Live instance id: {$liveInstance->id} status: {$liveInstance->status} found for $nick->nick");
         }
 
         $client = new IrcClient($nick, $network, $this);
