@@ -48,5 +48,4 @@ class OperationManager
             $operation->save();
         }
     }
-
 }

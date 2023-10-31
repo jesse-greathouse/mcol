@@ -4,26 +4,21 @@ namespace App\Dcc;
 
 use Illuminate\Console\Command;
 
-use React\EventLoop\Loop;
-
-use App\Models\Nick,
-    App\Models\Network;
+use App\Models\Download,
+    App\Models\Packet;
 
 class Client
 {
-    /**
-     * Nick selected for run
-     *
-     * @var Nick
-     */
-    protected $nick;
+    const CHUNK_BYTES = 2048;
+
+    const UPDATE_INTERVAL = 15; # 15 seconds
 
     /**
-     * network selected for run
+     * timestamp of last update.
      *
-     * @var Network
+     * @var integer
      */
-    protected $network;
+    protected $lastUpdate;
 
     /**
      * Console for using this client
@@ -32,63 +27,94 @@ class Client
      */
     protected $console;
 
-    public function __construct(Nick $nick, Network $network, Command $console) {
-        $this->nick = $nick;
-        $this->network = $network;
+    public function __construct(Command $console) {
         $this->console = $console;
     }
 
-    public function open(string $host, string $downloadUri = null)
+    /**
+     * Opens a connection for downloading a file.
+     *
+     * @param string $host
+     * @param string $port
+     * @param string $fileName
+     * @param int|null $fileSize
+     * @return void
+     */
+    public function open(string $host, string $port, string $fileName, int $fileSize = null): void
     {
-        if (null !== $downloadUri) {
-            $port = $this->findAvailablePort();
-            $stream = stream_socket_server("tcp://$host:$port");
-            stream_set_blocking($stream, false);
-            $loop = Loop::get();
+        $bytes = 0;
+        $downloadDir = env('DOWNLOAD_DIR', '/var/download');
+        $uri = "$downloadDir/$fileName";
+        $fp = stream_socket_client("tcp://$host:$port", $errno, $errstr);
 
-            $loop->addReadStream($stream, function ($stream) use ($downloadUri) {
-                $file = fopen($downloadUri, 'a')
-                    or die("Unable to open download uri: {$downloadUri}!");
+        if (file_exists($uri)) {
+            $bytes = filesize($uri);
+        }
 
-                // Read the stream to the file in 1k chunks.
-                while (!feof($stream)) {
-                    $chunk = fread($stream, 1024);
+        $file = fopen($uri, 'a');
+        $download = $this->registerDownload($uri, $fileName, $fileSize, $bytes);
 
-                    if ($chunk === '') {
-                        $this->console->line('[END]' . PHP_EOL);
-                        Loop::removeReadStream($stream);
-                        fclose($stream);
-                        fclose($file);
-                        return;
-                    }
+        if (!$fp) {
+            echo "$errstr ($errno)<br />\n";
+        } else {
+            while (!feof($fp)) {
+                $chunk = fgets($fp, self::CHUNK_BYTES);
+                $download->progress_bytes += self::CHUNK_BYTES;
+                fwrite($file, $chunk);
 
-                    fwrite($file, $chunk);
+                // Only save the progress every n intervals for performance.
+                if ($this->shouldUpdate()) {
+                    $download->status = Download::STATUS_INCOMPLETE;
+                    $download->save();
                 }
+            }
 
-                fclose($file);
-            });
+            $meta = stream_get_meta_data($file);
+            if (isset($meta['uri'])) {
+                $download->progress_bytes = filesize($meta['uri']);
+            }
 
-            $loop->addPeriodicTimer(5, function () {
-                $memory = memory_get_usage() / 1024;
-                $formatted = number_format($memory, 3).'K';
-                $this->console->line("Current memory usage: {$formatted}");
-            });
+            $download->status = Download::STATUS_COMPLETED;
+            $download->save();
 
-            $loop->run();
+            fclose($file);
+            fclose($fp);
         }
     }
 
     /**
-     * Attempts to find an available port.
+     * Should the client update the progress counter.
+     *
+     * @return boolean
      */
-    private function findAvailablePort(): int
+    public function shouldUpdate(): bool
     {
-        $port = null;
-        $address = 'localhost';
-        $sock = socket_create(AF_INET, SOCK_STREAM, 0);
-        socket_bind($sock, $address, 0) or die('Could Not Bind Socket');
-        socket_getsockname($sock, $address, $port);
-        socket_close($sock);
-        return $port;
+        $now = time();
+        
+        if (null === $this->lastUpdate) {
+            $this->lastUpdate = $now;
+            return true;
+        }
+
+        $interval = $now - $this->lastUpdate;
+
+        if ($interval >= self::UPDATE_INTERVAL) {
+            $this->lastUpdate = $now;
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function registerDownload(string $uri, string $fileName, int $fileSize = null, int $bytes = null): Download
+    {
+        $packet = Packet::where('file_name', $fileName)->first();
+
+        $download = Download::updateOrCreate(
+            ['packet_id' => $packet->id],
+            ['status' => Download::STATUS_INCOMPLETE, 'file_uri' => $uri, 'file_size_bytes' => $fileSize, 'progress_bytes' => $bytes], 
+        );
+
+        return $download;
     }
 }
