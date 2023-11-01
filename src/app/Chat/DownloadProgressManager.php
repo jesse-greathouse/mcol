@@ -58,7 +58,7 @@ class DownloadProgressManager
 
                 if ($download->status === Download::STATUS_QUEUED) {
                     $total = (null === $download->queued_status) ? '?' : $download->queued_total;
-                    $progress = "Q: {$download->queued_status} / $total";
+                    $progress = " {$download->queued_status} / $total";
                 } else if ($download->file_size_bytes && $download->progress_bytes) {
                     $num = (string) ceil(($download->progress_bytes / ($download->file_size_bytes * 10)) * 100);
                     $progress = "$num %";
@@ -102,7 +102,7 @@ class DownloadProgressManager
     public function sortRows(array $a, array $b)
     {
         // Sort on the progress column.
-        return strcmp(substr($a[1], 0, 5), substr($b[1], 0, 5));
+        return strcmp(substr($b[1], 0, 5), substr($a[1], 0, 5));
     }
 
     /**

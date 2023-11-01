@@ -4,7 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 
-use App\Dcc\Client;
+use App\Dcc\Client,
+    App\Models\Bot;
 
 class MakeDcc extends Command
 {
@@ -37,11 +38,18 @@ class MakeDcc extends Command
     protected $fileSize;
 
     /**
+     * Name of the bot.
+     *
+     * @var Bot
+     */
+    protected $bot;
+
+    /**
      * The name of the file.
      *
      * @var string
      */
-    protected $signature = 'mcol:make-dcc {--host=} {--port=} {--file=} {--file-size=} {--resume=0}';
+    protected $signature = 'mcol:make-dcc {--host=} {--port=} {--file=} {--file-size=} {--bot=} {--resume=0}';
 
     /**
      * The console command description.
@@ -64,14 +72,41 @@ class MakeDcc extends Command
         $file = $this->getFile();
         if (!$file) $this->error('A valid --file is required.');
 
+        $bot = $this->getBot();
+        if (!$bot) $this->error('A valid --bot is required.');
+
         $fileSize = $this->getFileSize();
 
         $resume = ($this->option('resume')) ? true : false;
         
-        if (!$host || !$port || !$file) return;
+        if (!$host || !$port || !$file || !$bot) return;
 
         $dcc = new Client($this);
-        $dcc->open(long2ip($host), $port, $file, $fileSize);
+        $dcc->open(long2ip($host), $port, $file, $fileSize, $bot->id);
+    }
+
+    /**
+     * Returns a Bot or null.
+     *
+     * @return Bot|null
+     */
+    protected function getBot(): Bot|null
+    {
+        if (null === $this->bot) {
+            $nick = $this->option('bot');
+
+            if (null === $nick) {
+                $this->error('--bot is required.');
+            }
+
+            $bot = Bot::where('nick', $nick)->first();
+
+            if (null !== $bot) {
+                $this->bot = $bot;
+            }
+        }
+
+        return $this->bot;
     }
 
     /**
