@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('downloads', function (Blueprint $table) {
             $table->bigInteger('file_size_bytes')->nullable();
             $table->bigInteger('progress_bytes')->nullable();
-            $table->integer('queued_Total')->nullable();
+            $table->integer('queued_total')->nullable();
             $table->integer('queued_status')->nullable();
         });
     }

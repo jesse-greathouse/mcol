@@ -272,7 +272,7 @@ class Client
             # Divert message to the log for this instance.
             $this->logDiverter->log("$userName to: $target: $message");
             $this->console->warn("$userName to $target says: $message");
-            $dir= env('DIR', '/usr');
+            $dir = env('DIR', '/usr');
             $src = env('SRC', '/usr/src');
             $bin = "$dir/bin";
 
@@ -300,9 +300,9 @@ class Client
                 }
 
                 if ($newRequest) {
-                    $this->console->warn("RUNNING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln");
+                    $this->console->warn("RUNNING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln --bot='$userName'");
 
-                    Process::path($src)->start("$bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln", function (string $type, string $output) {
+                    Process::path($src)->start("$bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln --bot='$userName'", function (string $type, string $output) {
                         $this->console->info("Command $type output: $output");
                     });
                 }
@@ -314,9 +314,9 @@ class Client
                 $ipCln = $this->clnNumericStr($ip);
                 $portCln = $this->clnNumericStr($port);
 
-                $this->console->warn("RESUMING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileSizeCln --resume");
+                $this->console->warn("RESUMING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileSizeCln  --bot='$userName' --resume");
 
-                Process::path($src)->start("$bin/php $src/artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln --resume", function (string $type, string $output) {
+                Process::path($src)->start("$bin/php $src/artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln  --bot='$userName' --resume", function (string $type, string $output) {
                     $this->console->info("Command $type output: $output");
                 });
             }
@@ -442,11 +442,16 @@ class Client
         $cacheDir = env('CACHE_DIR', '/usr/var');
         $downloadsDir = "$cacheDir/download";
 
-        [$packetId, $file, $position] = $this->extractQueuedResponse($txt);
-        Download::updateOrCreate(
-            [ 'file_uri' => "$downloadsDir/$file", 'packet_id' => $packetId ],
-            [ 'status' => Download::STATUS_QUEUED, 'queued_status' => $position ]
-        );
+        [$packetNumber, $file, $position] = $this->extractQueuedResponse($txt);
+
+        $packet = Packet::where('number', trim($packetNumber))->where('file_name', $file)->first();
+
+        if ($packet) {
+            Download::updateOrCreate(
+                [ 'file_uri' => "$downloadsDir/$file", 'packet_id' => $packet->id ],
+                [ 'status' => Download::STATUS_QUEUED, 'queued_status' => $position ]
+            );
+        }
 
     }
 
@@ -473,6 +478,12 @@ class Client
         }
     }
 
+    /**
+     * Extracts the $file, $position, $total values from the line.
+     *
+     * @param string $txt
+     * @return [$file, $position, $total]
+     */
     public function extractQueuedState(string $txt): array
     {
         $matches = [];
@@ -483,6 +494,12 @@ class Client
         return $matches;
     }
 
+    /**
+     * Extracts the $packetId, $file, $position values from the line.
+     *
+     * @param string $txt
+     * @return [$packetId, $file, $position]
+     */
     public function extractQueuedResponse(string $txt): array
     {
         $matches = [];
