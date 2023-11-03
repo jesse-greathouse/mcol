@@ -56,7 +56,7 @@ class DownloadProgressManager
             foreach($downloads as $download) {
                 $progress = "? %";
 
-                if ($download->status === Download::STATUS_QUEUED) {
+                if ($download->isQueued()) {
                     $total = (null === $download->queued_status) ? '?' : $download->queued_total;
                     $progress = " {$download->queued_status} / $total";
                 } else if ($download->file_size_bytes && $download->progress_bytes) {

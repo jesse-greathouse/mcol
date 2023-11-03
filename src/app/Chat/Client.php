@@ -391,7 +391,11 @@ class Client
             if ($this->isQueuedNotification($txt)) {
                 $this->doQueuedStateChange($txt);
             } else if ($this->isQueuedResponse($txt)) {
-                $this->markAsQeueued($txt);
+                $packet = $this->markAsQeueued($txt);
+                if ($packet) {
+                    $this->console->warn(" ========[  Queued for #{$packet->number} {$packet->file_name} - {$packet->size}");
+                }
+                return;
             }
     
             $this->console->warn(" ========[  $txt ");
@@ -435,16 +439,16 @@ class Client
      * Parses the response that a download was queued.
      *
      * @param string $txt
-     * @return void
+     * @return Packet|null
      */
-    public function markAsQeueued(string $txt): void
+    public function markAsQeueued(string $txt): Packet|null
     {
         $cacheDir = env('CACHE_DIR', '/usr/var');
         $downloadsDir = "$cacheDir/download";
 
         [$packetNumber, $file, $position] = $this->extractQueuedResponse($txt);
 
-        $packet = Packet::where('number', trim($packetNumber))->where('file_name', $file)->first();
+        $packet = Packet::where('number', trim($packetNumber))->where('file_name', $file)->orderByDesc('created_at')->first();
 
         if ($packet) {
             Download::updateOrCreate(
@@ -452,6 +456,8 @@ class Client
                 [ 'status' => Download::STATUS_QUEUED, 'queued_status' => $position ]
             );
         }
+
+        return $packet;
 
     }
 
@@ -498,7 +504,7 @@ class Client
      * Extracts the $packetId, $file, $position values from the line.
      *
      * @param string $txt
-     * @return [$packetId, $file, $position]
+     * @return [$packetNum, $file, $position]
      */
     public function extractQueuedResponse(string $txt): array
     {
