@@ -47,7 +47,7 @@ class Client
         $bytes = 0;
         $downloadDir = env('DOWNLOAD_DIR', '/var/download');
         $uri = "$downloadDir/$fileName";
-        $packet = Packet::where('file_name', $fileName)->where('bot_id', $botId)->first();
+        $packet = Packet::where('file_name', $fileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
 
         if (!$packet) {
             throw new IllegalPacketException("Packet with bot id: $botId and file: $fileName were expected but not found");
