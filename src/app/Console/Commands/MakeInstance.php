@@ -79,10 +79,17 @@ class MakeInstance extends Command
             ['enabled' => true]
         );
 
-        return Instance::where('status', Instance::STATUS_UP)
-                        ->where('client_id', $client->id)
-                        ->where('enabled', true)
-                        ->first();
+        if ($client) {
+            $pid = getmypid();
+            $instance = Instance::updateOrCreate(
+                ['client_id' => $client->id],
+                ['status' => Instance::STATUS_UP, 'enabled' => true, 'pid' => $pid]
+            );
+
+            return $instance;
+        }
+
+        return null;
     }
 
     /**
