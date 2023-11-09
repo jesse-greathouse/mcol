@@ -94,8 +94,7 @@ class Chat extends Command
 
         $op = Operation::create(
             [
-                'instance_id' => $instance->id, 
-                'command' => $this->message, 
+                'instance_id' => $instance->id,
                 'status' => Operation::STATUS_PENDING, 
                 'command' => $command,
             ]
@@ -141,7 +140,7 @@ class Chat extends Command
 
     }
 
-    public function getNetwork(): Network
+    public function getNetwork(): Network|null
     {
         if (null === $this->network) {
             $networkName = $this->argument('network');
@@ -156,7 +155,7 @@ class Chat extends Command
         return $this->network;
     }
 
-    public function getInstanceFrom(): Network
+    public function getInstanceFrom(): Network|null
     {
         if (null === $this->network) {
             $networkName = $this->argument('network');
