@@ -2,10 +2,10 @@
 
 @foreach ($instances as $instance)
     
-    <div class="window" style="margin: 32px; width: 250px">
+    <div class="window" style="margin: 32px; width: 100%">
         <div class="title-bar">
         <div class="title-bar-text">
-            Chat Console Instance: {{ $instance->id }}
+            Chat Instance: {{ $instance->client->nick->nick }} @ {{ $instance->client->network->name }}
         </div>
 
         <div class="title-bar-controls">
@@ -15,9 +15,9 @@
         </div>
         </div>
         <div class="window-body">
-        <div class="field-row-stacked" style="width: 200px">
+        <div class="field-row-stacked" style="width: 100%">
             <label for="text20">Chat Text Here</label>
-            <textarea id="text20" rows="20"></textarea>
+            <textarea id="text20" rows="30"></textarea>
         </div>
         <section class="field-row" style="justify-content: flex-end">
             <button>OK</button>
