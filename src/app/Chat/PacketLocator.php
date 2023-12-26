@@ -28,16 +28,18 @@ class PacketLocator
             return null;
         }
 
-        [$number, $gets, $size, $fileName] = $this->extractPacket($message);
-
         $bot = Bot::updateOrCreate(
             [ 'network_id' => $network->id, 'nick' => $botName ]
         );
 
-        $packet = Packet::updateOrCreate(
-            ['number' => $number, 'network_id' => $network->id, 'channel_id' => $channel->id, 'bot_id' => $bot->id],
-            ['file_name' => $fileName, 'gets' => $gets, 'size' => $size]
-        );
+        [$number, $gets, $size, $fileName] = $this->extractPacket($message);
+
+        if ($fileName) {
+            $packet = Packet::updateOrCreate(
+                ['number' => $number, 'network_id' => $network->id, 'channel_id' => $channel->id, 'bot_id' => $bot->id],
+                ['file_name' => $fileName, 'gets' => $gets, 'size' => $size]
+            );
+        }
 
         return $packet;
     }
@@ -70,7 +72,10 @@ class PacketLocator
     {
         $matches = [];
         if (preg_match(self::PACKET_MASK, $text, $matches)) {
-            return [$matches[1], $matches[2], $matches[3], $matches[4]];
+    
+            $fileName = (isset($matches[4])) ? $this->cleanMessage($matches[4]): null;
+    
+            return [$matches[1], $matches[2], $matches[3], $fileName];
         }
 
         return null;

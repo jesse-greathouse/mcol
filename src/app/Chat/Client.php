@@ -443,16 +443,16 @@ class Client
      */
     public function markAsQeueued(string $txt): Packet|null
     {
-        $cacheDir = env('CACHE_DIR', '/usr/var');
-        $downloadsDir = "$cacheDir/download";
+        $var = env('VAR', '/usr/var');
+        $downloadDir = "$var/download";
 
         [$packetNumber, $file, $position] = $this->extractQueuedResponse($txt);
 
-        $packet = Packet::where('number', trim($packetNumber))->where('file_name', $file)->orderByDesc('created_at')->first();
+        $packet = Packet::where('number', $packetNumber)->where('file_name', $file)->orderByDesc('created_at')->first();
 
         if ($packet) {
             Download::updateOrCreate(
-                [ 'file_uri' => "$downloadsDir/$file", 'packet_id' => $packet->id ],
+                [ 'file_uri' => "$downloadDir/$file", 'packet_id' => $packet->id ],
                 [ 'status' => Download::STATUS_QUEUED, 'queued_status' => $position ]
             );
         }
@@ -469,11 +469,11 @@ class Client
      */
     public function doQueuedStateChange(string $txt): void
     {
-        $cacheDir = env('CACHE_DIR', '/usr/var');
-        $downloadsDir = "$cacheDir/download";
+        $var = env('VAR', '/usr/var');
+        $downloadDir = "$var/download";
         [$file, $position, $total] = $this->extractQueuedState($txt);
 
-        $download = Download::where('file_uri', "$downloadsDir/$file")
+        $download = Download::where('file_uri', "$downloadDir/$file")
                             ->orderByDesc('created_at')
                             ->first();
 
@@ -493,11 +493,25 @@ class Client
     public function extractQueuedState(string $txt): array
     {
         $matches = [];
+        $file = null;
+        $position = null;
+        $total = null;
+
         if (preg_match(self::QUEUED_MASK, $txt, $matches)) {
-            return [$matches[1], $matches[2], $matches[3]];
+            if (isset($matches[1])) {
+                $file = $matches[1];
+            }
+
+            if (isset($matches[2])) {
+                $position = $matches[2];
+            }
+
+            if (isset($matches[3])) {
+                $total = $matches[3];
+            }
         };
 
-        return $matches;
+        return [$file, $position, $total];
     }
 
     /**
@@ -509,11 +523,25 @@ class Client
     public function extractQueuedResponse(string $txt): array
     {
         $matches = [];
+        $packetNum = null;
+        $file = null;
+        $position = null;
+
         if (preg_match(self::QUEUED_RESPONSE_MASK, $txt, $matches)) {
-            return [$matches[1], $matches[2], $matches[3]];
+            if (isset($matches[1])) {
+                $packetNum = trim($matches[1]);
+            }
+
+            if (isset($matches[2])) {
+                $file = $matches[2];
+            }
+
+            if (isset($matches[3])) {
+                $position = $matches[3];
+            }
         };
 
-        return $matches;
+        return [$packetNum, $file, $position];
     }
 
 
