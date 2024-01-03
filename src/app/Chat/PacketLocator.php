@@ -39,9 +39,11 @@ class PacketLocator
                 ['number' => $number, 'network_id' => $network->id, 'channel_id' => $channel->id, 'bot_id' => $bot->id],
                 ['file_name' => $fileName, 'gets' => $gets, 'size' => $size]
             );
+
+            return $packet;
         }
 
-        return $packet;
+        return null;
     }
 
     /**
