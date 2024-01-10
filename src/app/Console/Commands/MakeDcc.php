@@ -177,7 +177,7 @@ class MakeDcc extends Command
     protected function getFileSize(): int|null
     {
         if (null === $this->fileSize) {
-            $fileSize = (integer)$this->option('file-size');
+            $fileSize = (integer) $this->option('file-size');
 
             $this->fileSize = $fileSize;
         }
