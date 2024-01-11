@@ -77,12 +77,12 @@ class MakeDcc extends Command
 
         $fileSize = $this->getFileSize();
 
-        $resume = ($this->option('resume')) ? true : false;
+        $resume = ($this->option('resume')) ? $this->option('resume') : null;
         
         if (!$host || !$port || !$file || !$bot) return;
 
         $dcc = new Client($this);
-        $dcc->open(long2ip($host), $port, $file, $fileSize, $bot->id);
+        $dcc->open(long2ip($host), $port, $file, $fileSize, $bot->id, $resume);
     }
 
     /**

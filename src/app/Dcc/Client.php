@@ -43,32 +43,42 @@ class Client
      * @param string $fileName
      * @param int|null $fileSize
      * @param string|null $botId
-     * @param bool $resume
+     * @param int|null $resume
      * @return void
      */
-    public function open(string $host, string $port, string $fileName, int $fileSize = null, $botId = null, bool $resume = false): void
+    public function open(string $host, string $port, string $fileName, int $fileSize = null, $botId = null, int $resume = null): void
     {
         $bytes = 0;
         $downloadDir = env('DOWNLOAD_DIR', '/var/download');
         $uri = "$downloadDir/$fileName";
+        
         $packet = Packet::where('file_name', $fileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
-
         if (!$packet) {
             throw new IllegalPacketException("Packet with bot id: $botId and file: $fileName were expected but not found");
         }
 
-        $fp = stream_socket_client("tcp://$host:$port", $errno, $errstr);
-
         if (file_exists($uri)) {
-            $bytes = filesize($uri);
+            if (null === $resume) {
+                unlink($uri);
+                touch($uri);
+            } else {
+                $bytes = $resume;
+            }
         }
-
-        $file = fopen($uri, 'a');
+ 
+        // Register or update the file download status data.
         $download = $this->registerDownload($uri, $packet->id, $fileSize, $bytes);
 
+        // Open a stream to the remote file system.
+        $fp = stream_socket_client("tcp://$host:$port", $errno, $errstr);
         if (!$fp) {
-            echo "$errstr ($errno)<br />\n";
+            $this->console->error("$errstr ($errno)");
         } else {
+            // Open a file pointer to recieve the file
+            // and set the pointer to the correct position.
+            $file = fopen($uri, 'a');
+            fseek($file, $bytes);
+
             $download->status = Download::STATUS_INCOMPLETE;
             $download->save();
     
