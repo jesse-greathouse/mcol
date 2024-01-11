@@ -275,6 +275,7 @@ class Client
             $dir = env('DIR', '/usr');
             $src = env('SRC', '/usr/src');
             $bin = "$dir/bin";
+            $downloadDir = env('DOWNLOAD_DIR', '/var/download');
 
             # DCC SEND PROTOCOL
             if (false !== strpos($message, 'DCC SEND')) {
@@ -284,8 +285,6 @@ class Client
                 $fileSizeCln = $this->clnNumericStr($fileSize);
                 $ipCln = $this->clnNumericStr($ip);
                 $portCln = $this->clnNumericStr($port);
-
-                $downloadDir = env('DOWNLOAD_DIR', '/var/download');
                 $uri = "$downloadDir/$fileName";
 
                 if (file_exists($uri)) {
@@ -309,14 +308,15 @@ class Client
             }
 
             if (false !== strpos($message, 'DCC ACCEPT')) {
-                [, , $fileName, $ip, $port, $fileSize] = explode(' ', $message);
-                $fileSizeCln = $this->clnNumericStr($fileSize);
+                [, , $fileName, $ip, $port, $position] = explode(' ', $message);
+                $positionCln = $this->clnNumericStr($position);
                 $ipCln = $this->clnNumericStr($ip);
                 $portCln = $this->clnNumericStr($port);
+                $uri = "$downloadDir/$fileName";
 
-                $this->console->warn("RESUMING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileSizeCln  --bot='$userName' --resume");
+                $this->console->warn("RESUMING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln");
 
-                Process::path($src)->start("$bin/php $src/artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln  --bot='$userName' --resume", function (string $type, string $output) {
+                Process::path($src)->start("$bin/php $src/artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln", function (string $type, string $output) {
                     $this->console->info("Command $type output: $output");
                 });
             }
