@@ -78,19 +78,16 @@ class Client
             // and set the pointer to the correct position.
             $file = fopen($uri, 'a');
             fseek($file, $bytes);
-
-            $download->status = Download::STATUS_INCOMPLETE;
-            $download->save();
     
             while (!feof($fp)) {
                 $chunk = fgets($fp, self::CHUNK_BYTES);
-                $download->progress_bytes += self::CHUNK_BYTES;
+                $bytes += self::CHUNK_BYTES;
                 fwrite($file, $chunk);
 
                 // Only save the progress every n intervals for performance.
                 if ($this->shouldUpdate()) {
-                    $download->status = Download::STATUS_INCOMPLETE;
-                    $download->save();
+                    // Register or update the file download status data.
+                    $download = $this->registerDownload($uri, $packet->id, $fileSize, $bytes);
                 }
             }
 
@@ -166,7 +163,13 @@ class Client
     {
         return Download::updateOrCreate(
             [ 'file_uri' => $uri, 'packet_id' => $packetId ],
-            [ 'status' => Download::STATUS_INCOMPLETE, 'file_size_bytes' => $fileSize, 'progress_bytes' => $bytes,  ]
+            [ 
+                'status'            => Download::STATUS_INCOMPLETE, 
+                'file_size_bytes'   => $fileSize, 
+                'progress_bytes'    => $bytes,  
+                'queued_total'      => null, 
+                'queued_status'     => null,
+            ]
         );
     }
 

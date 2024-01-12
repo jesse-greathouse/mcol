@@ -288,9 +288,9 @@ class Client
                 $uri = "$downloadDir/$fileName";
 
                 if (file_exists($uri)) {
-                    $bytes = filesize($uri);
-                    if (false !== $bytes) {
-                        $cmd = "PRIVMSG $userName :DCC RESUME $fileName $ipCln $portCln $bytes";
+                    $position = filesize($uri);
+                    if (false !== $position) {
+                        $cmd = "PRIVMSG $userName :DCC RESUME $fileName $portCln $position";
                         $this->client->send($cmd);
                         $newRequest = false;
                     } else {
@@ -314,6 +314,7 @@ class Client
                 $portCln = $this->clnNumericStr($port);
                 $uri = "$downloadDir/$fileName";
 
+                $this->console->warn($message);
                 $this->console->warn("RESUMING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln");
 
                 Process::path($src)->start("$bin/php $src/artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln", function (string $type, string $output) {
