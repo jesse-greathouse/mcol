@@ -50,7 +50,7 @@ class DownloadProgressManager
         if ($this->shouldAnnounce()) {
             $downloads = $this->getDownloads();
             $completeds = $this->getCompleteds();
-            $headers = ['File Download Queue', 'Progress', 'File Size'];
+            $headers = ['File Download Queue', 'Progress', 'Downloaded', 'File Size'];
             $body = [];
 
             foreach($downloads as $download) {
@@ -67,6 +67,7 @@ class DownloadProgressManager
                 $body[] = [
                     basename($download->file_uri),
                     $progress,
+                    $download->progress_bytes,
                     $download->file_size_bytes,
                 ];
             }
@@ -81,6 +82,7 @@ class DownloadProgressManager
                     $body[] = [
                         basename($completed->file_uri),
                         'Done',
+                        $completed->progress_bytes,
                         $completed->file_size_bytes,
                     ];
                 }
