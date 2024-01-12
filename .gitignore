@@ -79,6 +79,9 @@ opt/openresty/
 opt/openresty*/
 opt/MacOSX-authbind/
 
+# src
+src/sql/._*.sql
+
 # web
 web/
 
