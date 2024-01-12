@@ -80,7 +80,10 @@ class Client
             fseek($file, $bytes);
     
             while (!feof($fp)) {
-                $chunk = fgets($fp, self::CHUNK_BYTES);
+                // Reading ends when length - 1 bytes have been read
+                // Adds +1 to byte length so added bytes can be tracked more evenly.
+                // bytes + chunk = downloaded progress.
+                $chunk = fgets($fp, (self::CHUNK_BYTES + 1));
 
                 if (false === $chunk) break;
 
@@ -107,7 +110,6 @@ class Client
                 if ((integer) $bytesDownloaded === (integer) $fileSize) {
                     $download->status = Download::STATUS_COMPLETED;
                     $download->progress_bytes = null;
-                    $download->file_size_bytes = null;
                     $download->save();
                 }
             } else {
