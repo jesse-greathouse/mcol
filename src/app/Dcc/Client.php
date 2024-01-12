@@ -81,6 +81,9 @@ class Client
     
             while (!feof($fp)) {
                 $chunk = fgets($fp, self::CHUNK_BYTES);
+
+                if (false === $chunk) break;
+
                 $bytes += self::CHUNK_BYTES;
                 fwrite($file, $chunk);
 
