@@ -269,6 +269,13 @@ class Client
     public function privMessageHandler(): void
     {
         $this->client->on('privmsg', function (string $userName, $target, string $message) {
+
+            // If the Message string is empty don't bother parsing, just warn in the console.
+            if (strlen($message) < 1) {
+                $this->console->warn("Empty message from $userName to $target");
+                return;
+            }
+
             # Divert message to the log for this instance.
             $this->logDiverter->log("$userName to: $target: $message");
             $this->console->warn("$userName to $target says: $message");
@@ -280,7 +287,6 @@ class Client
             # DCC SEND PROTOCOL
             if (false !== strpos($message, 'DCC SEND')) {
                 // $message is a string like: "DCC SEND Frasier.2023.S01E04.1080p.WEB.h264-ETHEL.mkv 1311718603 58707 2073127114" 
-                $newRequest = true;
                 [, , $fileName, $ip, $port, $fileSize] = explode(' ', $message);
                 $fileSizeCln = $this->clnNumericStr($fileSize);
                 $ipCln = $this->clnNumericStr($ip);
@@ -290,15 +296,19 @@ class Client
                 if (file_exists($uri)) {
                     $position = filesize($uri);
                     if (false !== $position) {
-                        $cmd = "PRIVMSG $userName :DCC RESUME $fileName $portCln $position";
-                        $this->client->send($cmd);
-                        $newRequest = false;
+                        // $cmd = "PRIVMSG $userName :XDCC RESUME $fileName $portCln $position";
+                        // $this->client->send($cmd);
+                        $positionCln = $this->clnNumericStr($position);
+
+                        $this->console->warn("RESUMING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln");
+
+                        Process::path($src)->start("$bin/php $src/artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln", function (string $type, string $output) {
+                            $this->console->info("Command $type output: $output");
+                        });
                     } else {
                         unlink($uri);
                     }
-                }
-
-                if ($newRequest) {
+                } else {
                     $this->console->warn("RUNNING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln --bot='$userName'");
 
                     Process::path($src)->start("$bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln --bot='$userName'", function (string $type, string $output) {
@@ -339,7 +349,7 @@ class Client
                 $this->channelUpdater->update($channel);
                 $line .= $channel->getName();
             } else {
-                $this->console->warn("$from says: $message");
+                return;
             }
 
             $line .= " @$from: $message";
