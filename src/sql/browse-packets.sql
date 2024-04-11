@@ -42,7 +42,7 @@ AND p.file_name NOT LIKE '%.DoVi%'
 AND (p.file_name LIKE '%1080%' OR p.file_name LIKE '%2160%')
 -- AND p.file_name LIKE '%2160%'
 -- AND p.file_name LIKE '%Echo%'
-AND p.created_at > '2024-01-05 23:59:59'
+AND p.created_at > '2024-01-18 23:59:59'
 -- AND p.file_name RLIKE '[.]+S[0-9]+[.]+'
 -- AND p.file_name LIKE '%Berlin.2023%'
 -- AND b.nick = '[MG]-4k-Movies|Archive'

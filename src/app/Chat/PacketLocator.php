@@ -35,9 +35,11 @@ class PacketLocator
         [$number, $gets, $size, $fileName] = $this->extractPacket($message);
 
         if ($fileName) {
+            $dataToUpdate = $this->getDataToUpdate($fileName, $size, $gets, $number, $network, $channel, $bot);
+
             $packet = Packet::updateOrCreate(
                 ['number' => $number, 'network_id' => $network->id, 'channel_id' => $channel->id, 'bot_id' => $bot->id],
-                ['file_name' => $fileName, 'gets' => $gets, 'size' => $size]
+                $dataToUpdate
             );
 
             return $packet;
@@ -115,5 +117,38 @@ class PacketLocator
         }
 
         return null;
+    }
+
+    /**
+     * Returns an array of data fields to update.
+     *
+     * @param string $fileName
+     * @param string $size
+     * @param integer $gets
+     * @param integer $number
+     * @param Network $network
+     * @param Channel $channel
+     * @param Bot $bot
+     * @return array
+     */
+    protected function getDataToUpdate(string $fileName, string $size, int $gets, int $number, Network $network, Channel $channel, Bot $bot): array
+    {
+        $dataToUpdate = ['file_name' => $fileName, 'gets' => $gets, 'size' => $size];
+
+        # Check to see if a different file has previously filled this position.
+        # Sometimes the bot owner can change which file is being served on this packet number.
+        $existingPacket = Packet::where([
+            ['number', '=', $number],
+            ['network_id', '=', $network->id],
+            ['channel_id', '=', $channel->id],
+            ['bot_id', '=', $bot->id]
+        ])->first();
+
+        # If the packet existing at this location, is not the same file, update the created_at field.
+        if (null !== $existingPacket && trim($existingPacket->file_name) !== trim($fileName)) {
+            $dataToUpdate['created_at'] = now();
+        }
+
+        return $dataToUpdate;
     }
 }
