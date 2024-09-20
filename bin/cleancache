@@ -1,0 +1,33 @@
+#!/usr/bin/perl
+
+use strict;
+use File::Path qw(rmtree);
+
+my $var = $ENV{'VAR'};
+my $argnum;
+
+my @caches = (
+  "cache/opcache"
+);
+
+# Sort out the command line args
+foreach $argnum (0 .. $#ARGV) {
+    if ($ARGV[$argnum] eq "--var") {
+      $var = $ARGV[$argnum + 1];
+    };
+}
+
+foreach (@caches)
+{
+  clean("$var/$_");
+}
+
+sub clean {
+  my ($path) = @_;
+  if (-d $path) {
+    print "cleaning ... $path\n";
+    rmtree $path;
+  }
+
+  mkdir $path;
+}

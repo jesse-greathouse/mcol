@@ -15,9 +15,9 @@ password=__SUPERVISORCTL_SECRET__
 [rpcinterface:supervisor]
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
-[program:bust-opcache]
-environment=DIR="%(ENV_DIR)s",BIN="%(ENV_BIN)s"
-command=%(ENV_BIN)s/bust-opcache.sh
+[program:cleancache]
+environment=VAR="%(ENV_VAR)s"
+command=%(ENV_BIN)s/cleancache
 stdout_events_enabled=true
 stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0

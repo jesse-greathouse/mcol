@@ -3,6 +3,7 @@
 package Mcol::Utility;
 use strict;
 use Exporter 'import';
+use Errno;
 
 our @EXPORT_OK = qw(
   command_result
@@ -13,6 +14,7 @@ our @EXPORT_OK = qw(
   splash
   str_replace_in_file
   generate_rand_str
+  is_pid_running
 );
 
 1;
@@ -97,6 +99,17 @@ sub generate_rand_str {
     my @set = ('0' ..'9', 'A' .. 'F');
     my $str = join '' => map $set[rand @set], 1 .. $length;
     return $str;
+}
+
+sub is_pid_running {
+    my ($pidFile) = @_;
+
+    open my $fh, '<', $pidFile or die "Can't open $pidFile $!";
+    my $pid = do { local $/; <$fh> };
+
+    my $not_running=(!kill(0,$pid) && $! == Errno::ESRCH);
+
+    return(!$not_running);
 }
 
 # Prints a spash screen message.

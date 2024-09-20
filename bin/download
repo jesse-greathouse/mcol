@@ -5,6 +5,6 @@ use strict;
 use Cwd qw(getcwd abs_path);
 use File::Basename;
 use lib(dirname(abs_path(__FILE__))  . "/modules");
-use Mcol::Install qw(install);
+use Mcol::Download qw(download);
 
-install();
+download();

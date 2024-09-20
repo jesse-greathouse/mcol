@@ -260,7 +260,7 @@ sub install_composer {
     my $binDir = $dir . '/bin';
     my $phpExecutable = $dir . '/opt/php/bin/php';
     my $composerInstallScript = $binDir . '/composer-setup.php';
-    my $composerHash = 'e21205b207c3ff031906575712edab6f13eb0b361f2085f1f1237b7126d785e826a450292b6cfd1d64d92e6563bbde02';
+    my $composerHash = 'dac665fdc30fdd8ec78b38b9800061b4150413ff2e3b6f88543c636f7cd84f6db9189d43a81e5503cda447da73c7e5b6';
     my $composerDownloadCommand = "$phpExecutable -r \"copy('https://getcomposer.org/installer', '$composerInstallScript');\"";
     my $composerCheckHashCommand = "$phpExecutable -r \"if (hash_file('sha384', '$composerInstallScript') === '$composerHash') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('$composerInstallScript'); } echo PHP_EOL;\"";
     my $composerInstallCommand = "$phpExecutable $composerInstallScript --filename=composer";

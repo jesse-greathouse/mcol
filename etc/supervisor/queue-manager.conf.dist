@@ -1,0 +1,33 @@
+[supervisord]
+logfile=%(ENV_LOG_DIR)s/queue-manager.log
+pidfile=%(ENV_VAR)s/pid/queue-manager.pidfile
+
+[program:mcol-general-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=1
+numprocs_start=1
+redirect_stderr=true
+stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
+stdout_logfile_maxbytes=0
+stopwaitsecs=3
+priority=6
+
+[program:mcol-download-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work download --queue=download --timeout=172800
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=8
+numprocs_start=1
+redirect_stderr=true
+stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
+stdout_logfile_maxbytes=0
+stopwaitsecs=3
+priority=7

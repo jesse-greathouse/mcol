@@ -34,6 +34,14 @@ return [
             'driver' => 'sync',
         ],
 
+        'download' => [
+            'driver' => 'database',
+            'table' => 'jobs',
+            'queue' => 'download',
+            'retry_after' => 173000,
+            'after_commit' => false,
+        ],
+
         'database' => [
             'driver' => 'database',
             'table' => 'jobs',

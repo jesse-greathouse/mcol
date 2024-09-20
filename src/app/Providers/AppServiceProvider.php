@@ -3,6 +3,13 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
+
+use App\Events\PacketSearchResult,
+    App\Events\PacketSearchSummary,
+    App\Listeners\SendPacketSearchResultMessage,
+    App\Listeners\SendPacketSearchSummaryMessage;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +26,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Event::listen(
+            PacketSearchResult::class,
+            SendPacketSearchResultMessage::class,
+        );
+
+        Event::listen(
+            PacketSearchSummary::class,
+            SendPacketSearchSummaryMessage::class,
+        );
     }
 }

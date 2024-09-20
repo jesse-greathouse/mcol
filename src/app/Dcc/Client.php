@@ -2,8 +2,8 @@
 
 namespace App\Dcc;
 
-use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Log;
 
 use App\Exceptions\IllegalPacketException,
     App\Models\Bot,
@@ -16,6 +16,7 @@ class Client
     const CHUNK_BYTES = 2048;
 
     const UPDATE_INTERVAL = 15; # 15 seconds
+    const TRANSFER_TERMINATED_MESSAGE = 'TRANSFER TERMINATED';
 
     /**
      * timestamp of last update.
@@ -23,17 +24,6 @@ class Client
      * @var integer
      */
     protected $lastUpdate;
-
-    /**
-     * Console for using this client
-     *
-     * @var Command
-     */
-    protected $console;
-
-    public function __construct(Command $console) {
-        $this->console = $console;
-    }
 
     /**
      * Opens a connection for downloading a file.
@@ -72,7 +62,7 @@ class Client
         // Open a stream to the remote file system.
         $fp = stream_socket_client("tcp://$host:$port", $errno, $errstr);
         if (!$fp) {
-            $this->console->error("$errstr ($errno)");
+            Log::error("$errstr ($errno)");
         } else {
             // Open a file pointer to recieve the file
             // and set the pointer to the correct position.
@@ -119,24 +109,25 @@ class Client
                 $network = Network::where('id', $packet->network_id)->first();
                 $bot = Bot::where('id', $packet->bot_id)->first();
                 $command = "XDCC SEND $packet->number";
-                $this->console->info("Download of stream: \"$fileName\" closed prematurely.");
+                Log::info("Download of stream: \"$fileName\" closed prematurely.");
 
                 if (null !== $network && null !== $bot) {
-                    $this->console->info("Queueing for resume (at $download->progress_bytes of $fileSize )");
+                    Log::info("Queueing for resume (at $download->progress_bytes of $fileSize )");
 
-                    $console = $this->console;
-                    Process::path($src)->start("$bin/php artisan mcol:chat $network->name '$bot->nick' '$command'", function (string $type, string $output) use ($console, $download) {
+                    Process::path($src)->run("$bin/php artisan mcol:chat $network->name '$bot->nick' '$command'", function (string $type, string $output) use ($download) {
                         $download->queued_status = 0;
                         $download->save();
-                        $console->info("Command $type output: $output");
+                        Log::info("Command $type output: $output");
                     });
                 } else {
-                    $this->console->info("Unable to Queue for resume because of incomplete network or bot data.");
+                    Log::info("Unable to Queue for resume because of incomplete network or bot data.");
                 }
             }
 
             fclose($file);
             fclose($fp);
+
+            Log::warning(self::TRANSFER_TERMINATED_MESSAGE . ": $fileName");
         }
     }
 

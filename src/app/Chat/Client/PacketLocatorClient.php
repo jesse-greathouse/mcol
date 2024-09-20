@@ -69,7 +69,7 @@ class PacketLocatorClient extends Client
             
             if (null !== $channel) {
                 $c = $this->getChannelFromName($channel->getName());
-                if (null === $c->parent) {
+                if (null !== $c && null === $c->parent) {
                     $this->packetLocator->locate($message, $from, $this->network, $c);
                 }
             }
