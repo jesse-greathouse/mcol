@@ -5,6 +5,10 @@ use strict;
 use Cwd qw(getcwd abs_path);
 use File::Basename;
 use lib(dirname(abs_path(__FILE__))  . "/modules");
-use Mcol::Install qw(install);
+use Mcol::Queue qw(queue);
+use Mcol::Utility qw(splash);
+use Term::ANSIScreen qw(cls);
 
-install();
+cls();
+splash();
+queue();

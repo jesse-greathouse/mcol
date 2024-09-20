@@ -3,27 +3,41 @@
 namespace App\Chat;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Process;
 
 use Jerodev\PhpIrcClient\IrcClient,
     Jerodev\PhpIrcClient\IrcChannel,
     Jerodev\PhpIrcClient\Options\ClientOptions;
 
 use App\Chat\LogDiverter,
+    App\Events\HotReportLine as HotReportLineEvent,
+    App\Events\HotReportSummary as HotReportSummaryEvent,
+    App\Events\PacketSearchResult as PacketSearchResultEvent,
+    App\Events\PacketSearchSummary as PacketSearchSummaryEvent,
+    App\Jobs\DccDownload,
+    App\Models\Bot,
+    App\Models\Channel,
     App\Models\Client as ClientModel,
     App\Models\Download,
+    App\Models\HotReport,
+    App\Models\HotReportLine,
     App\Models\Instance,
     App\Models\Nick,
     App\Models\Network,
     App\Models\Packet,
-    App\Models\Channel;
+    App\Models\PacketSearch,
+    App\Models\PacketSearchResult;
 
 use Illuminate\Database\Eloquent\Collection;
 
 class Client 
 {
+    const LINE_COLUMN_SPACES = 50;
     const QUEUED_MASK = '/^Queued \d+h\d+m for \"(.+)\", in position (\d+) of (\d+)\. .+$/';
     const QUEUED_RESPONSE_MASK = '/pack ([0-9]+) \(\"(.+)\"\) in position ([0-9]+)\./';
+    const REQUEST_INSTRUCTIONS_MASK = '/\|10\s(.*)04\s\|10\s(.*)04\s\|09\s\/msg\s(.*)\sXDCC\sSEND\s([0-9].*)\s04.*/';
+    const HOT_REPORT_RESULT = '/(\d\.\d)\s0\d\s([A-Za-z0-9\.\-]+)\s+(\d\.\d)\s\d\s([A-Za-z0-9\.\-]+)/';
+    const SEARCH_SUMMARY_MASK = '/(\#[A-Za-z].*)\s\-\sFound\s([0-9].*)\sONLINE Packs/';
+    const HOT_REPORT_SUMMARY_MASK = '/\d\d(\#[A-Za-z0-9]+)\s+(.*)$/';
 
     /**
      * Client Id
@@ -202,12 +216,22 @@ class Client
      */
     public function kickHandler(): void
     {
-        $this->client->on('kick', function(IrcChannel $channel, string $user, string $kicker, $message) {
-            $channelName = $channel->getName();
+        $this->client->on('kick', function($channel, string $user, string $kicker, $message) {
+            $updateChannel = false;
+
+            if (is_a($channel, IrcChannel::class)) {
+                $channelName = $channel->getName();
+                $updateChannel = true;
+            } else {
+                $channelName = $channel;
+            }
+
             $this->console->error("$user has been kicked from $channelName by $kicker. Reason:$message");
 
-            # Update the Channel Metadata
-            $this->channelUpdater->update($channel);
+            if ($updateChannel) {
+                # Update the Channel Metadata
+                $this->channelUpdater->update($channel);
+            }
         });
     }
 
@@ -279,9 +303,6 @@ class Client
             # Divert message to the log for this instance.
             $this->logDiverter->log("$userName to: $target: $message");
             $this->console->warn("$userName to $target says: $message");
-            $dir = env('DIR', '/usr');
-            $src = env('SRC', '/usr/src');
-            $bin = "$dir/bin";
             $downloadDir = env('DOWNLOAD_DIR', '/var/download');
 
             # DCC SEND PROTOCOL
@@ -296,25 +317,18 @@ class Client
                 if (file_exists($uri)) {
                     $position = filesize($uri);
                     if (false !== $position) {
-                        // $cmd = "PRIVMSG $userName :XDCC RESUME $fileName $portCln $position";
-                        // $this->client->send($cmd);
                         $positionCln = $this->clnNumericStr($position);
-
-                        $this->console->warn("RESUMING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln");
-
-                        Process::path($src)->start("$bin/php $src/artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln", function (string $type, string $output) {
-                            $this->console->info("Command $type output: $output");
-                        });
+                        DccDownload::dispatch($ipCln, $portCln, $fileName, $positionCln, $userName, $positionCln)->onQueue('download');
+                        $this->console->warn("Queued to resume DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $positionCln bot: '$userName' resume: $positionCln");
                     } else {
                         unlink($uri);
                     }
                 } else {
-                    $this->console->warn("RUNNING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln --bot='$userName'");
-
-                    Process::path($src)->start("$bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$fileSizeCln --bot='$userName'", function (string $type, string $output) {
-                        $this->console->info("Command $type output: $output");
-                    });
+                    DccDownload::dispatch($ipCln, $portCln, $fileName, $fileSizeCln, $userName)->onQueue('download');
+                    $this->console->warn("Queued DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $fileSizeCln bot: '$userName'");
                 }
+
+                return;
             }
 
             if (false !== strpos($message, 'DCC ACCEPT')) {
@@ -323,13 +337,10 @@ class Client
                 $ipCln = $this->clnNumericStr($ip);
                 $portCln = $this->clnNumericStr($port);
                 $uri = "$downloadDir/$fileName";
-
                 $this->console->warn($message);
-                $this->console->warn("RESUMING DCC Client: $bin/php artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln");
-
-                Process::path($src)->start("$bin/php $src/artisan mcol:make-dcc --host=$ipCln --port=$portCln --file=$fileName --file-size=$positionCln  --bot='$userName' --resume=$positionCln", function (string $type, string $output) {
-                    $this->console->info("Command $type output: $output");
-                });
+                DccDownload::dispatch($ipCln, $portCln, $fileName, $positionCln, $userName, $positionCln)->onQueue('download');
+                $this->console->warn("Queued to resume DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $positionCln bot: '$userName' resume: $positionCln");
+                return;
             }
         });
     }
@@ -394,13 +405,15 @@ class Client
             $parts = explode(' ', $clean);
             $subject = array_shift($parts);
             $txt = implode(' ', $parts);
-            
+
             if ($subject !== $this->nick->nick) {
                 $txt = "$subject $txt";
             }
 
             if ($this->isQueuedNotification($txt)) {
                 $this->doQueuedStateChange($txt);
+                $this->console->warn(" ========[  $txt ");
+                return;
             } else if ($this->isQueuedResponse($txt)) {
                 $packet = $this->markAsQeueued($txt);
                 if ($packet) {
@@ -408,9 +421,274 @@ class Client
                 }
                 return;
             }
+
+            ## Check to see if this is a search result.
+            $packetSearchResult = $this->extractPacketSearchResult($txt);
+            if ($this->isPacketSearchResult($packetSearchResult)) {
+                [, $fileSize, $fileName, $botName, $packetNumber] = $packetSearchResult;
+                $this->console->warn(" ==[  > $botName   $packetNumber - $fileSize $fileName");
+                $this->searchResultHandler($fileName, $fileSize, $botName, $packetNumber);
+                return;
+            }
+
+            ## Check to see if this is a search summary.
+            $searchSummary = $this->extractSearchSummary($txt);
+            if ($this->isSearchSummary($searchSummary)) {
+                [, $channelName, $numberResults] = $searchSummary;
+                $this->console->warn(" ========[  Found $numberResults results in $channelName");
+                $this->searchSummaryHandler($channelName);
+                return;
+            }
+
+             ## Check to see if this is a Hot Report result.
+             $hotReportLine = $this->extractHotReportLine($txt);
+             if ($this->isHotReportLine($hotReportLine)) {
+                 [, $hotReportRank1, $hotReportFileName1, $hotReportRank2, $hotReportFileName2] = $hotReportLine;
+                 $this->hotReportLineHandler($hotReportRank1, $hotReportFileName1);
+
+                 if ($hotReportRank2 !== null && $hotReportFileName2 !== null) {
+                    $this->hotReportLineHandler($hotReportRank2, $hotReportFileName2);
+                    $spacer = $this->dynamicWordSpacing($hotReportFileName1, self::LINE_COLUMN_SPACES);
+                    $this->console->warn(" ==[    [$hotReportRank1] $hotReportFileName1 $spacer [$hotReportRank2] $hotReportFileName2");
+                 } else {
+                    $this->console->warn(" ==[    [$hotReportRank1] $hotReportFileName1");
+                 }
+
+                 return;
+             }
+
+            ## Check to see if this is a Hot Report summary.
+            $hotReportSummary = $this->extractHotReportSummary($txt);
+            if ($this->isHotReportSummary($hotReportSummary)) {
+                [, $channelName, $hotReportSummaryStr] = $hotReportSummary;
+                $channelNameSanitized = strtolower($channelName);
+                $this->console->warn(" ========[  $channelNameSanitized $hotReportSummaryStr");
+                $this->hotReportSummaryHandler($channelNameSanitized, $hotReportSummaryStr);
+                return;
+            }
     
             $this->console->warn(" ========[  $txt ");
         });
+    }
+
+    /**
+     * Handles Hot Report Lines identified in events.
+     *
+     * @param float $rating
+     * @param string $term
+     * @return void
+     */
+    public function hotReportLineHandler(float $rating, string $term): void
+    {
+        // Get the most recently created Hot Report
+        $hotReport =  HotReport::orderByDesc('id')->first();
+
+        // If a Hot Report id was obtained, add this line.
+        if (null !== $hotReport) {
+            $hotReportLine = HotReportLine::create([
+                'hot_report_id' => $hotReport->id,
+                'rating'        => $rating,
+                'term'          => $term,
+            ]);
+            HotReportLineEvent::dispatch($hotReportLine);
+        }
+    }
+
+    /**
+     * Handles Hot Report Summary results.
+     *
+     * @param string $channelName
+     * @param string $summary
+     * @return void
+     */
+    public function hotReportSummaryHandler(string $channelName, string $summary): void
+    {
+        $channel = Channel::where('name', $channelName)
+            ->where('network_id', $this->network->id)
+            ->first();
+
+        if (null !== $channel) {
+            $hotReport = HotReport::create([
+                'channel_id'    => $channel->id,
+                'summary'       => $summary,
+            ]);
+
+            HotReportSummaryEvent::dispatch($hotReport);
+        }
+    }
+
+    /**
+     * Handles Search results identified in events.
+     *
+     * @param string $fileName
+     * @param string $fileSize
+     * @param string $botName
+     * @param string $packetNumber
+     * @return void
+     */
+    public function searchResultHandler(string $fileName, string $fileSize, string $botName, string $packetNumber): void
+    {
+        $packet = $this->resolvePacket($fileName, $fileSize, $botName, $packetNumber);
+        $packetSearchResult = PacketSearchResult::create([
+            'packet_id' => $packet->id,
+        ]);
+        PacketSearchResultEvent::dispatch($packetSearchResult);
+    }
+
+    /**
+     * Handles Search Summary results.
+     *
+     * @param string $channelName
+     * @return void
+     */
+    public function searchSummaryHandler(string $channelName): void
+    {
+        $channel = Channel::firstOrCreate([
+            'name' => $channelName,
+            'network_id' => $this->network->id,
+        ]);
+
+        $packetSearch = PacketSearch::create([
+            'channel_id' => $channel->id,
+        ]);
+
+        PacketSearchSummaryEvent::dispatch($packetSearch);
+    }
+
+    /**
+     * Determines if the result contains a packet search result.
+     *
+     * @param array $res
+     * @return bool
+     */
+    public function isPacketSearchResult(array $res): bool
+    {
+        if (count($res)>=5) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines if the result contains a Hot report result.
+     *
+     * @param array $res
+     * @return bool
+     */
+    public function isHotReportLine(array $res): bool
+    {
+        if (count($res)>=3) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines if the result contains a search result Summary.
+     *
+     * @param array $res
+     * @return bool
+     */
+    public function isSearchSummary(array $res): bool
+    {
+        if (count($res)>=3) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines if the result contains a HotReport Summary.
+     *
+     * @param array $res
+     * @return bool
+     */
+    public function isHotReportSummary(array $res): bool
+    {
+        if (count($res)>=3) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Extracts The Summary of a search
+     * $packet[0] contains the entire matched string
+     * $packet[1] is the file size.
+     * $packet[2] is the file name.
+     * $packet[3] is the bot name.
+     * $packet[4] is the packet number.
+     *
+     * If less than 5 elements are returned, it is not a valid packet search result.
+     *
+     * @param string $txt
+     * @return array
+     */
+    public function extractPacketSearchResult(string $txt): array
+    {
+        $packet = [];
+        preg_match(self::REQUEST_INSTRUCTIONS_MASK, $txt, $packet);
+        return $packet;
+    }
+
+    /**
+     * Extracts The Summary of a search
+     * $result[0] contains the entire matched string
+     * $result[1] is the popularity rating of the first file.
+     * $result[2] is the file name of the first file.
+     * $result[3] is the popularity rating of the second file.
+     * $result[4] is the file name of the second file.
+     *
+     * If less than 3 elements are returned, it is not a valid packet search result.
+     *
+     * @param string $txt
+     * @return array
+     */
+    public function extractHotReportLine(string $txt): array
+    {
+        $result = [];
+        preg_match(self::HOT_REPORT_RESULT, $txt, $result);
+        return $result;
+    }
+
+    /**
+     * Extracts any search summary from the text
+     * $summary[0] contants the entire matched string
+     * $summary[1] is the chatroom.
+     * $summary[2] is the number of results.
+     *
+     * If less than 3 elements are returned, it is not a valid summary.
+     *
+     * @param string $txt
+     * @return array
+     */
+    public function extractSearchSummary(string $txt): array
+    {
+        $summary = [];
+        preg_match(self::SEARCH_SUMMARY_MASK, $txt, $summary);
+        return $summary;
+    }
+
+    /**
+     * Extracts any Hot Report summary from the text
+     * $summary[0] contants the entire matched string
+     * $summary[1] Channel Name string.
+     * $summary[2] Summary string.
+     *
+     * If less than 3 elements are returned, it is not a valid summary.
+     *
+     * @param string $txt
+     * @return array
+     */
+    public function extractHotReportSummary(string $txt): array
+    {
+        $summary = [];
+        preg_match(self::HOT_REPORT_SUMMARY_MASK, $txt, $summary);
+        return $summary;
     }
 
     /**
@@ -444,6 +722,60 @@ class Client
         };
 
         return false;
+    }
+
+    /**
+     * Locates or creates a packet object based on the input criteria.
+     *
+     * @param string $fileName
+     * @param string $fileSize
+     * @param string $botName
+     * @param string $packetNumber
+     * @return Packet
+     */
+    public function resolvePacket(string $fileName, string $fileSize, string $botName, string $packetNumber): Packet
+    {
+        $bot = Bot::firstOrNew([
+            'nick' => $botName,
+            'network_id' => $this->network->id,
+        ]);
+        $channel = $this->getBotChannelByBestGuess($bot);
+
+        $packet = Packet::updateOrCreate(
+            ['number' => $packetNumber, 'network_id' => $this->network->id, 'channel_id' => $channel->id, 'bot_id' => $bot->id],
+            ['file_name' => $fileName, 'size' => $fileSize]
+        );
+
+        return $packet;
+    }
+
+
+    /**
+     * Makes a best guess at which channel a Bot may represent in the absence of a channel name.
+     *
+     * @param Bot $bot
+     * @return Channel
+     */
+    public function getBotChannelByBestGuess(Bot $bot): Channel
+    {
+        // Use the same channel of a packet that was last reported by this bot.
+        $packet = Packet::where('bot_id', $bot->id)->orderBy('id', 'DESC')->first();
+
+        if (null !== $packet) {
+            return $packet->channel;
+        }
+
+        // If this bot has not reported any packets, just pick the last channel reported on this network.
+        $packet = Packet::where('network_id', $this->network->id)->orderBy('id', 'DESC')->first();
+
+        if (null !== $packet) {
+            return $packet->channel;
+        }
+
+        // If still nothing qualifies just pick a channel on this network.
+        $channel = Channel::where('network_id', $this->network->id)->first();
+
+        return $channel;
     }
 
     /**
@@ -488,7 +820,8 @@ class Client
                             ->orderByDesc('created_at')
                             ->first();
 
-        if ($download) {
+        // Update the queued state if the download is not marked as complete.
+        if ($download && $download->status !== Download::STATUS_COMPLETED) {
             $download->queued_status = $position;
             $download->queued_total = $total;
             $download->save();
@@ -613,9 +946,9 @@ class Client
      * Returns a channel model object with the parameter of the channel name.
      *
      * @param string $name
-     * @return Channel
+     * @return Channel|null
      */
-    protected function getChannelFromName(string $name): Channel
+    protected function getChannelFromName(string $name): Channel|null
     {
         return Channel::where('name', $name)->first();
     }
@@ -631,6 +964,18 @@ class Client
         return Channel::where('channel_id', null)
             ->where('network_id', $network->id)
             ->get();
+    }
+
+    private function dynamicWordSpacing($word, $totalSpaces)
+    {
+        $spacer = '';
+        $wordLength = strlen($word);
+        $numSpaces = $totalSpaces - $wordLength;
+        for ($i = 0; $i <= $numSpaces; $i++) {
+            $spacer = $spacer.' ';
+        }
+
+        return $spacer;
     }
 
 }

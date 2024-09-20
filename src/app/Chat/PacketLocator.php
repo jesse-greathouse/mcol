@@ -4,6 +4,7 @@ namespace App\Chat;
 
 use App\Models\Bot,
     App\Models\Channel,
+    App\Models\FileFirstAppearance,
     App\Models\Network,
     App\Models\Packet;
 
@@ -42,6 +43,12 @@ class PacketLocator
                 $dataToUpdate
             );
 
+            // Update First Appearance Table if no entry is present.
+            FileFirstAppearance::firstOrCreate(
+                ['file_name' => $packet->file_name],
+                ['created_at' => $packet->created_at]
+            );
+
             return $packet;
         }
 
@@ -49,20 +56,135 @@ class PacketLocator
     }
 
     /**
-     * Clean's the message to remove any unwanted ascii characters,
+     * Clean's the text to remove any unwanted ascii characters,
      * and remove redundant spaces.
+     *
+     * @param string $text
+     * @return string
+     */
+    public static function cleanMessage(string $text): string
+    {
+        // Removes redundant spaces.
+        $text = preg_replace("/\s+/", " ", $text);
+
+        // Removes control characters from string.
+        $text = preg_replace('/[\x00-\x1F\x7F]/', '', $text);
+
+        return $text;
+    }
+
+    /**
+     * Removes formatting of Bold
+     * https://modern.ircdocs.horse/formatting
      *
      * @param string $message
      * @return string
      */
-    public static function cleanMessage(string $message): string
+    public static function cleanBold(string $message): string
     {
-        // Removes control characters from string.
-        $text = preg_replace('/[\x00-\x1F\x7F]/', '', $message);
+        return str_replace('0x02', '', $message);
+    }
 
-        // Removes redundant spaces.
-        $text = preg_replace("/\s+/", " ", $text);
+    /**
+     * Removes formatting of Italics
+     * https://modern.ircdocs.horse/formatting
+     *
+     * @param string $message
+     * @return string
+     */
+    public static function cleanItalics(string $message): string
+    {
+        return str_replace('0x1D', '', $message);
+    }
 
+    /**
+     * Removes formatting of Underline
+     * https://modern.ircdocs.horse/formatting
+     *
+     * @param string $message
+     * @return string
+     */
+    public static function cleanUnderline(string $message): string
+    {
+        return str_replace('0x1F', '', $message);
+    }
+
+    /**
+     * Removes formatting of Strikethrough
+     * https://modern.ircdocs.horse/formatting
+     *
+     * @param string $message
+     * @return string
+     */
+    public static function cleanStrikethrough(string $message): string
+    {
+        return str_replace('0x1E', '', $message);
+    }
+
+    /**
+     * Removes formatting of Monospace
+     * https://modern.ircdocs.horse/formatting
+     *
+     * @param string $message
+     * @return string
+     */
+    public static function cleanMonospace(string $message): string
+    {
+        return str_replace('0x11', '', $message);
+    }
+
+    /**
+     * Removes formatting of Color
+     * https://modern.ircdocs.horse/formatting
+     *
+     * @param string $message
+     * @return string
+     */
+    public static function cleanColor(string $message): string
+    {
+        // <CODE><COLOR>,<COLOR> - Set the foreground and background color.
+        $text = preg_replace('/0x03\\d{1,2}\\,\\d{1,2}/', '', $message);
+
+        // <CODE><COLOR>, - Set the foreground color and display the , character as text.
+        $text = preg_replace('/0x03\\d{1,2}/', '', $text);
+
+        // <CODE>, - Reset foreground and background colors and display the , character as text.
+        $text = preg_replace('/0x03/', '', $text);
+
+        return $text;
+    }
+
+    /**
+     * Removes formatting of Hex Color
+     * https://modern.ircdocs.horse/formatting
+     *
+     * @param string $message
+     * @return string
+     */
+    public static function cleanHexColor(string $message): string
+    {
+        // <CODE><COLOR>,<COLOR> - Set the foreground and background color.
+        $text = preg_replace('/0x04[A-Za-z0-9]{6}\\,[A-Za-z0-9]{1,2}/', '', $message);
+
+        // <CODE><COLOR>, - Set the foreground color and display the , character as text.
+        $text = preg_replace('/0x04[A-Za-z0-9]{6}/', '', $text);
+
+        // <CODE>, - Reset foreground and background colors and display the , character as text.
+        $text = preg_replace('/0x04/', '', $text);
+
+        return $text;
+    }
+
+    /**
+     * Removes formatting of G Color
+     *
+     * @param string $text
+     * @return string
+     */
+    public static function cleanGColor(string $text): string
+    {
+        $text = preg_replace('/(\|10\s|\|09\s|\|00\s|04\s|\s04\|00\s|04$)/', '$2 ', $text);
+        var_dump("replacement: $text");
         return $text;
     }
 

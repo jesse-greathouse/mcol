@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 
 use App\Dcc\Client,
+    App\Chat\Client as ChatClient,
     App\Models\Bot;
 
 class MakeDcc extends Command
@@ -81,8 +82,10 @@ class MakeDcc extends Command
         
         if (!$host || !$port || !$file || !$bot) return;
 
-        $dcc = new Client($this);
+        $dcc = new Client();
         $dcc->open(long2ip($host), $port, $file, $fileSize, $bot->id, $resume);
+
+        return;
     }
 
     /**
