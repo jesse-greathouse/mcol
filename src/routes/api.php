@@ -17,3 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// ... other routes
+require __DIR__ . '/api/bot.php';
+require __DIR__ . '/api/network.php';

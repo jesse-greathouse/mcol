@@ -42,6 +42,14 @@ return [
             'after_commit' => false,
         ],
 
+        'search' => [
+            'driver' => 'database',
+            'table' => 'jobs',
+            'queue' => 'search',
+            'retry_after' => 90,
+            'after_commit' => false,
+        ],
+
         'database' => [
             'driver' => 'database',
             'table' => 'jobs',
