@@ -35,7 +35,7 @@ class Client
     const QUEUED_MASK = '/^Queued \d+h\d+m for \"(.+)\", in position (\d+) of (\d+)\. .+$/';
     const QUEUED_RESPONSE_MASK = '/pack ([0-9]+) \(\"(.+)\"\) in position ([0-9]+)\./';
     const REQUEST_INSTRUCTIONS_MASK = '/\|10\s(.*)04\s\|10\s(.*)04\s\|09\s\/msg\s(.*)\sXDCC\sSEND\s([0-9].*)\s04.*/';
-    const HOT_REPORT_RESULT = '/(\d\.\d)\s0\d\s([A-Za-z0-9\.\-]+)\s+(\d\.\d)\s\d\s([A-Za-z0-9\.\-]+)/';
+    const HOT_REPORT_RESULT = '/(\d\.\d)\s0\d\s([A-Za-z0-9_\.\-]+)\s+(\d\.\d)\s\d\s([A-Za-z0-9_\.\-]+)/';
     const SEARCH_SUMMARY_MASK = '/(\#[A-Za-z].*)\s\-\sFound\s([0-9].*)\sONLINE Packs/';
     const HOT_REPORT_SUMMARY_MASK = '/\d\d(\#[A-Za-z0-9]+)\s+(.*)$/';
 
