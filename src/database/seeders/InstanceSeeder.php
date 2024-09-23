@@ -21,8 +21,7 @@ class InstanceSeeder extends Seeder
      */
     protected Array $clients = [
         [ 
-            'network' => 'Abjects', 
-            'channel' => 'moviegods', 
+            'network' => 'Abjects',
             'nick' => 'MediaEnjoyer_201'
         ],
     ];
@@ -55,14 +54,11 @@ class InstanceSeeder extends Seeder
         $network = $this->getNetworkByName($clientParams['network']);
         if (null === $network) return null;
 
-        $channel = $this->getChannelByName($clientParams['channel']);
-        if (null === $channel) return null;
-
         $nick = $this->getNickByName($clientParams['nick']);
         if (null === $nick) return null;
 
         $client = Client::updateOrCreate(
-            ['network_id' => $network->id, 'channel_id' => $channel->id, 'nick_id' => $nick->id],
+            ['network_id' => $network->id, 'nick_id' => $nick->id],
             ['enabled' => 1]
         );
 
@@ -75,14 +71,6 @@ class InstanceSeeder extends Seeder
     public function getNetworkByName(string $name): Network|null
     {
         return Network::where('name', $name)->first();
-    }
-
-    /**
-     * Get an instance of Channel by name.
-     */ 
-    public function getChannelByName(string $name): Channel|null
-    {
-        return Channel::where('name', $name)->first();
     }
 
     /**
@@ -105,12 +93,11 @@ class InstanceSeeder extends Seeder
 
     public function getLogUriForClient(Client $client): string
     {
-        $cacheDir = env('CACHE_DIR', null);
-        return sprintf("%s/client/log/%s/%s/%s/client.log",
-            $cacheDir,
+        $logDir = env('LOG_DIR', null);
+        return sprintf("%s/instances/%s/%s.log",
+            $logDir,
             $client->nick->nick,
-            $client->network->name,
-            $client->channel->name,
+            $client->network->name
         );
     }
 }
