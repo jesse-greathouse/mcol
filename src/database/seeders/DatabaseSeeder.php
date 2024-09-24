@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             ClientSeeder::class,
             InstanceSeeder::class,
             ServerSeeder::class,
+            FileExtensionSeeder::class,
         ]);
     }
 }

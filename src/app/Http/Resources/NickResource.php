@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class PacketResource extends JsonResource
+class NickResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,14 +16,11 @@ class PacketResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'nick' => $this->nick,
+            'email' => $this->email,
+            'password' => $this->password,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'number' => $this->number,
-            'gets' => $this->gets,
-            'size' => $this->size,
-            'file_name' => $this->file_name,
-            'bot' => $this->bot,
-            'channel' => $this->channel,
             'network' => $this->network,
         ];
     }

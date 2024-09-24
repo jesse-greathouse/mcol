@@ -22,4 +22,9 @@ class Channel extends Model
     {
         return $this->belongsTo(Channel::class, 'channel_id');
     }
+
+    public function network(): BelongsTo
+    {
+        return $this->belongsTo(Network::class, 'network_id');
+    }
 }

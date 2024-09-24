@@ -20,4 +20,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // ... other routes
 require __DIR__ . '/api/bot.php';
+require __DIR__ . '/api/channel.php';
+require __DIR__ . '/api/client.php';
+require __DIR__ . '/api/download.php';
+require __DIR__ . '/api/file-extension.php';
+require __DIR__ . '/api/file-first-appearance.php';
 require __DIR__ . '/api/network.php';
+require __DIR__ . '/api/nick.php';
+require __DIR__ . '/api/packet.php';
