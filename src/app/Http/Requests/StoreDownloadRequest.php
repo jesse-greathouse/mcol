@@ -81,7 +81,7 @@ class StoreDownloadRequest extends FormRequest
     {
         $validated = $validator->validated();
 
-        if (null === $validated['status']) return true;
+        if (!isset($validated['status']) || null === $validated['status']) return true;
 
         return in_array(strtoupper($validated['status']), [
             Download::STATUS_INCOMPLETE,
