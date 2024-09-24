@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ServerResource extends JsonResource
+class PacketSearchResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -18,8 +18,8 @@ class ServerResource extends JsonResource
             'id'            => $this->id,
             'created_at'    => $this->created_at,
             'updated_at'    => $this->updated_at,
-            'host'          => $this->host,
-            'network'       => $this->network,
+            'channel'       => $this->channel,
+            'results'       => $this->packetSearchResults,
         ];
     }
 }

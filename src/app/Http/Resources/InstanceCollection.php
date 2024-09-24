@@ -5,19 +5,19 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
-class ServerCollection extends ResourceCollection
+class InstanceCollection extends ResourceCollection
 {
     /**
      * The resource that this resource collects.
      *
      * @var string
      */
-    public $collects = ServerResource::class;
+    public $collects = InstanceResource::class;
 
     /**
      * Transform the resource collection into an array.
      *
-     * @return array<int|string, mixed>
+     * @return array<int|string, InstanceResource>
      */
     public function toArray(Request $request): array
     {
