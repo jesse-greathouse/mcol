@@ -27,7 +27,7 @@ class GenerateFirstAppearance extends Command
      */
     public function handle()
     {
-        GenerateFileFirstAppearanceJob::dispatch();
+        GenerateFileFirstAppearanceJob::dispatch()->onQueue('longruns');
         $this->warn("Queued job for Generating First Appearances.");
     }
 }

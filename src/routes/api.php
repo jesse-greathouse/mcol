@@ -18,6 +18,7 @@ require __DIR__ . '/api/file-extension.php';
 require __DIR__ . '/api/file-first-appearance.php';
 require __DIR__ . '/api/hot-report.php';
 require __DIR__ . '/api/instance.php';
+require __DIR__ . '/api/media.php';
 require __DIR__ . '/api/network.php';
 require __DIR__ . '/api/nick.php';
 require __DIR__ . '/api/operation.php';
