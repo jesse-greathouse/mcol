@@ -23,7 +23,7 @@ class ClientSeeder extends Seeder
      * @var Array $networks
      */
     protected Array $clients = [
-        'Abjects' => ['MediaEnjoyer_201'],
+        'Abjects' => ['SweattyPickle_458'],
     ];
 
 

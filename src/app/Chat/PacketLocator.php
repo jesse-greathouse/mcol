@@ -6,7 +6,8 @@ use App\Models\Bot,
     App\Models\Channel,
     App\Models\FileFirstAppearance,
     App\Models\Network,
-    App\Models\Packet;
+    App\Models\Packet,
+    App\Packet\MediaType\MediaTypeGuesser;
 
 class PacketLocator
 {
@@ -255,7 +256,9 @@ class PacketLocator
      */
     protected function getDataToUpdate(string $fileName, string $size, int $gets, int $number, Network $network, Channel $channel, Bot $bot): array
     {
-        $dataToUpdate = ['file_name' => $fileName, 'gets' => $gets, 'size' => $size];
+        $guesser = new MediaTypeGuesser($fileName);
+        $mediaType = $guesser->guess();
+        $dataToUpdate = ['file_name' => $fileName, 'gets' => $gets, 'size' => $size, 'media_type' => $mediaType];
 
         # Check to see if a different file has previously filled this position.
         # Sometimes the bot owner can change which file is being served on this packet number.

@@ -22,7 +22,7 @@ class InstanceSeeder extends Seeder
     protected Array $clients = [
         [ 
             'network' => 'Abjects',
-            'nick' => 'MediaEnjoyer_201'
+            'nick' => 'SweattyPickle_458'
         ],
     ];
 

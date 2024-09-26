@@ -25,7 +25,8 @@ use App\Chat\LogDiverter,
     App\Models\Network,
     App\Models\Packet,
     App\Models\PacketSearch,
-    App\Models\PacketSearchResult;
+    App\Models\PacketSearchResult,
+    App\Packet\MediaType\MediaTypeGuesser;
 
 use Illuminate\Database\Eloquent\Collection;
 
@@ -741,9 +742,12 @@ class Client
         ]);
         $channel = $this->getBotChannelByBestGuess($bot);
 
+        $mediaTypeGuesser = new MediaTypeGuesser($fileName);
+        $mediaType = $mediaTypeGuesser->guess();
+
         $packet = Packet::updateOrCreate(
             ['number' => $packetNumber, 'network_id' => $this->network->id, 'channel_id' => $channel->id, 'bot_id' => $bot->id],
-            ['file_name' => $fileName, 'size' => $fileSize]
+            ['file_name' => $fileName, 'size' => $fileSize, 'media_type' => $mediaType]
         );
 
         return $packet;
