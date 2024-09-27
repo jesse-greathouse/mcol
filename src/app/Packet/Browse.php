@@ -13,7 +13,7 @@ use App\Media\MediaDynamicRange,
     App\Media\MediaType;
 
 use App\Models\Bot,
-    App\Models\FileExtension;
+    App\Packet\File\FileExtension;
 
 use \DateTime;
 
@@ -297,7 +297,7 @@ class Browse
      */
     protected function getOffset(): int
     {
-        return (int) ceil(($this->page * $this->rpp) - $this->rpp);
+        return ($this->page * $this->rpp) - $this->rpp;
     }
 
     /**
@@ -578,11 +578,18 @@ class Browse
         $filterOutFileExtensions = $this->getFilterOutFileExtensions();
 
         if (0 < count($filterInFileExtensions)) {
-            $regex = $this->makeFileExtensionRegEx($filterInFileExtensions);
-            $query = "AND p.file_name RLIKE '$regex'\n";
+            $query .= 'AND (';
+                $i = 0;
+                foreach($filterInFileExtensions as $ex) {
+                    if ($i > 0) $query .= ' OR ';
+                    $query .= "p.file_name LIKE '%$ex'";
+                    $i++;
+                }
+            $query .= ")\n";
         } else if (0 < count($filterOutFileExtensions)) {
-            $regex = $this->makeFileExtensionRegEx($filterOutFileExtensions);
-            $query = "AND p.file_name NOT RLIKE '$regex'\n";
+            foreach($filterOutFileExtensions as $ex) {
+                $query .= "AND p.file_name NOT LIKE '%$ex'\n";
+            }
         }
 
         return $query;
@@ -696,18 +703,6 @@ class Browse
         return $expandedMediaLanguageList;
     }
 
-    protected function makeFileExtensionRegEx(array $fileExtensionList): string
-    {
-        $regex = '';
-        $i = 0;
-        foreach($fileExtensionList as $ex) {
-            if ($i > 0) $regex .= '|';
-            $regex .= ".*$ex$";
-        }
-
-        return $regex;
-    }
-
     /**
      * Ensures the value of direction is within the list of available direction options.
      *
@@ -753,7 +748,8 @@ class Browse
      */
     protected function sanitizeFileExtensionList(array $fileExtensionList): array
     {
-        return FileExtension::whereIn('id', $fileExtensionList)->pluck('name')->toArray();
+        $fileExtensions = FileExtension::getFileExtensions();
+        return array_intersect($fileExtensions, $fileExtensionList);
     }
 
     /**

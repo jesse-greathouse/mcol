@@ -6,8 +6,8 @@ use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 use App\Http\Resources\BrowseCollection,
     App\Media\MediaType,
-    App\Models\FileExtension,
-    App\Packet\BrowseRequestHandler as Handler;
+    App\Packet\BrowseRequestHandler as Handler,
+    App\Packet\File\FileExtension;
 
 // GET /api/browse
 Route::middleware('auth:sanctum')->get('/browse', function (Request $request) {
@@ -33,5 +33,11 @@ function overrides(Request $request) {
     // Include all media types by default (excludes nulls).
     if (!$request->has(Handler::IN_MEDIA_TYPE_KEY) && !$request->has(Handler::OUT_MEDIA_TYPE_KEY)) {
         $request->merge([Handler::IN_MEDIA_TYPE_KEY => MediaType::getMediaTypes()]);
+    }
+
+    // Include all file extensions by default (excludes files misisng file extensions).
+    if (!$request->has(Handler::IN_FILE_EXTENSION_KEY) && !$request->has(Handler::OUT_FILE_EXTENSION_KEY)) {
+        $fileExtensions = FileExtension::getFileExtensions();
+        $request->merge([Handler::IN_FILE_EXTENSION_KEY => $fileExtensions]);
     }
 }

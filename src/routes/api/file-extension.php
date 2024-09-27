@@ -2,16 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
-use App\Models\FileExtension,
-    App\Http\Resources\FileExtensionCollection,
-    App\Http\Resources\FileExtensionResource;
+use App\Packet\File\FileExtension;
 
-// GET /api/fileextension
+// GET /api/media-dynamic-range
 Route::middleware('auth:sanctum')->get('/file-extension', function () {
-    return new FileExtensionCollection(FileExtension::all());
-});
-
-// GET /api/fileextension/:id
-Route::middleware('auth:sanctum')->get('/file-extension/{id}', function (string $id) {
-    return new FileExtensionResource(FileExtension::findOrFail($id));
+    return FileExtension::getFileExtensions();
 });
