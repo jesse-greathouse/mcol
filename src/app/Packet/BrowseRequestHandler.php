@@ -19,6 +19,8 @@ class BrowseRequestHandler
     const OUT_MEDIA_TYPE_KEY = 'out_media_type';
     const IN_LANGUAGE_KEY = 'in_language';
     const OUT_LANGUAGE_KEY = 'out_language';
+    const IN_FILE_EXTENSION_KEY = 'in_file_extension';
+    const OUT_FILE_EXTENSION_KEY = 'out_file_extension';
 
     /**
      * A Web Request
@@ -59,7 +61,8 @@ class BrowseRequestHandler
         $this->bots();
         $this->nicks();
         $this->mediaTypes();
-        $this->language();
+        $this->languages();
+        $this->fileExtensions();
     }
 
     /**
@@ -183,12 +186,26 @@ class BrowseRequestHandler
      *
      * @return void
      */
-    protected function language(): void
+    protected function languages(): void
     {
         if ($this->request->has(self::IN_LANGUAGE_KEY)) {
             $this->browse->setFilterInLanguages($this->request->input(self::IN_LANGUAGE_KEY));
         } else if ($this->request->has(self::OUT_LANGUAGE_KEY)) {
             $this->browse->setFilterOutLanguages($this->request->input(self::OUT_LANGUAGE_KEY));
+        }
+    }
+
+    /**
+     * Handle File Extension input.
+     *
+     * @return void
+     */
+    protected function fileExtensions(): void
+    {
+        if ($this->request->has(self::IN_FILE_EXTENSION_KEY)) {
+            $this->browse->setFilterInFileExtensions($this->request->input(self::IN_FILE_EXTENSION_KEY));
+        } else if ($this->request->has(self::OUT_FILE_EXTENSION_KEY)) {
+            $this->browse->setFilterOutFileExtensions($this->request->input(self::OUT_FILE_EXTENSION_KEY));
         }
     }
 
