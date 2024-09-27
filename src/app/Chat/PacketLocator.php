@@ -66,7 +66,7 @@ class PacketLocator
     public static function cleanMessage(string $text): string
     {
         // Removes redundant spaces.
-        $text = preg_replace("/\s+/", " ", $text);
+        $text = preg_replace("/\s+/", ' ', $text);
 
         // Removes control characters from string.
         $text = preg_replace('/[\x00-\x1F\x7F]/', '', $text);
@@ -200,7 +200,7 @@ class PacketLocator
         $matches = [];
         if (preg_match(self::PACKET_MASK, $text, $matches)) {
     
-            $fileName = (isset($matches[4])) ? $this->cleanMessage($matches[4]): null;
+            $fileName = (isset($matches[4])) ? $matches[4]: null;
     
             return [$matches[1], $matches[2], $matches[3], $fileName];
         }

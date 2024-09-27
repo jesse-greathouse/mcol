@@ -11,6 +11,7 @@
 */
 
 require __DIR__ . '/api/bot.php';
+require __DIR__ . '/api/browse.php';
 require __DIR__ . '/api/channel.php';
 require __DIR__ . '/api/client.php';
 require __DIR__ . '/api/download.php';

@@ -1,6 +1,12 @@
 <?php
 namespace App\Packet;
 
+use Illuminate\Pagination\LengthAwarePaginator,
+    Illuminate\Support\Facades\DB;
+
+use App\Exceptions\IllegalPageException,
+    App\Exceptions\IllegalRppException;
+
 use App\Media\MediaDynamicRange,
     App\Media\MediaLanguage,
     App\Media\MediaResolution,
@@ -13,7 +19,6 @@ use \DateTime;
 
 class Browse
 {
-
     const MYSQL_TIMESTAMP_FORMAT = 'Y-m-d H:i:s';
 
     const ORDER_BY_PACKET_CREATED = 'p.created_at';
@@ -27,8 +32,11 @@ class Browse
     const ORDER_OPTION_NAME = 'name';
     const ORDER_OPTION_DEFAULT = self::ORDER_OPTION_CREATED;
 
-    const ORDER_ASCENDING = 'ASC';
-    const ORDER_DESCENDING = 'DESC';
+    const ORDER_ASCENDING = 'asc';
+    const ORDER_DESCENDING = 'desc';
+
+    const DEFAULT_RPP = 40;
+    const DEFAULT_PAGE = 1;
 
     // Lists of media types to filter in our out.
     /**
@@ -51,6 +59,17 @@ class Browse
      * @var array
      */
     protected array $filterOutBots = [];
+
+    // Mask of a bot nick to filter in our out.
+    /**
+     * @var array
+     */
+    protected array $filterInNickMask = [];
+
+    /**
+     * @var array
+     */
+    protected array $filterOutNickMask = [];
 
     // Lists of languages to filter in our out.
     /**
@@ -108,28 +127,42 @@ class Browse
      *
      * @var DateTime
      */
-    protected DateTime $startDate;
+    protected $startDate;
 
     /**
      * Latest DateTime of query.
      *
      * @var DateTime
      */
-    protected DateTime $endDate;
+    protected $endDate;
 
     /**
      * Holds the value of the order.
      *
      * @var string
      */
-    protected string $order;
+    protected $order;
 
     /**
-     * Direction of result order
+     * Direction of result order.
      * 
      * @var string
      */
-    protected string $direction;
+    protected $direction;
+
+    /**
+     * Records per page.
+     *
+     * @var int
+     */
+    protected $rpp;
+
+    /**
+     * Page of the recordset.
+     *
+     * @var int
+     */
+    protected $page;
 
     /**
      * Instansiates a Browse object.
@@ -138,6 +171,8 @@ class Browse
     public function __construct()
     {
         $this->order = self::ORDER_OPTION_DEFAULT;
+        $this->rpp = self::DEFAULT_RPP;
+        $this->page = self::DEFAULT_PAGE;
     }
 
     /**
@@ -169,6 +204,29 @@ class Browse
     }
 
     /**
+     * Run the Query and return the result.
+     *
+     * @return array
+     */
+    public function get(): array
+    {
+        return DB::select($this->makeQuery());
+    }
+
+    /**
+     * Run the Query and return paginated results.
+     *
+     * @return LengthAwarePaginator
+     */
+    public function paginate(array $options = []): LengthAwarePaginator
+    {
+        $total = DB::scalar($this->makeCountQuery());
+        $items = DB::select($this->makeOffsetQuery());
+        $paginator = new LengthAwarePaginator($items, $total, $this->rpp, $this->page, $options);
+        return $paginator;
+    }
+
+    /**
      * Creates a query based on all the search and filtering criteria.
      *
      * @return string
@@ -177,8 +235,49 @@ class Browse
     {
         $query = $this->getQuerySelect();
         $query .= $this->getQueryFrom();
-        $query .= $this->filterEmptyBotNames();
-        $query .= $this->filterBots();
+        $query .= $this->getQueryFilters();
+        $query .= $this->getQueryOrder();
+
+        return $query;
+    }
+
+    /**
+     * Creates a query based on all the search and filtering criteria.
+     *
+     * @return string
+     */
+    public function makeOffsetQuery(): string
+    {
+        $query = $this->getQuerySelect();
+        $query .= $this->getQueryFrom();
+        $query .= $this->getQueryFilters();
+        $query .= $this->getQueryOrder();
+        $query .= $this->getQueryOffset();
+
+        return $query;
+    }
+
+    /**
+     * Creates a query that calcuates the maximum number of records.
+     *
+     * @return string
+     */
+    public function makeCountQuery(): string
+    {
+        $query = $this->getQueryCount();
+        $query .= $this->getQueryFrom();
+        $query .= $this->getQueryFilters();
+
+        return $query;
+    }
+
+    /**
+     * Returns a string that composes all the filters for the query.
+     *
+     * @return string
+     */
+    protected function getQueryFilters(): string {
+        $query = $this->filterBots();
         $query .= $this->filterLanguages();
         $query .= $this->filterMediaTypes();
         $query .= $this->filterResolutions();
@@ -186,9 +285,36 @@ class Browse
         $query .= $this->filterFileExtensions();
         $query .= $this->filterDateRange();
         $query .= $this->filterSearchString();
-        $query .= $this->getQueryOrder();
-
+        $query .= $this->filterNicks();
+        $query .= $this->filterEmptyBotNames();
         return $query;
+    }
+
+    /**
+     * Calculates the query offset based on the page number and rpp.
+     *
+     * @return integer
+     */
+    protected function getOffset(): int
+    {
+        return (int) ceil(($this->page * $this->rpp) - $this->rpp);
+    }
+
+    /**
+     * Combines lists where a value does not already exist.
+     *
+     * @param array $oldList
+     * @param array $newList
+     * @return array
+     */
+    protected function combineList(array $oldList, array $newList): array {
+        foreach($newList as $el) {
+            if (!in_array($el, $oldList)) {
+                $oldList[] = $el;
+            }
+        }
+
+        return $oldList;
     }
 
     /**
@@ -294,7 +420,7 @@ class Browse
         }
 
         if (0 < count($selectedMediaTypes)) {
-            $query .= 'AND (';
+            $query = 'AND (';
 
             $i = 0;
             foreach($selectedMediaTypes as $mediaType) {
@@ -321,9 +447,14 @@ class Browse
         $filterOutLanguages = $this->getFilterOutLanguages();
 
         if (0 < count($filterInLanguages)) {
+            $query = 'AND (';
+            $i = 0;
             foreach($filterInLanguages as $language) {
-                $query .= "AND p.file_name LIKE '%$language%'\n";
+                if ($i > 0) $query .= ' OR ';
+                $query .= "p.file_name LIKE '%$language%'";
+                $i++;
             }
+            $query .= ")\n";
         } else if (0 < count($filterOutLanguages)) {
             foreach($filterOutLanguages as $language) {
                 $query .= "AND p.file_name NOT LIKE '%$language%'\n";
@@ -348,6 +479,30 @@ class Browse
             $query = 'AND b.id IN (' . implode(',', $filterInbots) . ')' . "\n";
         } else if (0 < count($filterOutbots)) {
             $query = 'AND b.id NOT IN (' . implode(',', $filterOutbots) . ')' . "\n";
+        }
+
+        return $query;
+    }
+
+    /**
+     * Returns a string to only include bots by nicknamn masks.
+     *
+     * @return string
+     */
+    protected function filterNicks(): string
+    {
+        $query = '';
+        $filterInNickMask = $this->getFilterInNickMask();
+        $filterOutNickMask = $this->getFilterOutNickMask();
+
+        if (0 < count($filterInNickMask)) {
+            foreach($filterInNickMask as $nick) {
+                $query .= "AND b.nick LIKE '%$nick%'\n";
+            }
+        } else if (0 < count($filterOutNickMask)) {
+            foreach($filterOutNickMask as $nick) {
+                $query .= "AND b.nick NOT LIKE '%$nick%'\n";
+            }
         }
 
         return $query;
@@ -440,7 +595,7 @@ class Browse
      */
     protected function filterEmptyBotNames(): string
     {
-        return 'AND b.nick <>' . "\n";
+        return "AND b.nick <> '' \n";
     }
 
     /**
@@ -474,13 +629,24 @@ class Browse
         $query .= ', p.size';
         $query .= ', p.media_type';
         $query .= ', p.file_name';
-        $query .= ', n.name';
+        $query .= ', n.name as network';
+        $query .= ', b.id as bot_id';
         $query .= ', b.nick';
         $query .= ', p.number';
         $query .= ', f.created_at as first_appearance';
         $query .= "\n";
 
         return $query;
+    }
+
+    /**
+     * Returns the select line of the SQL query.
+     *
+     * @return string
+     */
+    protected function getQueryCount(): string
+    {
+        return "SELECT count(*)\n";
     }
 
     /**
@@ -493,7 +659,19 @@ class Browse
         $orderMap = $this->getOrderMap();
         $orderColumn = $orderMap[$this->order];
         $direction = $this->getDirection();
-        return "ORDER BY $orderColumn $direction";
+        return "ORDER BY $orderColumn $direction ";
+    }
+
+    /**
+     * Returns the limit and offset line of the SQL query.
+     *
+     * @return string
+     */
+    protected function getQueryOffset(): string
+    {
+        $offset = $this->getOffset();
+        $limit = $this->getRpp();
+        return "LIMIT $limit offset $offset";
     }
 
     /**
@@ -511,7 +689,7 @@ class Browse
         
         foreach($mediaLanguageList as $language) {
             if (isset($expanded[$language])) {
-                $expandedMediaLanguageList[] = $expanded[$language];
+                $expandedMediaLanguageList = array_merge($expandedMediaLanguageList, $expanded[$language]);
             }
         }
 
@@ -538,6 +716,7 @@ class Browse
      */
     protected function sanitizeDirection(string $direction): string
     {
+        $direction = strtolower($direction);
         $options = self::getDirectionOptions();
         return (in_array($direction, $options)) ? $direction : $this->getDefaultDirection();
     }
@@ -550,6 +729,7 @@ class Browse
      */
     protected function sanitizeOrder(string $order): string
     {
+        $order = strtolower($order);
         $options = self::getOrderOptions();
         return (in_array($order, $options)) ? $order : self::ORDER_OPTION_DEFAULT;
     }
@@ -852,9 +1032,9 @@ class Browse
     /**
      * Get the value of searchString
      *
-     * @return  string
+     * @return  string|null
      */ 
-    public function getSearchString(): string
+    public function getSearchString(): string|null
     {
         return $this->searchString;
     }
@@ -920,10 +1100,10 @@ class Browse
      *
      * @return  string
      */ 
-    public function getDirection()
+    public function getDirection(): string
     {
         if (null === $this->direction) {
-            $this->getDefaultDirection();
+            return $this->getDefaultDirection();
         }
     
         return $this->direction;
@@ -990,7 +1170,7 @@ class Browse
      *
      * @return  string
      */ 
-    public function getOrder(): string
+    public function getOrder(): string|null
     {
         return $this->order;
     }
@@ -1008,19 +1188,100 @@ class Browse
     }
 
     /**
-     * Combines lists where a value does not already exist.
+     * Get records per page.
      *
-     * @param array $oldList
-     * @param array $newList
-     * @return array
-     */
-    protected function combineList(array $oldList, array $newList): array {
-        foreach($newList as $el) {
-            if (!in_array($el, $oldList)) {
-                $oldList[] = $el;
-            }
+     * @return  int
+     */ 
+    public function getRpp(): int
+    { 
+        return $this->rpp;
+    }
+
+    /**
+     * Set records per page.
+     *
+     * @param  int  $rpp  Records per page.
+     *
+     * @return  void
+     */ 
+    public function setRpp(int $rpp): void
+    {
+        // Prevent Rpp from being a funky number.
+        if ($rpp < 1) {
+            throw new IllegalRppException("Records Per Page (Rpp) value: $rpp is not valid.");
         }
 
-        return $oldList;
+        $this->rpp = $rpp;
+    }
+
+    /**
+     * Get page of the recordset.
+     *
+     * @return  int
+     */ 
+    public function getPage(): int
+    {
+        return $this->page;
+    }
+
+    /**
+     * Set page of the recordset.
+     *
+     * @param  int  $page  Page of the recordset.
+     *
+     * @return  void
+     */ 
+    public function setPage(int $page): void
+    {
+        // Prevent Page from being a funky number.
+        if ($page < 1) {
+            throw new IllegalPageException("Page value: $page is not valid.");
+        }
+
+        $this->page = $page;
+    }
+
+    /**
+     * Get the value of filterInNickMask
+     *
+     * @return  array
+     */ 
+    public function getFilterInNickMask(): array
+    {
+        return $this->filterInNickMask;
+    }
+
+    /**
+     * Set the value of filterInNickMask
+     *
+     * @param  array  $filterInNickMask
+     *
+     * @return  self
+     */ 
+    public function setFilterInNickMask(array $filterInNickMask): void
+    {
+        $this->filterInNickMask = $filterInNickMask;
+    }
+
+    /**
+     * Get the value of filterOutNickMask
+     *
+     * @return  array
+     */ 
+    public function getFilterOutNickMask(): array
+    {
+        return $this->filterOutNickMask;
+    }
+
+    /**
+     * Set the value of filterOutNickMask
+     *
+     * @param  array  $filterOutNickMask
+     *
+     * @return  self
+     */ 
+    public function setFilterOutNickMask(array $filterOutNickMask): void
+    {
+        $this->filterOutNickMask = $filterOutNickMask;
     }
 }
