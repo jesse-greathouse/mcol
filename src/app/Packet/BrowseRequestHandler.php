@@ -4,6 +4,8 @@ namespace App\Packet;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+use \DateTime;
+
 class BrowseRequestHandler
 {
 
@@ -11,14 +13,21 @@ class BrowseRequestHandler
     const RPP_KEY = 'rpp';
     const ORDER_KEY = 'order';
     const DIRECTION_KEY = 'direction';
+    const START_DATE_KEY = 'start_date';
+    const END_DATE_KEY = 'end_date';
     const IN_BOTS_KEY = 'in_bots';
     const OUT_BOTS_KEY = 'out_bots';
     const IN_NICK_KEY = 'in_nick';
     const OUT_NICK_KEY = 'out_nick';
-    const IN_MEDIA_TYPE_KEY = 'in_media_type';
-    const OUT_MEDIA_TYPE_KEY = 'out_media_type';
     const IN_LANGUAGE_KEY = 'in_language';
     const OUT_LANGUAGE_KEY = 'out_language';
+    const SEARCH_STRING_KEY = 'search_string';
+    const IN_MEDIA_TYPE_KEY = 'in_media_type';
+    const OUT_MEDIA_TYPE_KEY = 'out_media_type';
+    const IN_RESOLUTIONS_KEY = 'in_resolutions';
+    const OUT_RESOLUTIONS_KEY = 'out_resolutions';
+    const IN_DYNAMIC_RANGE_KEY = 'in_dynamic_range';
+    const OUT_DYNAMIC_RANGE_KEY = 'out_dynamic_range';
     const IN_FILE_EXTENSION_KEY = 'in_file_extension';
     const OUT_FILE_EXTENSION_KEY = 'out_file_extension';
 
@@ -58,11 +67,16 @@ class BrowseRequestHandler
         $this->rpp();
         $this->order();
         $this->direction();
+        $this->search();
+        $this->startDate();
+        $this->endDate();
         $this->bots();
         $this->nicks();
         $this->mediaTypes();
         $this->languages();
         $this->fileExtensions();
+        $this->resolutions();
+        $this->dynamicRanges();
     }
 
     /**
@@ -140,6 +154,44 @@ class BrowseRequestHandler
     }
 
     /**
+     * Handle search string input.
+     *
+     * @return void
+     */
+    protected function search(): void
+    {
+        if ($this->request->has(self::SEARCH_STRING_KEY)) {
+            $this->browse->setSearchString($this->request->input(self::SEARCH_STRING_KEY));
+        }
+    }
+
+    /**
+     * DateTime to start the chronology of the results
+     * 
+     * @return void
+     */
+    protected function startDate(): void
+    {
+        if ($this->request->has(self::START_DATE_KEY)) {
+            $startDate = new DateTime($this->request->input(self::START_DATE_KEY));
+            $this->browse->setStartDate($startDate);
+        }
+    }
+
+    /**
+     * DateTime to end the chronology of the results
+     * 
+     * @return void
+     */
+    protected function endDate(): void
+    {
+        if ($this->request->has(self::END_DATE_KEY)) {
+            $endDate = new DateTime($this->request->input(self::END_DATE_KEY));
+            $this->browse->setEndDate($endDate);
+        }
+    }
+
+    /**
      * Handle Bots input.
      *
      * @return void
@@ -206,6 +258,34 @@ class BrowseRequestHandler
             $this->browse->setFilterInFileExtensions($this->request->input(self::IN_FILE_EXTENSION_KEY));
         } else if ($this->request->has(self::OUT_FILE_EXTENSION_KEY)) {
             $this->browse->setFilterOutFileExtensions($this->request->input(self::OUT_FILE_EXTENSION_KEY));
+        }
+    }
+
+    /**
+     * Handle Resolutions input.
+     *
+     * @return void
+     */
+    protected function resolutions(): void
+    {
+        if ($this->request->has(self::IN_RESOLUTIONS_KEY)) {
+            $this->browse->setFilterInResolutions($this->request->input(self::IN_RESOLUTIONS_KEY));
+        } else if ($this->request->has(self::OUT_RESOLUTIONS_KEY)) {
+            $this->browse->setFilterOutResolutions($this->request->input(self::OUT_RESOLUTIONS_KEY));
+        }
+    }
+
+    /**
+     * Handle Dynamic Range input.
+     *
+     * @return void
+     */
+    protected function dynamicRanges(): void
+    {
+        if ($this->request->has(self::IN_DYNAMIC_RANGE_KEY)) {
+            $this->browse->setFilterInDynamicRange($this->request->input(self::IN_DYNAMIC_RANGE_KEY));
+        } else if ($this->request->has(self::OUT_DYNAMIC_RANGE_KEY)) {
+            $this->browse->setFilterOutDynamicRange($this->request->input(self::OUT_DYNAMIC_RANGE_KEY));
         }
     }
 

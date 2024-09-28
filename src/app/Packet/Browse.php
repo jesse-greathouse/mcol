@@ -355,13 +355,31 @@ class Browse
     protected function filterSearchString(): string
     {
         $query = '';
-        $searchStr = $this->getSearchString();
+        $searchString = $this->getSearchString();
 
-        if (null !== $searchStr) {
-            $query = "AND MATCH (p.file_name) AGAINST ('$searchStr' IN NATURAL LANGUAGE MODE)\n";
+        if (null !== $searchString) {
+            $query = "AND MATCH (p.file_name) AGAINST ('$searchString' IN BOOLEAN MODE)\n";
         }
 
         return $query;
+    }
+
+    /**
+     * Formats a search string to match all words.
+     *
+     * @param string $searchString
+     * @return string
+     */
+    protected function formatSearchMatchAll(string $searchString): string
+    {
+        $formatted = [];
+        $words = explode(' ', $searchString);
+
+        foreach($words as $word) {
+            $formatted[] = "+$word";
+        }
+
+        return implode(' ', $formatted);
     }
 
     /**
@@ -529,7 +547,7 @@ class Browse
                 }
             $query .= ")\n";
         } else if (0 < count($filterOutResolutions)) {
-            foreach($filterInResolutions as $res) {
+            foreach($filterOutResolutions as $res) {
                 $query .= "AND p.file_name NOT LIKE '%$res%'\n";
             }
         }
@@ -558,7 +576,7 @@ class Browse
                 }
             $query .= ")\n";
         } else if (0 < count($filterOutDynamicRange)) {
-            foreach($filterInDynamicRange as $range) {
+            foreach($filterOutDynamicRange as $range) {
                 $query .= "AND p.file_name NOT LIKE '%$range%'\n";
             }
         }
@@ -574,22 +592,25 @@ class Browse
     protected function filterFileExtensions(): string
     {
         $query = '';
+        $selectedFileExtensions = FileExtension::getFileExtensions();
         $filterInFileExtensions = $this->getFilterInFileExtensions();
         $filterOutFileExtensions = $this->getFilterOutFileExtensions();
 
         if (0 < count($filterInFileExtensions)) {
+            $selectedFileExtensions = $filterInFileExtensions;
+        } else if (0 < count($filterOutFileExtensions)) {
+            $selectedFileExtensions = array_diff($selectedFileExtensions, $filterOutFileExtensions);
+        }
+
+        if (0 < count($selectedFileExtensions)) {
             $query .= 'AND (';
                 $i = 0;
-                foreach($filterInFileExtensions as $ex) {
+                foreach($selectedFileExtensions as $ex) {
                     if ($i > 0) $query .= ' OR ';
                     $query .= "p.file_name LIKE '%$ex'";
                     $i++;
                 }
             $query .= ")\n";
-        } else if (0 < count($filterOutFileExtensions)) {
-            foreach($filterOutFileExtensions as $ex) {
-                $query .= "AND p.file_name NOT LIKE '%$ex'\n";
-            }
         }
 
         return $query;
