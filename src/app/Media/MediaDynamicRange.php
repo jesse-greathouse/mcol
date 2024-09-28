@@ -5,7 +5,7 @@ namespace App\Media;
 final class MediaDynamicRange
 {
     const HDR = 'hdr';
-    const DOLBY_VISION = 'dolby vision';
+    const DOLBY_VISION = 'dovi';
 
     /**
      * Returns a list of a all the media dynamic ranges.
