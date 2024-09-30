@@ -23,6 +23,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/scout": "^10.0",
         "laravel/tinker": "^2.9",
+        "sajya/server": "^6.1",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {

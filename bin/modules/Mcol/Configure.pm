@@ -88,33 +88,36 @@ my %cfg = get_configuration();
 
 my %defaults = (
     laravel => {
-        APP_NAME                => 'mcol',
-        APP_ENV                 => 'local',
-        APP_KEY                 => $appKey,
-        APP_DEBUG               => 'true',
-        APP_URL                 => 'http://localhost',
-        APP_TIMEZONE            => 'UTC',
-        DOWNLOAD_DIR            => $downloadDir,
-        LOG_CHANNEL             => 'stack',
-        LOG_SLACK_WEBHOOK_URL   => 'none',
-        DB_CONNECTION           => 'mysql',
-        DB_HOST                 => '127.0.0.1',
-        DB_PORT                 => '3306',
-        DB_DATABASE             => 'mcol',
-        DB_USERNAME             => 'mcol',
-        DB_PASSWORD             => 'mcol',
-        CACHE_DRIVER            => 'file',
-        QUEUE_CONNECTION        => 'sync',
+        APP_NAME                    => 'mcol',
+        APP_ENV                     => 'local',
+        APP_KEY                     => $appKey,
+        APP_DEBUG                   => 'true',
+        SESSION_DRIVER              => 'cookie',
+        APP_URL                     => 'localhost',
+        SESSION_DOMAIN              => 'localhost',
+        SANCTUM_STATEFUL_DOMAINS    => 'localhost',
+        APP_TIMEZONE                => 'UTC',
+        DOWNLOAD_DIR                => $downloadDir,
+        LOG_CHANNEL                 => 'stack',
+        LOG_SLACK_WEBHOOK_URL       => 'none',
+        DB_CONNECTION               => 'mysql',
+        DB_HOST                     => '127.0.0.1',
+        DB_PORT                     => '3306',
+        DB_DATABASE                 => 'mcol',
+        DB_USERNAME                 => 'mcol',
+        DB_PASSWORD                 => 'mcol',
+        CACHE_DRIVER                => 'file',
+        QUEUE_CONNECTION            => 'sync',
     },
     nginx => {
-        DOMAINS                 => '127.0.0.1',
-        IS_SSL                  => 'no',
-        PORT                    => '8080',
-        SSL_CERT                => $sslCertificate,
-        SSL_KEY                 => $sslKey,
+        DOMAINS                     => '127.0.0.1',
+        IS_SSL                      => 'no',
+        PORT                        => '8080',
+        SSL_CERT                    => $sslCertificate,
+        SSL_KEY                     => $sslKey,
     },
     redis => {
-        REDIS_HOST              => 'localhost',
+        REDIS_HOST                  => 'localhost',
     }
 );
 
@@ -328,6 +331,16 @@ sub request_user_input {
 }
 
 sub merge_defaults {
+
+    if (exists($cfg{laravel}{APP_URL})) {
+        if (!exists($cfg{laravel}{SESSION_DOMAIN})) {
+            $cfg{laravel}{SESSION_DOMAIN} = $cfg{laravel}{APP_URL};
+        }
+
+        if (!exists($cfg{laravel}{SANCTUM_STATEFUL_DOMAINS})) {
+            $cfg{laravel}{SANCTUM_STATEFUL_DOMAINS} = $cfg{laravel}{APP_URL};
+        }
+    }
 
     if (!exists($cfg{supervisor}{SUPERVISORCTL_USER})) {
         $cfg{supervisor}{SUPERVISORCTL_USER} = $ENV{"LOGNAME"};
