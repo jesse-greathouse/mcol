@@ -26,5 +26,6 @@ require __DIR__ . '/api/operation.php';
 require __DIR__ . '/api/packet.php';
 require __DIR__ . '/api/packet-search.php';
 require __DIR__ . '/api/packet-search-result.php';
+require __DIR__ . '/api/rpc.php';
 require __DIR__ . '/api/server.php';
 require __DIR__ . '/api/user.php';

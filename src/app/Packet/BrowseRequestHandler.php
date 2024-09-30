@@ -57,6 +57,20 @@ class BrowseRequestHandler
     }
 
     /**
+     * Returns an array of all available filters and their current values.
+     *
+     * @return array
+     */
+    public function getFilters(): array
+    {
+        return [
+            self::PAGE_KEY => $this->browse->getPage(),
+            self::SEARCH_STRING_KEY => $this->browse->getSearchString(),
+            self::IN_MEDIA_TYPE_KEY => $this->browse->getFilterInMediaTypes(),
+        ];
+    }
+
+    /**
      * Configures the browse options from given inputs.
      *
      * @return void
@@ -106,7 +120,7 @@ class BrowseRequestHandler
      */
     protected function page(): void
     {
-        if ($this->request->has(self::PAGE_KEY)) {
+        if ($this->request->has(self::PAGE_KEY) && null !== $this->request->input(self::PAGE_KEY)) {
             $this->browse->setPage($this->request->input(self::PAGE_KEY));
         }
     }
@@ -118,7 +132,7 @@ class BrowseRequestHandler
      */
     protected function rpp(): void
     {
-        if ($this->request->has(self::RPP_KEY)) {
+        if ($this->request->has(self::RPP_KEY) && null !== $this->request->input(self::RPP_KEY)) {
             $this->browse->setRpp($this->request->input(self::RPP_KEY));
         }
     }
@@ -130,7 +144,7 @@ class BrowseRequestHandler
      */
     protected function order(): void
     {
-        if ($this->request->has(self::ORDER_KEY)) {
+        if ($this->request->has(self::ORDER_KEY) && null !== $this->request->input(self::ORDER_KEY)) {
             $order = strtolower($this->request->input(self::ORDER_KEY));
             if (in_array($order, Browse::getOrderOptions())) {
                 $this->browse->setOrder($order);
@@ -145,7 +159,7 @@ class BrowseRequestHandler
      */
     protected function direction(): void
     {
-        if ($this->request->has(self::DIRECTION_KEY)) {
+        if ($this->request->has(self::DIRECTION_KEY) && null !== $this->request->input(self::DIRECTION_KEY)) {
             $direction = strtolower($this->request->input(self::DIRECTION_KEY));
             if (in_array($direction, Browse::getDirectionOptions())) {
                 $this->browse->setDirection($direction);
@@ -160,7 +174,7 @@ class BrowseRequestHandler
      */
     protected function search(): void
     {
-        if ($this->request->has(self::SEARCH_STRING_KEY)) {
+        if ($this->request->has(self::SEARCH_STRING_KEY) && null !== $this->request->input(self::SEARCH_STRING_KEY)) {
             $this->browse->setSearchString($this->request->input(self::SEARCH_STRING_KEY));
         }
     }
@@ -172,7 +186,7 @@ class BrowseRequestHandler
      */
     protected function startDate(): void
     {
-        if ($this->request->has(self::START_DATE_KEY)) {
+        if ($this->request->has(self::START_DATE_KEY) && null !== $this->request->input(self::START_DATE_KEY)) {
             $startDate = new DateTime($this->request->input(self::START_DATE_KEY));
             $this->browse->setStartDate($startDate);
         }
@@ -185,7 +199,7 @@ class BrowseRequestHandler
      */
     protected function endDate(): void
     {
-        if ($this->request->has(self::END_DATE_KEY)) {
+        if ($this->request->has(self::END_DATE_KEY) && null !== $this->request->input(self::END_DATE_KEY)) {
             $endDate = new DateTime($this->request->input(self::END_DATE_KEY));
             $this->browse->setEndDate($endDate);
         }
