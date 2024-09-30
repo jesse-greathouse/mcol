@@ -65,8 +65,25 @@ class BrowseRequestHandler
     {
         return [
             self::PAGE_KEY => $this->browse->getPage(),
+            self::RPP_KEY => $this->browse->getRpp(),
+            self::ORDER_KEY => $this->browse->getOrder(),
+            self::START_DATE_KEY => $this->browse->getStartDate(),
+            self::END_DATE_KEY => $this->browse->getEndDate(),
+            self::IN_BOTS_KEY => $this->browse->getFilterInBots(),
+            self::OUT_BOTS_KEY => $this->browse->getFilterOutBots(),
+            self::IN_NICK_KEY => $this->browse->getFilterInNickMask(),
+            self::OUT_BOTS_KEY => $this->browse->getFilterOutNickMask(),
+            self::IN_LANGUAGE_KEY => $this->browse->getFilterInLanguages(),
+            self::OUT_LANGUAGE_KEY => $this->browse->getFilterOutLanguages(),
             self::SEARCH_STRING_KEY => $this->browse->getSearchString(),
             self::IN_MEDIA_TYPE_KEY => $this->browse->getFilterInMediaTypes(),
+            self::OUT_MEDIA_TYPE_KEY => $this->browse->getFilterOutMediaTypes(),
+            self::IN_RESOLUTIONS_KEY => $this->browse->getFilterInResolutions(),
+            self::OUT_RESOLUTIONS_KEY => $this->browse->getFilterOutResolutions(),
+            self::IN_DYNAMIC_RANGE_KEY => $this->browse->getFilterInDynamicRange(),
+            self::OUT_DYNAMIC_RANGE_KEY => $this->browse->getFilterOutDynamicRange(),
+            self::IN_FILE_EXTENSION_KEY => $this->browse->getFilterInFileExtensions(),
+            self::OUT_FILE_EXTENSION_KEY => $this->browse->getFilterOutFileExtensions(),
         ];
     }
 

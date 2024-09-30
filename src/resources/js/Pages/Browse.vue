@@ -24,7 +24,12 @@
                 </div>
 
                 <div class="flex items-start justify-start mb-6">
-                  <language-filter :exclude="exclude_languages" :selected="selected_language" :languages="languages" class="w-full max-w-md" @update:languages="updateLanguages"  @update:excludelanguage="updateExcludeLanguages"/>
+                  <language-filter ref="languages" class="w-full max-w-md" @update:languages="updateLanguages"  @update:excludeLanguage="updateExcludeLanguages"
+                    :exclude="exclude_languages"
+                    :in_language="this.form.in_language"
+                    :out_language="this.form.out_language"
+                    :languages="languages"
+                  />
                 </div>
 
                 <div class="bg-white rounded-md shadow overflow-x-auto">
@@ -127,21 +132,15 @@
       pagination_nav: Object,
       media_types: Array,
       languages: Array,
+      selected_language: Array,
     },
     mounted() {
       //
     },
     data() {
-      const in_language = (_.isSet(this.filters.in_language)) ? this.filters.in_language : [];
-      const out_language = (_.isSet(this.filters.out_language)) ? this.filters.out_language : [];
-
       let exclude_languages = false;
-      let selected_language = [];
-      if (0 <= in_language.length) {
-        selected_language = in_language;
-      } else if (0 <= out_language.length) {
+      if ((1 > this.filters.in_language.length) && (0 < this.filters.out_language.length)) {
         exclude_languages = true;
-        selected_language = out_language;
       }
 
       return {
@@ -149,12 +148,12 @@
           search_string: this.filters.search_string,
           in_media_type: this.filters.in_media_type,
           out_media_type: this.filters.out_media_type,
-          in_language: in_language,
-          out_language: out_language,
+          in_language: this.filters.in_language,
+          out_language: this.filters.out_language,
         },
         media_types: this.media_types,
         languages: this.languages,
-        selected_language: selected_language,
+        exclude_languages: exclude_languages,
       }
     },
     computed: {
@@ -230,10 +229,9 @@
         }
       },
       updateExcludeLanguages(checked) {
-        if (checked === this.exclude_languages) return;
-        this.form.out_language = [];
-        this.form.in_language = [];
-        this.exclude_languages = checked;
+        this.form.in_language = []
+        this.form.out_language = []
+        this.exclude_languages = checked
       },
       requestDownload(packetId) {
         const url = `/api/rpc/download`
