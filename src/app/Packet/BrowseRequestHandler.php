@@ -24,8 +24,8 @@ class BrowseRequestHandler
     const SEARCH_STRING_KEY = 'search_string';
     const IN_MEDIA_TYPE_KEY = 'in_media_type';
     const OUT_MEDIA_TYPE_KEY = 'out_media_type';
-    const IN_RESOLUTIONS_KEY = 'in_resolutions';
-    const OUT_RESOLUTIONS_KEY = 'out_resolutions';
+    const IN_RESOLUTIONS_KEY = 'in_resolution';
+    const OUT_RESOLUTIONS_KEY = 'out_resolution';
     const IN_DYNAMIC_RANGE_KEY = 'in_dynamic_range';
     const OUT_DYNAMIC_RANGE_KEY = 'out_dynamic_range';
     const IN_FILE_EXTENSION_KEY = 'in_file_extension';
@@ -67,6 +67,7 @@ class BrowseRequestHandler
             self::PAGE_KEY => $this->browse->getPage(),
             self::RPP_KEY => $this->browse->getRpp(),
             self::ORDER_KEY => $this->browse->getOrder(),
+            self::DIRECTION_KEY => $this->browse->getDirection(),
             self::START_DATE_KEY => $this->browse->getStartDate(),
             self::END_DATE_KEY => $this->browse->getEndDate(),
             self::IN_BOTS_KEY => $this->browse->getFilterInBots(),
@@ -204,7 +205,8 @@ class BrowseRequestHandler
     protected function startDate(): void
     {
         if ($this->request->has(self::START_DATE_KEY) && null !== $this->request->input(self::START_DATE_KEY)) {
-            $startDate = new DateTime($this->request->input(self::START_DATE_KEY));
+            $dateStr = $this->request->input(self::START_DATE_KEY);
+            $startDate = new DateTime($dateStr);
             $this->browse->setStartDate($startDate);
         }
     }
@@ -217,7 +219,15 @@ class BrowseRequestHandler
     protected function endDate(): void
     {
         if ($this->request->has(self::END_DATE_KEY) && null !== $this->request->input(self::END_DATE_KEY)) {
-            $endDate = new DateTime($this->request->input(self::END_DATE_KEY));
+            $dateStr = $this->request->input(self::END_DATE_KEY);
+
+            // If no time is given, increment by one day.
+            if (!$this->containsTimeString($dateStr)) {
+                $endDate = new DateTime("$dateStr +1 day");
+            } else {
+                $endDate = new DateTime($dateStr);
+            }
+
             $this->browse->setEndDate($endDate);
         }
     }
@@ -318,6 +328,20 @@ class BrowseRequestHandler
         } else if ($this->request->has(self::OUT_DYNAMIC_RANGE_KEY)) {
             $this->browse->setFilterOutDynamicRange($this->request->input(self::OUT_DYNAMIC_RANGE_KEY));
         }
+    }
+
+    /**
+     * Checks a date format string to see if it includes time.
+     *
+     * @param string $dateStr
+     * @return boolean
+     */
+    protected function containsTimeString(string $dateStr): bool
+    {
+        $matches = [];
+        preg_match('/\d+\:\d+(\:\d+)?/', $dateStr, $matches);
+
+        return 0 < count($matches);
     }
 
 }

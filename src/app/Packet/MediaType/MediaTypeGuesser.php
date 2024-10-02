@@ -6,9 +6,9 @@ use App\Media\MediaType;
 
 class MediaTypeGuesser
 {
-    const EPISODE_MASK = '/\.S\d{2}E\d{2}\./i';
-    const SEASON_MASK = '/\.S\d{2}\./i';
-    const MULTIPLE_SEASON_MASK = '/\.S\d{2}\-S\d{2}\./i';
+    const EPISODE_MASK = '/(\.|\-)S\d{2}E\d{2}(\.|\-)/i';
+    const SEASON_MASK = '/(\.|\-)S\d{2}(\.|\-)/i';
+    const MULTIPLE_SEASON_MASK = '/(\.|\-)S\d{2}\-S\d{2}(\.|\-)/i';
     const MOVIE_MASK = '/720|1080|2160|UHD|BluRay|BDRip|DVDRip|WEBRiP|Anime|WEB\-DL|h\.264|x\.264|h264|x264|h\.265|h265|x265|XviD/i';
     const BOOK_MASK = '/AUDIOBOOK|ABOOK|eBOOK|ePUB|BOOKWARE-SCHOLASTiC|\.pdf|iLLiTERATE|iMPART|iLEARN|XQZT\.tar|JGTiSO|KNiSO|NOGRP/i';
     const MUSIC_MASK = '/MP3|CD|FLAC|Discography|TosK|iNT\.|MOD\.tar|ENViED|AFO\.tar|KzT\.tar|wAx\.tar|JUSTiFY\.tar|UME\.tar/i';

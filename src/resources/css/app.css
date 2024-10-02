@@ -5,6 +5,7 @@
 @import 'form';
 
 @import 'tailwindcss/utilities';
+@import '/node_modules/flowbite-vue/dist/index.css';
 
 [x-cloak] {
     display: none;

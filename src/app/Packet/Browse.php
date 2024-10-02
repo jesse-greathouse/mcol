@@ -725,6 +725,28 @@ class Browse
     }
 
     /**
+     * Expands the Dynamic Range List
+     * Some dynamic ranges are represented in multiple ways.
+     * The expanded dynamic range list adds all the ways that each dynamic range is represented.
+     *
+     * @param array $mediaDynamicRangeList
+     * @return array
+     */
+    protected function expandMediaDynamicRangeList(array $mediaDynamicRangeList): array
+    {
+        $expanded = MediaDynamicRange::getExpandedDynamicRanges();
+        $expandedMediaDynamicRangeList = $mediaDynamicRangeList;
+
+        foreach($mediaDynamicRangeList as $dynamicRange) {
+            if (isset($expanded[$dynamicRange])) {
+                $expandedMediaDynamicRangeList = array_merge($expandedMediaDynamicRangeList, $expanded[$dynamicRange]);
+            }
+        }
+
+        return $expandedMediaDynamicRangeList;
+    }
+
+    /**
      * Ensures the value of direction is within the list of available direction options.
      *
      * @param $direction
@@ -976,7 +998,9 @@ class Browse
      */ 
     public function setFilterInDynamicRange(array $filterInDynamicRange): void
     {
-        $this->filterInDynamicRange = $this->sanitizeMediaDynamicRangeList($filterInDynamicRange);
+        $sanitizedDynamicRanges = $this->sanitizeMediaDynamicRangeList($filterInDynamicRange);
+        $expandedDynamicRanges = $this->expandMediaDynamicRangeList($sanitizedDynamicRanges);
+        $this->filterInDynamicRange = $expandedDynamicRanges;
 
     }
 
@@ -999,7 +1023,9 @@ class Browse
      */ 
     public function setFilterOutDynamicRange(array $filterOutDynamicRange): void
     {
-        $this->filterOutDynamicRange =  $this->sanitizeMediaDynamicRangeList($filterOutDynamicRange);
+        $sanitizedDynamicRanges = $this->sanitizeMediaDynamicRangeList($filterOutDynamicRange);
+        $expandedDynamicRanges = $this->expandMediaDynamicRangeList($sanitizedDynamicRanges);
+        $this->filterOutDynamicRange = $expandedDynamicRanges;
     }
 
     /**

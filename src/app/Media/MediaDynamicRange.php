@@ -19,4 +19,13 @@ final class MediaDynamicRange
             self::DOLBY_VISION,
         ];
     }
+
+    public static function getExpandedDynamicRanges(): array
+    {
+        return [
+            self::DOLBY_VISION => [
+                '.DV.',
+            ],
+        ];
+    }
 }
