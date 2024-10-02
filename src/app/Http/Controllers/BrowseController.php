@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Media\MediaResolution;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 
 use App\Packet\BrowseRequestHandler as Handler,
     App\Packet\File\FileExtension,
+    App\Media\MediaDynamicRange,
     App\Media\MediaLanguage,
     App\Media\MediaType;
 
@@ -17,17 +19,22 @@ class BrowseController
     {
         overrides($request);
         $browseHandler = new Handler($request);
+
+        $filters = $browseHandler->getFilters();
+        $mediaTypes = MediaType::getMediaTypes();
+        $resolutions = MediaResolution::getMediaResolutions();
+        $languages = MediaLanguage::getMediaLanguages();
+        $dynamicRanges = MediaDynamicRange::getMediaDynamicRanges();
         
         $resp = $browseHandler->paginate([
             'path' => LengthAwarePaginator::resolveCurrentPath(),
             'pageName' => 'page',
-        ])->toArray();
-        $filters = $browseHandler->getFilters();
-        $mediaTypes = MediaType::getMediaTypes();
-        $languages = MediaLanguage::getMediaLanguages();
+        ])->withQueryString()->toArray();
 
         return Inertia::render('Browse', [
+            'dynamic_ranges'    => $dynamicRanges,
             'media_types'       => $mediaTypes,
+            'resolutions'       => $resolutions,
             'languages'         => $languages,
             'filters'           => $filters,
             'packets'           => $resp['data'],
