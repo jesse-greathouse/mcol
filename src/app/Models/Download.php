@@ -12,9 +12,9 @@ class Download extends Model
 
     protected $guarded = [];
 
-    const STATUS_INCOMPLETE = 'INCOMPLETE';
-    const STATUS_COMPLETED = 'COMPLETED';
-    const STATUS_QUEUED = 'QUEUED';
+    const STATUS_INCOMPLETE = 'incomplete';
+    const STATUS_COMPLETED = 'completed';
+    const STATUS_QUEUED = 'queued';
 
     /**
      * Creates a boolean that designates this attr as queued or not queued.
@@ -33,5 +33,4 @@ class Download extends Model
     {
         return $this->belongsTo(Packet::class);
     }
-    
 }

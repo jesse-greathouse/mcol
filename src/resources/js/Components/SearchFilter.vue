@@ -13,5 +13,5 @@ export default {
     model: String,
   },
   emits: ['update:searchString', 'reset'],
-  }
-  </script>
+}
+</script>

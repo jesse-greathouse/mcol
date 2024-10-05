@@ -12,7 +12,7 @@ export default {
       const packet = new Date(`${dateStr} GMT`);
       const local = new Date()
 
-      if (local.getDay() == packet.getDay()) {
+      if (local.getDay() === packet.getDay()) {
         return packet.toLocaleTimeString('en-US')
       } else {
         return packet.toLocaleDateString('en-US')

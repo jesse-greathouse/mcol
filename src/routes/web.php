@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\BrowseController,
     App\Http\Controllers\DashboardController,
+    App\Http\Controllers\DownloadQueueController,
     App\Http\Controllers\TokenController;
 
 // Force all traffic to authenticate first.
@@ -21,4 +22,5 @@ Route::middleware([
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/browse', [BrowseController::class, 'index'])->name('browse');
+    Route::get('/download-queue', [DownloadQueueController::class, 'index'])->name('download-queue');
 });

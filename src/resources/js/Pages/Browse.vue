@@ -1,165 +1,106 @@
 <template>
-    <div class="py-12">
-        <div class="max-w-full mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5">
-                <Head title="Browse" />
-                <div class="flex items-start justify-start mb-4">
-                  <div class="relative flex w-1/5 min-w-72 m-0 mr-4">
-                    <search-filter :model="form.search_string" class="flex w-full" @update:searchString="updateSearchString" @reset="reset" />
-                    <div class="absolute inset-y-0 start-16 flex items-center ps-3 pointer-events-none">
-                      <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                      </svg>
-                    </div>
-                    <button v-if="searchStringActive" type="button" @click="resetSearchString" class="text-white absolute end-2 bottom-2 bg-slate-200 hover:bg-slate-300 focus:ring-1 focus:outline-none focus:ring-slate-50 font-medium rounded-lg text-sm px-4 py-2 dark:bg-slate-400 dark:hover:bg-slate-500 dark:focus:ring-slate-300">Clear</button>
-                  </div>
-                    <span class="mx-2 w-48 min-w-48">
-                      <Multiselect placeholder="Media" mode='multiple' @change="updateMediaType" class="p-1 hover:text-gray-700 focus:text-indigo-500 text-sm"
-                        :multipleLabel="mediaLabel"
-                        v-model="form.in_media_type"
-                        :options="media_types"
-                        ref="media"
-                      />
-                    </span>
-                    <span class="mx-2 w-48  min-w-48" v-if="filteringVideoFormat">
-                      <Multiselect  placeholder="Resolution" mode='multiple' @change="updateResolution" class="p-1 hover:text-gray-700 focus:text-indigo-500 text-sm"
-                        :multipleLabel="resolutionLabel"
-                        v-model="form.in_resolution"
-                        :options="resolutions"
-                        ref="media"
-                      />
-                    </span>
-
-                    <span class="flex items-start justify-start mx-2" v-if="filteringVideoFormat">
-                      <dynamic-range-filter ref="dynamic-ranges" @update:dynamicRanges="updateDynamicRanges"  @update:excludeDynamicRange="updateExcludeDynamicRanges"
-                        :exclude="exclude_dynamic_ranges"
-                        :in_dynamic_range="form.in_dynamic_range"
-                        :out_dynamic_range="form.out_dynamic_range"
-                        :dynamic_ranges="dynamic_ranges"
-                      />
-                    </span>
-                </div>
-
-                <div class="flex items-start justify-start mb-4">
-                  <language-filter ref="languages" class="w-full max-w-md" @update:languages="updateLanguages"  @update:excludeLanguage="updateExcludeLanguages"
-                    :exclude="exclude_languages"
-                    :in_language="form.in_language"
-                    :out_language="form.out_language"
-                    :languages="languages"
-                  />
-
-                  <div class="flex items-center mx-6 min-w-52">
-                    <vue-tailwind-datepicker ref="fromDate" v-model="form.start_date" as-single placeholder="Search From" />
-                  </div>
-                </div>
-
-                <div class="flex items-start justify-start mb-6">
-                  <pagination :links="pagination_nav" />
-                </div>
-
-                <div class="bg-white rounded-md shadow overflow-x-auto">
-                    <table class="w-full whitespace-nowrap">
-                    <thead>
-                        <tr class="text-left font-bold">
-                          <th class="pb-4 pt-6 px-6 items-center hover:cursor-pointer hover:shadow-inner hover:bg-gradient-to-b from-white via-white to-sky-50" 
-                            @click="toggleSort('created')">
-                              Created
-                              <sort-buttons order="created"
-                                :currentOrder="form.order"
-                                :currentDirection="form.direction"
-                              />
-                          </th>
-                          <th class="pb-4 pt-6 px-6 items-center">Media</th>
-                          <th class="pb-4 pt-6 px-6 items-center hover:cursor-pointer hover:shadow-inner hover:bg-gradient-to-b from-white via-white to-sky-50"
-                            @click="toggleSort('gets')">
-                              Gets
-                              <sort-buttons order="gets"
-                                :currentOrder="form.order"
-                                :currentDirection="form.direction"
-                              />
-                          </th>
-                          <th class="pb-4 pt-6 px-6 items-center hover:cursor-pointer hover:shadow-inner hover:bg-gradient-to-b from-white via-white to-sky-50" 
-                            @click="toggleSort('name')">
-                              File Name
-                              <sort-buttons order="name"
-                                :currentOrder="form.order"
-                                :currentDirection="form.direction"
-                              />
-                          </th>
-                          <th class="pb-4 pt-6 px-6 items-center">Size</th>
-                          <th class="pb-4 pt-6 px-6 items-center">Network</th>
-                          <th class="pb-4 pt-6 px-6 items-center">Bot</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="packet in packets" :key="packet.id" class="hover:bg-gray-100 focus-within:bg-gray-100">
-                          <td class="border-t">
-                              <span class="flex items-center px-6 py-4 hover:cursor-pointer" @click="requestDownload(packet.id)">
-                                  <packet-date :date="packet.created_at" /> 
-                              </span>
-                          </td>
-                          <td class="border-t">
-                              <span class="flex items-center px-6 py-4  hover:cursor-pointer" @click="requestDownload(packet.id)">
-                                  <media-icon :media="packet.media_type" />
-                              </span>
-                          </td>
-                          <td class="border-t">
-                              <span class="flex items-center px-6 py-4  hover:cursor-pointer" @click="requestDownload(packet.id)">
-                                  {{ packet.gets }}
-                              </span>
-                          </td>
-                          <td class="border-t">
-                              <span class="flex items-center px-6 py-4 hover:cursor-pointer" @click="requestDownload(packet.id)" tabindex="-1">
-                              {{ packet.file_name }}
-                              </span>
-                          </td>
-                          <td class="border-t">
-                              <span class="flex items-center px-6 py-4 hover:cursor-pointer" @click="requestDownload(packet.id)" tabindex="-1">
-                              {{ packet.size }}
-                              </span>
-                          </td>
-                          <td class="border-t">
-                              <span class="flex items-center px-6 py-4 hover:cursor-pointer" @click="requestDownload(packet.id)" tabindex="-1">
-                              {{ packet.network }}
-                              </span>
-                          </td>
-                          <td class="border-t">
-                              <span class="flex items-center px-6 py-4 hover:cursor-pointer" @click="requestDownload(packet.id)" tabindex="-1">
-                              {{ packet.nick }}
-                              </span>
-                          </td>
-                        </tr>
-                        <tr v-if="packets.length === 0">
-                        <td class="px-6 py-4 border-t" colspan="4">No Packets Found.</td>
-                        </tr>
-                    </tbody>
-                    </table>
-                </div>
-                <pagination class="mt-6" :links="pagination_nav" />
-            </div>
+  <div class="py-12">
+    <div class="max-w-full mx-auto sm:px-6 lg:px-8">
+      <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5">
+        <Head title="Browse" />
+        <div v-if="0 < new_records_count" class="fixed bottom-6 right-6 shadow-lg">
+          <new-records-alert ref="newRecordAlert" :count="new_records_count" @refresh="refresh" />
         </div>
+        <div class="flex items-start justify-start mb-4">
+          <div class="relative flex w-1/5 min-w-72 m-0 mr-4">
+            <search-filter :model="form.search_string" class="flex w-full" @update:searchString="updateSearchString" @reset="reset" />
+            <div class="absolute inset-y-0 start-16 flex items-center ps-3 pointer-events-none">
+              <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+              </svg>
+            </div>
+            <button v-if="searchStringActive" type="button" @click="resetSearchString" class="text-white absolute end-2 bottom-2 bg-slate-200 hover:bg-slate-300 focus:ring-1 focus:outline-none focus:ring-slate-50 font-medium rounded-lg text-sm px-4 py-2 dark:bg-slate-400 dark:hover:bg-slate-500 dark:focus:ring-slate-300">Clear</button>
+          </div>
+            <span class="mx-2 w-48 min-w-48">
+              <Multiselect placeholder="Media" mode='multiple' @change="updateMediaType" class="p-1 hover:text-gray-700 focus:text-indigo-500 text-sm"
+                :multipleLabel="mediaLabel"
+                v-model="form.in_media_type"
+                :options="media_types"
+                ref="media"
+              />
+            </span>
+            <span class="mx-2 w-48  min-w-48" v-if="filteringVideoFormat">
+              <Multiselect  placeholder="Resolution" mode='multiple' @change="updateResolution" class="p-1 hover:text-gray-700 focus:text-indigo-500 text-sm"
+                :multipleLabel="resolutionLabel"
+                v-model="form.in_resolution"
+                :options="resolutions"
+                ref="media"
+              />
+            </span>
+
+            <span class="flex items-start justify-start mx-2" v-if="filteringVideoFormat">
+              <dynamic-range-filter ref="dynamic-ranges" @update:dynamicRanges="updateDynamicRanges"  @update:excludeDynamicRange="updateExcludeDynamicRanges"
+                :exclude="exclude_dynamic_ranges"
+                :in_dynamic_range="form.in_dynamic_range"
+                :out_dynamic_range="form.out_dynamic_range"
+                :dynamic_ranges="dynamic_ranges"
+              />
+            </span>
+        </div>
+
+        <div class="flex items-start justify-start mb-4">
+          <language-filter ref="languages" class="w-full max-w-md" @update:languages="updateLanguages"  @update:excludeLanguage="updateExcludeLanguages"
+            :exclude="exclude_languages"
+            :in_language="form.in_language"
+            :out_language="form.out_language"
+            :languages="languages"
+          />
+
+          <div class="flex items-center mx-6 min-w-52">
+            <vue-tailwind-datepicker ref="fromDate" v-model="form.start_date" as-single placeholder="Search From" />
+          </div>
+        </div>
+
+        <div class="flex items-start justify-start mb-6">
+          <pagination :links="pagination_nav" />
+        </div>
+
+        <div class="bg-white rounded-md shadow overflow-x-auto">
+          <table class="w-full whitespace-nowrap">
+            <browse-table-head :currentOrder="form.order" :currentDirection="form.direction" @call:toggleSort="toggleSort" />
+            <browse-table-body @call:requestDownload="requestDownload"
+              :packets="packets"
+              :locks="locks"
+              :completed="completed"
+              :incomplete="incomplete"
+              :queued="queued"
+            />
+          </table>
+        </div>
+        <pagination class="mt-6" :links="pagination_nav" />
+      </div>
     </div>
+  </div>
   </template>
   
   <script>
   import { ref } from 'vue'
-  import { Head, Link } from '@inertiajs/vue3'
+  import { Head, Link, router } from '@inertiajs/vue3'
   import Multiselect from '@vueform/multiselect'
   import _ from 'lodash'
   import pickBy from 'lodash/pickBy'
   import throttle from 'lodash/throttle'
   import mapValues from 'lodash/mapValues'
-  import { initFlowbite } from 'flowbite'
   import VueTailwindDatepicker from "vue-tailwind-datepicker"
   import AppLayout from '@/Layouts/AppLayout.vue'
+  import BrowseTableBody from '@/Components/BrowseTableBody.vue'
+  import BrowseTableHead from '@/Components/BrowseTableHead.vue'
   import Icon from '@/Components/ApplicationMark.vue'
-  import MediaIcon from '@/Components/MediaIcon.vue'
-  import PacketDate from '@/Components/PacketDate.vue'
   import Pagination from '@/Components/Pagination.vue'
   import DynamicRangeFilter from '@/Components/DynamicRangeFilter.vue'
   import LanguageFilter from '@/Components/LanguageFilter.vue'
+  import NewRecordsAlert from '@/Components/NewRecordsAlert.vue'
   import SearchFilter from '@/Components/SearchFilter.vue'
   import SortButtons from '@/Components/SortButtons.vue'
+
+  // The Loop Id for refresh.
+  let refreshTimeoutId;
+  let lastTotalPacketsCount;
 
   const defaultDirection = {
     created: 'desc',
@@ -218,11 +159,12 @@
       Head,
       Icon,
       Link,
-      MediaIcon,
+      BrowseTableBody,
+      BrowseTableHead,
       Pagination,
-      PacketDate,
       DynamicRangeFilter,
       LanguageFilter,
+      NewRecordsAlert,
       SearchFilter,
       SortButtons,
       Multiselect,
@@ -248,15 +190,21 @@
       media_types: Array,
       resolutions: Array,
       languages: Array,
+      locks: Array,
+      queue: Object,
+      completed: Object,
+      incomplete: Object,
+      queued: Object,
     },
     mounted() {
-      initFlowbite()
+      this.checkResults()
     },
     data() {
       let exclude_languages = false
       let exclude_dynamic_ranges = false
       let start_date = ''
       let end_date = ''
+      lastTotalPacketsCount = this.total_packets
 
       // Date Formatting
       if (null !== this.filters.start_date) {
@@ -300,6 +248,13 @@
         languages: this.languages,
         exclude_languages: exclude_languages,
         exclude_dynamic_ranges: exclude_dynamic_ranges,
+        total_packets: this.total_packets,
+        new_records_count: 0,
+        locks: this.locks,
+        queue: this.queue,
+        completed: this.completed,
+        incomplete: this.incomplete,
+        queued: this.queued,
       }
     },
     computed: {
@@ -323,11 +278,29 @@
       form: {
         deep: true,
         handler: throttle(function () {
+          lastTotalPacketsCount = null
           this.$inertia.get('/browse', pickBy(formatForm(this.form)), { preserveState: true })
         }, 150),
       },
+      total_packets: {
+        handler: function () {
+          if (null !== lastTotalPacketsCount) {
+            let newTotalPacketsCount = (this.total_packets - lastTotalPacketsCount)
+            // normalize to zero if negative.
+            this.new_records_count = (newTotalPacketsCount < 0) ? 0 : newTotalPacketsCount
+          } else {
+            this.new_records_count = 0
+            lastTotalPacketsCount = this.total_packets
+          }
+        },
+      },
     },
     methods: {
+      checkResults() {
+        router.reload({ only: ['total_packets'] })
+        // Schedule the next refresh checkin
+        refreshTimeoutId = setTimeout(this.checkResults, 60000);
+      },
       toggleSort(order) {
         if (order === this.form.order) {
           this.form.direction = (this.form.direction === 'asc') ? 'desc' : 'asc'
@@ -335,6 +308,12 @@
           this.form.order = order
           this.form.direction = defaultDirection[order]
         }
+      },
+      refresh() {
+        // refresh the current results.
+        this.new_records_count = 0
+        this.$inertia.get('/browse', pickBy(formatForm(this.form)), { preserveState: true })
+        lastTotalPacketsCount = this.total_packets
       },
       reset() {
         this.$refs.media.clear() // reset the media dropdownlist

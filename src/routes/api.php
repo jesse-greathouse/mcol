@@ -15,6 +15,7 @@ require __DIR__ . '/api/browse.php';
 require __DIR__ . '/api/channel.php';
 require __DIR__ . '/api/client.php';
 require __DIR__ . '/api/download.php';
+require __DIR__ . '/api/download-queue.php';
 require __DIR__ . '/api/file-extension.php';
 require __DIR__ . '/api/file-first-appearance.php';
 require __DIR__ . '/api/hot-report.php';

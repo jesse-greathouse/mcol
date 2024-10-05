@@ -11,10 +11,14 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 use App\Exceptions\InvalidClientException,
+    App\Jobs\CheckFileDownloadScheduled,
     App\Models\Client,
+    App\Models\FileDownloadLock,
     App\Models\Instance,
     App\Models\Operation,
     App\Models\Packet;
+
+use \DateTime;
 
 class DownloadRequest implements ShouldQueue, ShouldBeUnique
 {
@@ -43,6 +47,11 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
      */
     public function handle(): void
     {
+        if ($this->isFileDownloadLocked()) {
+            $this->fail("The file: {$this->packet->file_name} is locked for Downloading.");
+            return;
+        }
+
         $command = "PRIVMSG {$this->packet->bot->nick} XDCC SEND {$this->packet->number}";
         $client = $this->getClient();
 
@@ -61,6 +70,14 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
 
         if (!$op) {
             Log::error("Failed to queue for download of packet: {$this->packet->id} file: {$this->packet->file_name}");
+        } else {
+            // Lock the file for Downloading to prevent further downloads of the same file.
+            FileDownloadLock::create(['file_name' => $this->packet->file_name]);
+
+            //Queue the job that checks if the bot scheduled the download.
+            $timeStamp = new DateTime('now');
+            CheckFileDownloadScheduled::dispatch($this->packet->file_name, $timeStamp)
+                ->delay(now()->addMinutes(CheckFileDownloadScheduled::SCHEDULE_INTERVAL));
         }
     }
 
@@ -80,5 +97,22 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
     public function uniqueId(): string
     {
         return (string) $this->packet->id;
+    }
+
+    /**
+     * Checks to see if there is a download lock on the file name.
+     * Download locks prevents a file from being simultanously downloaded from multiple sources.
+     *
+     * @return boolean
+     */
+    public function isFileDownloadLocked(): bool
+    {
+        $lock = FileDownloadLock::where('file_name', $this->packet->file_name)->first();
+
+        if (null !== $lock) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

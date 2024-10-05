@@ -158,8 +158,9 @@ class Client
     protected function registerDownload(string $uri,  int $packetId, int $fileSize = null, int $bytes = null): Download
     {
         return Download::updateOrCreate(
-            [ 'file_uri' => $uri, 'packet_id' => $packetId ],
-            [ 
+            [ 'file_uri' => $uri ],
+            [
+                'packet_id'         => $packetId,
                 'status'            => Download::STATUS_INCOMPLETE, 
                 'file_size_bytes'   => $fileSize, 
                 'progress_bytes'    => $bytes,  
