@@ -1,5 +1,5 @@
 <template>
-  <span class="inline-grid w-full place-content-center">
+  <span class="inline-grid w-4 place-content-center mr-2">
     <div class="block w-4 h-4">
       <svg data-accordion-icon class="w-4 h-4 shrink-0" :class="strokeWidth('desc'), stroke('desc'), fill('desc')" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5 5 1 1 5"/>

@@ -11,7 +11,7 @@ use App\Http\Resources\BrowseCollection,
 
 // GET /api/browse
 Route::middleware('auth:sanctum')->get('/browse', function (Request $request) {
-    overrides($request);
+    browseOverrides($request);
 
     $browseHandler = new Handler($request);
     return new BrowseCollection($browseHandler->paginate([
@@ -26,7 +26,7 @@ Route::middleware('auth:sanctum')->get('/browse', function (Request $request) {
  * @param Request $request
  * @return void
  */
-function overrides(Request $request) {
+function browseOverrides(Request $request) {
     // Don't include Beast chat bots, a lot of them never work.
     $request->merge([Handler::OUT_NICK_KEY => ['Beast-']]);
 
