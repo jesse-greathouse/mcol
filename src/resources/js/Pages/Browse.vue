@@ -3,7 +3,7 @@
     <div class="max-w-full mx-auto sm:px-6 lg:px-8">
       <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5">
         <Head title="Browse" />
-        <div v-if="0 < new_records_count" class="fixed bottom-6 right-6 shadow-lg">
+        <div v-if="0 < new_records_count" class="z-50 fixed bottom-6 right-6 shadow-lg">
           <new-records-alert ref="newRecordAlert" :count="new_records_count" @refresh="refresh" />
         </div>
         <div class="flex items-start justify-start mb-4">
@@ -29,7 +29,7 @@
                 :multipleLabel="resolutionLabel"
                 v-model="form.in_resolution"
                 :options="resolutions"
-                ref="media"
+                ref="resolution"
               />
             </span>
 
@@ -52,7 +52,25 @@
           />
 
           <div class="flex items-center mx-6 min-w-52">
-            <vue-tailwind-datepicker ref="fromDate" v-model="form.start_date" as-single placeholder="Search From" />
+            <vue-tailwind-datepicker ref="fromDate" v-model="form.start_date" as-single
+              placeholder="Search From"
+              :formatter="{
+                date: 'YYYY-MM-DD',
+                month: 'MMMM',
+              }"
+            />
+          </div>
+          <div v-show="showQueue" class="text-center">
+            <button @click="maybeCloseQueue()" ref="downloadsButton" type="button" class="text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:ring-sky-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-sky-600 dark:hover:bg-sky-700 focus:outline-none dark:focus:ring-sky-800"
+              data-drawer-target="drawer-swipe"
+              data-drawer-show="drawer-swipe"
+              data-drawer-hide="drawer-swipe"
+              data-drawer-placement="bottom"
+              data-drawer-edge="true"
+              data-drawer-edge-offset="bottom-[80px]"
+              aria-controls="drawer-swipe" >
+                Downloads
+            </button>
           </div>
         </div>
 
@@ -73,69 +91,72 @@
           </table>
         </div>
         <pagination class="mt-6" :links="pagination_nav" />
+        <div v-show="showQueue">
+          <download-queue-drawer ref="queue" :queue="downloadQueue" />
+        </div>
       </div>
     </div>
   </div>
   </template>
   
   <script>
-  import { ref } from 'vue'
-  import { Head, Link, router } from '@inertiajs/vue3'
+  import axios from 'axios';
+  import { Head, Link } from '@inertiajs/vue3'
+  import { initFlowbite } from 'flowbite'
+  import { mergeDataIntoQueryString, hrefToUrl } from '@inertiajs/core'
   import Multiselect from '@vueform/multiselect'
   import _ from 'lodash'
   import pickBy from 'lodash/pickBy'
   import throttle from 'lodash/throttle'
   import mapValues from 'lodash/mapValues'
   import VueTailwindDatepicker from "vue-tailwind-datepicker"
+  // local imports
   import AppLayout from '@/Layouts/AppLayout.vue'
   import BrowseTableBody from '@/Components/BrowseTableBody.vue'
   import BrowseTableHead from '@/Components/BrowseTableHead.vue'
-  import Icon from '@/Components/ApplicationMark.vue'
-  import Pagination from '@/Components/Pagination.vue'
+  import DownloadQueueDrawer from '@/Components/DownloadQueueDrawer.vue'
   import DynamicRangeFilter from '@/Components/DynamicRangeFilter.vue'
+  import Icon from '@/Components/ApplicationMark.vue'
   import LanguageFilter from '@/Components/LanguageFilter.vue'
+  import Pagination from '@/Components/Pagination.vue'
   import NewRecordsAlert from '@/Components/NewRecordsAlert.vue'
   import SearchFilter from '@/Components/SearchFilter.vue'
   import SortButtons from '@/Components/SortButtons.vue'
 
-  // The Loop Id for refresh.
-  let refreshTimeoutId;
-  let lastTotalPacketsCount;
+  let lastTotalPacketsCount; // Tracks the total packet count to compare against refreshed count.  
+  const totalPacketsInterval = 60000; // Check total packets every 60 seconds.
+  let totalPacketsTimeoutId;
+  const clearTotalPacketsInterval = function () {
+    clearTimeout(totalPacketsTimeoutId)
+  }
 
+  const locksInterval = 10000; // Check download locks every 10 seconds.
+  let locksTimeoutId;
+  const clearLocksInterval = function () {
+    clearTimeout(locksTimeoutId)
+  }
+
+  const queueInterval = 10000; // Check download queue every 10 seconds.
+  let queueTimeoutId;
+  const clearQueueInterval = function () {
+    clearTimeout(queueTimeoutId)
+  }
+
+  const clearAllIntervals = function() {
+    clearTotalPacketsInterval()
+    clearLocksInterval()
+    clearQueueInterval()
+  }
+
+  // Default sort direction per column.
   const defaultDirection = {
     created: 'desc',
     gets: 'desc',
     name: 'asc',
   }
 
-  const formatDate = (date, time = null) => {
-    if (null === date) return ''
-    const dateMask = /(\d{4}-\d{2}-\d{2})\s*(\d{2}\:\d{2}\:\d{2})*/
-    const matches = date.match(dateMask)
-    const dateStr = matches[1]
-
-    if (null !== time) {
-      return _.trim(`${dateStr} ${time}`)
-    } else {
-      const timeStr = matches[2]
-      return `${dateStr} ${timeStr}`
-    }
-  }
-
-  const formatForm = (form) => {
-    if ('' !== form.start_date) {
-      form.start_date = formatDate(form.start_date, '')
-    }
-
-    if ('' !== form.end_date) {
-      form.end_date = formatDate(form.end_date, '')
-    }
-
-    return form
-  }
-
   // Dynamically shrink the truncation of each option to make the label.
-  const dynamicLabel = (selected, maxLen = 6, maxLabel = 16) => {
+  const dynamicLabel = (selected, maxLen = 6) => {
     let sub = ''
     const abbr = []
     const values = []
@@ -153,6 +174,20 @@
 
     return abbr.sort().join(', ').substring(0, 16)
   }
+
+  const formatDate = (date, time = false) => {
+    if (null === date) return ''
+    const dateMask = /(\d{4}-\d{2}-\d{2})\s*(\d{2}\:\d{2}\:\d{2})*/
+    const matches = date.date.match(dateMask)
+    const dateStr = matches[1]
+
+    if (time) {
+      const timeStr = matches[2]
+      return `${dateStr} ${timeStr}`
+    } else {
+      return `${dateStr}`
+    }
+  }
   
   export default {
     components: {
@@ -161,6 +196,7 @@
       Link,
       BrowseTableBody,
       BrowseTableHead,
+      DownloadQueueDrawer,
       Pagination,
       DynamicRangeFilter,
       LanguageFilter,
@@ -190,6 +226,7 @@
       media_types: Array,
       resolutions: Array,
       languages: Array,
+      packet_list: Array,
       locks: Array,
       queue: Object,
       completed: Object,
@@ -197,23 +234,14 @@
       queued: Object,
     },
     mounted() {
-      this.checkResults()
+      initFlowbite()
+      this.showQueue = (this.hasQueue()) ? true : false
+      this.resetIntervals()
     },
     data() {
       let exclude_languages = false
       let exclude_dynamic_ranges = false
-      let start_date = ''
-      let end_date = ''
       lastTotalPacketsCount = this.total_packets
-
-      // Date Formatting
-      if (null !== this.filters.start_date) {
-        start_date = formatDate(this.filters.start_date.date, '00:00:00')
-      }
-
-      if (null !== this.filters.end_date) {
-        end_date = formatDate(this.filters.end_date.date, '00:00:00')
-      }
 
       // If nothing is in the in_language list and the out_language list has items
       // start in exclusion mode.
@@ -229,8 +257,9 @@
 
       return {
         form: {
-          start_date: start_date,
-          end_date: end_date,
+          start_date: formatDate(this.filters.start_date),
+          end_date: formatDate(this.filters.end_date),
+          page: this.filters.page,
           order: this.filters.order,
           direction: this.filters.direction,
           search_string: this.filters.search_string,
@@ -248,13 +277,15 @@
         languages: this.languages,
         exclude_languages: exclude_languages,
         exclude_dynamic_ranges: exclude_dynamic_ranges,
-        total_packets: this.total_packets,
-        new_records_count: 0,
+        packet_list: this.packet_list,
         locks: this.locks,
-        queue: this.queue,
         completed: this.completed,
         incomplete: this.incomplete,
         queued: this.queued,
+        total: this.total_packets,
+        downloadQueue: this.queue,
+        showQueue: false,
+        new_records_count: 0,
       }
     },
     computed: {
@@ -279,27 +310,91 @@
         deep: true,
         handler: throttle(function () {
           lastTotalPacketsCount = null
-          this.$inertia.get('/browse', pickBy(formatForm(this.form)), { preserveState: true })
+          this.$inertia.get('/browse', pickBy(this.form), { preserveState: true })
+          this.resetIntervals()
         }, 150),
       },
-      total_packets: {
-        handler: function () {
-          if (null !== lastTotalPacketsCount) {
-            let newTotalPacketsCount = (this.total_packets - lastTotalPacketsCount)
-            // normalize to zero if negative.
-            this.new_records_count = (newTotalPacketsCount < 0) ? 0 : newTotalPacketsCount
-          } else {
-            this.new_records_count = 0
-            lastTotalPacketsCount = this.total_packets
-          }
-        },
+      downloadQueue: {
+        deep: true,
+        handler: throttle(function () {
+          this.showQueue = (this.hasQueue()) ? true : false
+        }, 150),
+      },
+      locks: {
+        deep: true,
+        handler: throttle(function (set) {
+          this.locks = set
+        }, 150),
+      },
+      completed: {
+        deep: true,
+        handler: throttle(function (set) {
+          this.completed = set
+        }, 150),
+      },
+      incomplete: {
+        deep: true,
+        handler: throttle(function (set) {
+          this.incomplete = set
+        }, 150),
+      },
+      queued: {
+        deep: true,
+        handler: throttle(function (set) {
+          this.queued = set
+        }, 150),
       },
     },
     methods: {
-      checkResults() {
-        router.reload({ only: ['total_packets'] })
-        // Schedule the next refresh checkin
-        refreshTimeoutId = setTimeout(this.checkResults, 60000);
+      resetIntervals() {
+        clearAllIntervals()
+        totalPacketsTimeoutId = setTimeout(this.checkTotalPackets, totalPacketsInterval);
+        locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
+        queueTimeoutId = setTimeout(this.checkQueue, queueInterval);
+      },
+      checkTotalPackets() {
+        this.fetchBrowse(this.updateTotalPackets)
+        clearTotalPacketsInterval()
+        totalPacketsTimeoutId = setTimeout(this.checkTotalPackets, totalPacketsInterval);
+      },
+      checkLocks() {
+        this.fetchLocks(this.packet_list)
+        clearLocksInterval()
+        if (
+          this.locks.length > 0 ||
+          this.queued.length > 0 ||
+          this.incomplete.length > 0 ||
+          this.completed.length > 0
+        ) {
+          locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
+        }
+      },
+      checkQueue() {
+        this.fetchQueue()
+        clearQueueInterval()
+        queueTimeoutId = setTimeout(this.checkQueue, queueInterval);
+      },
+      hasQueue() {
+        return (
+          (_.has(this.downloadQueue, 'completed') && 0 < this.downloadQueue.completed.length) ||
+          (_.has(this.downloadQueue, 'incomplete') && 0 < this.downloadQueue.incomplete.length) ||
+          (_.has(this.downloadQueue, 'queued') && 0 < this.downloadQueue.queued.length)
+        )
+      },
+      maybeCloseQueue() {
+        console.log('click')
+        this.$refs.queue.swipe()
+      },
+      updateTotalPackets(data) {
+        this.total = data.meta.total
+        if (null !== lastTotalPacketsCount) {
+          let newPacketsCount = (this.total - lastTotalPacketsCount)
+          // normalize to zero if negative.
+          this.new_records_count = (newPacketsCount < 0) ? 0 : newPacketsCount
+        } else {
+          this.new_records_count = 0
+          lastTotalPacketsCount = this.total
+        }
       },
       toggleSort(order) {
         if (order === this.form.order) {
@@ -310,21 +405,22 @@
         }
       },
       refresh() {
+        // Close the downloads queue
+        // this.$refs.queue.hide()
+
         // refresh the current results.
         this.new_records_count = 0
-        this.$inertia.get('/browse', pickBy(formatForm(this.form)), { preserveState: true })
-        lastTotalPacketsCount = this.total_packets
+        lastTotalPacketsCount = null
+        this.$inertia.get('/browse', pickBy(this.form), { preserveState: true })
+        this.resetIntervals()
       },
       reset() {
         this.$refs.media.clear() // reset the media dropdownlist
         this.$refs.fromDate.clearPicker()
         this.form = mapValues(this.form, () => null)
-      },
-      dateFormatter() {
-        return {
-          date: 'YYYY-MM-DD',
-          month: 'MMM'
-        }
+        // datePicker prefers empty dates to be strings.
+        this.form.end_date = ''
+        this.form.start_date = ''
       },
       resetSearchString() {
         this.form.search_string = null
@@ -369,7 +465,11 @@
       },
       updateLanguages(language, checked) {
         const set = (this.exclude_languages) ? 'out_language' : 'in_language'
-        const i = this.form[set].indexOf(language)
+        let i = -1
+        if (_.has(this.form, set) && 0 < this.form[set].length) {
+          i = this.form[set].indexOf(language)
+        }
+
         if (checked && (0 > i)) {
           this.form[set].push(language)
         } else if (!checked && (0 <= i)) {
@@ -383,7 +483,11 @@
       },
       updateDynamicRanges(dynamic_range, checked) {
         const set = (this.exclude_dynamic_ranges) ? 'out_dynamic_range' : 'in_dynamic_range'
-        const i = this.form[set].indexOf(dynamic_range)
+        let i = -1
+        if (_.has(this.form, set) && 0 < this.form[set].length) {
+          i = this.form[set].indexOf(dynamic_range)
+        }
+
         if (checked && (0 > i)) {
           this.form[set].push(dynamic_range)
         } else if (!checked && (0 <= i)) {
@@ -395,33 +499,89 @@
         this.form.out_dynamic_range = []
         this.exclude_dynamic_ranges = checked
       },
-      requestDownload(packetId) {
-        const url = `/api/rpc/download`
+      async requestDownload(packetId) {
+        const url = '/api/rpc/download'
         const rpcMethod = 'download@request'
-
-        const requestOptions = {
-          method: "POST",
-          headers: { 
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Origin': 'http://hera:8080'
-          },
-          body: JSON.stringify({
-              jsonrpc: '2.0',
-              method: rpcMethod,
-              params: {
-                  packet: packetId
-              },
-              id: 1
-          })
+        const headers = { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+        const body = {
+          jsonrpc: '2.0',
+            method: rpcMethod,
+            params: {
+                packet: packetId
+            },
+            id: 1
         }
-        
-        fetch(url, requestOptions)
-          .then(response => response.json())
-          .then(data => {
-            console.log(data)
-          })
-      }
+
+        try {
+          const response = await axios.post(url, body, {headers: headers})
+          this.locks.push(response.data.result.packet.file_name)
+          // Schedule the next reload
+          clearLocksInterval()
+          locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
+        } catch (error) {
+          console.error(error)
+        }
+      },
+      async fetchLocks(packetList) {
+        const [_href, _data] = mergeDataIntoQueryString('get', '/api/browse/locks', {packet_list: packetList}, 'brackets')
+        const url = hrefToUrl(_href)
+        const headers = { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+
+        try {
+          const response = await axios.get(url, { headers: headers })
+          const { locks, queued, incomplete, completed } = response.data
+          this.locks = locks
+          this.queued = queued
+          this.incomplete = incomplete
+          this.completed = completed
+
+          if (
+            locks.length <= 0 &&
+            queued.length <= 0 &&
+            incomplete.length <= 0 &&
+            completed.length <= 0
+          ) {
+            clearLocksInterval()
+          }
+        } catch (error) {
+          console.error(error)
+        }
+      },
+      async fetchBrowse(withData) {
+        const [_href, _data] = mergeDataIntoQueryString('get', '/api/browse', pickBy(this.form), 'brackets')
+        const url = hrefToUrl(_href)
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+
+        try {
+          const response = await axios.get(url, { headers: headers })
+          withData(response.data)
+        } catch (error) {
+          console.error(error)
+        }
+      },
+      async fetchQueue() {
+        const url = '/api/download-queue/queue'
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+
+        try {
+          const response = await axios.get(url, { headers: headers })
+          this.downloadQueue = response.data
+        } catch (error) {
+          console.error(error)
+        }
+      },
     },
   }
   </script>

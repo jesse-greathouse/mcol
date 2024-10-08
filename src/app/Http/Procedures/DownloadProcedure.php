@@ -35,6 +35,8 @@ class DownloadProcedure extends Procedure
 
         DownloadRequest::dispatch($packet);
 
-        return "Requested packet: {$packet->id} -- {$packet->file_name}";
+        return [
+            'packet' => $packet->toArray(),
+        ];
     }
 }

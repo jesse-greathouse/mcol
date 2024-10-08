@@ -21,11 +21,13 @@ class DownloadQueue
     const ORDER_BY_CREATED = 'downloads.updated_at';
     const ORDER_BY_NAME = 'packets.file_name';
     const ORDER_BY_STATUS = 'downloads.status';
+    const ORDER_BY_QUEUE = 'downloads.queued_status';
 
     const ORDER_OPTION_CREATED = 'created';
     const ORDER_OPTION_STATUS = 'status';
     const ORDER_OPTION_NAME = 'file_name';
-    const ORDER_OPTION_DEFAULT = self::ORDER_OPTION_CREATED;
+    const ORDER_OPTION_QUEUE = 'queue';
+    const ORDER_OPTION_DEFAULT = self::ORDER_OPTION_QUEUE;
 
     const ORDER_ASCENDING = 'asc';
     const ORDER_DESCENDING = 'desc';
@@ -34,7 +36,7 @@ class DownloadQueue
     const DEFAULT_RPP = 40;
     const DEFAULT_PAGE = 1;
 
-    protected array $columns = [
+    public static array $columns = [
         'downloads.id',
         'packets.file_name',
         'downloads.packet_id',
@@ -138,7 +140,7 @@ class DownloadQueue
      */
     public function __construct()
     {
-        $this->order = self::ORDER_OPTION_DEFAULT;
+        $this->order = self::ORDER_OPTION_QUEUE;
         $this->rpp = self::DEFAULT_RPP;
         $this->page = self::DEFAULT_PAGE;
         $this->filterLocked = self::DEFAULT_LOCKED;
@@ -179,7 +181,74 @@ class DownloadQueue
             self::ORDER_OPTION_CREATED,
             self::ORDER_OPTION_STATUS,
             self::ORDER_OPTION_NAME,
+            self::ORDER_OPTION_QUEUE,
         ];
+    }
+
+    /**
+     * Returns a dictionary of Download objects with the file name as the key.
+     * Can filter by a list of packet IDs ($packetList), and status.
+     *
+     * [
+     *  'foo.mkv' => Download,
+     *  'bar.mkv'  => Download,
+     *  ...
+     * ]
+     * @param string $status
+     * @param array $packetList
+     * @return Collection
+     */
+    public static function getDownloads(string $status = null, array $packetList = []): Collection
+    {
+        $qb = Download::join('packets', 'packets.id', '=', 'downloads.packet_id')
+            ->join ('file_download_locks', 'file_download_locks.file_name', 'packets.file_name');
+
+        if (0 < count($packetList)) {
+            $qb->whereIn('packet_id', $packetList);
+        }
+
+        if (null !== $status) {
+            $qb->where('status', $status);
+        }
+
+        return $qb->get(self::$columns)->mapWithKeys(function (Download $download, int $key) {
+            $fileName = basename($download->file_uri);
+            return [$fileName => $download];
+        });
+    }
+
+    /**
+     * Returns a dictionary of files queued for download with the filename as the key.
+     *
+     * @param array $packetList
+     * @return Collection
+     */
+    public static function getQueuedDownloads(array $packetList = []): Collection
+    {
+        return self::getDownloads(Download::STATUS_QUEUED, $packetList);
+    }
+
+    /**
+     * Returns a dictionary of downloads in progress with the filename as the key.
+     *
+     * @param array $packetList
+     * @return Collection
+     */
+    public static function getIncompleteDownloads(array $packetList = []): Collection
+    {
+        return self::getDownloads(Download::STATUS_INCOMPLETE, $packetList);
+    }
+
+    /**
+     * Returns a dictionary of completed downloaded files with the filename as the key.
+     * Only includes the files that appear in $packetList.
+     *
+     * @param array $packetList
+     * @return Collection
+     */
+    public static function getCompletedDownloads(array $packetList = []): Collection
+    {
+        return self::getDownloads(Download::STATUS_COMPLETED, $packetList);
     }
 
     /**
@@ -202,7 +271,7 @@ class DownloadQueue
         ];
 
         $downloads = $this->makeQueueQuery()
-            ->get($this->columns)
+            ->get(self::$columns)
             ->load('packet')
             ->toArray();
 
@@ -223,7 +292,7 @@ class DownloadQueue
      */
     public function first(): Model
     {
-        return $this->makeQuery()->first($this->columns);
+        return $this->makeQuery()->first(self::$columns);
     }
 
     /**
@@ -233,7 +302,7 @@ class DownloadQueue
      */
     public function get(): Collection
     {
-        return $this->makeQuery()->get($this->columns);
+        return $this->makeQuery()->get(self::$columns);
     }
 
     /**
@@ -244,7 +313,7 @@ class DownloadQueue
     public function paginate(array $options = []): LengthAwarePaginator
     {
         $total = $this->getQueryTotal();
-        $items = $this->makeOffsetQuery()->get($this->columns);
+        $items = $this->makeOffsetQuery()->get(self::$columns);
         $paginator = new LengthAwarePaginator($items, $total, $this->rpp, $this->page, $options);
         return $paginator;
     }
@@ -263,6 +332,7 @@ class DownloadQueue
         $this->setFilterLocked($oldLocked);
 
         $qb = $qb->whereIn('downloads.status', self::getStatusOptions());
+        $qb = $qb->orderBy(self::ORDER_BY_QUEUE, 'asc');
         $qb = $qb->orderBy(self::ORDER_BY_CREATED, $this->getDefaultDirection());
 
         return $qb;
@@ -335,6 +405,7 @@ class DownloadQueue
             self::ORDER_OPTION_CREATED  => self::ORDER_BY_CREATED,
             self::ORDER_OPTION_NAME     => self::ORDER_BY_NAME,
             self::ORDER_OPTION_STATUS   => self::ORDER_BY_STATUS,
+            self::ORDER_OPTION_QUEUE   => self::ORDER_BY_QUEUE,
         ];
     }
 
