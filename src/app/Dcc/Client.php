@@ -15,7 +15,7 @@ class Client
 {
     const CHUNK_BYTES = 2048;
 
-    const UPDATE_INTERVAL = 15; # 15 seconds
+    const UPDATE_INTERVAL = 10; // 10 seconds
     const TRANSFER_TERMINATED_MESSAGE = 'TRANSFER TERMINATED';
 
     /**

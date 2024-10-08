@@ -13,11 +13,13 @@ use App\Chat\LogDiverter,
     App\Events\HotReportSummary as HotReportSummaryEvent,
     App\Events\PacketSearchResult as PacketSearchResultEvent,
     App\Events\PacketSearchSummary as PacketSearchSummaryEvent,
+    App\Jobs\CheckFileDownloadCompleted,
     App\Jobs\DccDownload,
     App\Models\Bot,
     App\Models\Channel,
     App\Models\Client as ClientModel,
     App\Models\Download,
+    App\Models\FileDownloadLock,
     App\Models\HotReport,
     App\Models\HotReportLine,
     App\Models\Instance,
@@ -29,6 +31,8 @@ use App\Chat\LogDiverter,
     App\Packet\MediaType\MediaTypeGuesser;
 
 use Illuminate\Database\Eloquent\Collection;
+
+use \DateTime;
 
 class Client 
 {
@@ -802,6 +806,14 @@ class Client
                 [ 'file_uri' => "$downloadDir/$file", 'packet_id' => $packet->id ],
                 [ 'status' => Download::STATUS_QUEUED, 'queued_status' => $position ]
             );
+
+            if (!$this->isFileDownloadLocked($file)) {
+                $this->lockFile($file);
+                //Queue the job that checks if the file is finished downloading.
+                $timeStamp = new DateTime('now');
+                CheckFileDownloadCompleted::dispatch($file, $timeStamp)
+                    ->delay(now()->addMinutes(CheckFileDownloadCompleted::SCHEDULE_INTERVAL));
+            }
         }
 
         return $packet;
@@ -829,6 +841,14 @@ class Client
             $download->queued_status = $position;
             $download->queued_total = $total;
             $download->save();
+
+            if (!$this->isFileDownloadLocked($file)) {
+                $this->lockFile($file);
+                //Queue the job that checks if the file is finished downloading.
+                $timeStamp = new DateTime('now');
+                CheckFileDownloadCompleted::dispatch($file, $timeStamp)
+                    ->delay(now()->addMinutes(CheckFileDownloadCompleted::SCHEDULE_INTERVAL));
+            }
         }
     }
 
@@ -980,6 +1000,34 @@ class Client
         }
 
         return $spacer;
+    }
+
+    /**
+     * Checks to see if there is a download lock on the file name.
+     * Download locks prevents a file from being simultanously downloaded from multiple sources.
+     *
+     * @return boolean
+     */
+    private function isFileDownloadLocked(string $fileName): bool
+    {
+        $lock = FileDownloadLock::where('file_name', $fileName)->first();
+
+        if (null !== $lock) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Locks a file.
+     *
+     * @return boolean
+     */
+    private function lockFile(string $file): void
+    {
+        // Lock the file for Downloading to prevent further downloads of the same file.
+        FileDownloadLock::create(['file_name' => $file]);
     }
 
 }

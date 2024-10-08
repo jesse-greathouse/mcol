@@ -16,7 +16,7 @@ class CheckDownloadedFileRemoved implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    const SCHEDULE_INTERVAL = 5;
+    const SCHEDULE_INTERVAL = 3;
 
     /**
      * The number of seconds the job can run before timing out.

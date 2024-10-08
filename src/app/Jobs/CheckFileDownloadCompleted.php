@@ -72,14 +72,31 @@ class CheckFileDownloadCompleted implements ShouldQueue
             } else {
                 Log::warning("Attempted download lock removal of: {$this->fileName}, failed. Lock did not exist.");
             }
-        } else if ($download->status === Download::STATUS_INCOMPLETE || $download->status === Download::STATUS_QUEUED) {
+        } else if (Download::STATUS_QUEUED === $download->status) {
             // Reschedule this job at the specified interval.
             self::dispatch($this->fileName, $this->timeStamp)
                 ->delay(now()->addMinutes(self::SCHEDULE_INTERVAL));
-        } else {
-            // Schedule Job that checks to see that the downloaded file was removed from the File system.
-            CheckDownloadedFileRemoved::dispatch($download)
+        } else if (Download::STATUS_INCOMPLETE === $download->status) {
+            // Only queue the next job if the file still exists.
+            // A User might delete the file before it finishes.
+            if (file_exists($download->file_uri)) {
+                // Reschedule this job at the specified interval.
+                self::dispatch($this->fileName, $this->timeStamp)
+                    ->delay(now()->addMinutes(self::SCHEDULE_INTERVAL));
+            } else {
+                // TODO: Add a new Download status: interrupted, unfinished, etc...
+                $download->status = Download::STATUS_COMPLETED;
+                $download->save();
+                $this->releaseLock($download);
+            }
+        } else { // Download::STATUS_COMPLETED
+            if (file_exists($download->file_uri)) {
+                // Schedule Job that checks to see that the downloaded file was removed from the File system.
+                CheckDownloadedFileRemoved::dispatch($download)
                     ->delay(now()->addMinutes(CheckDownloadedFileRemoved::SCHEDULE_INTERVAL));
+            } else {
+                $this->releaseLock($download);
+            }
         }
     }
 
@@ -88,10 +105,26 @@ class CheckFileDownloadCompleted implements ShouldQueue
      *
      * @return Model
      */
-    public function getDownload(): Model
+    protected function getDownload(): Model
     {
         $this->downloadQueue->setFilterFileName($this->fileName);
         $this->downloadQueue->setStartDate($this->timeStamp);
         return $this->downloadQueue->first();
+    }
+
+    /**
+     * Returns a single Download model instance.
+     *
+     * @return Model
+     */
+    protected function releaseLock(Download $download): void
+    {
+        $fileName = basename($download->file_uri);
+        $lock = FileDownloadLock::where('file_name', $fileName)->first();
+        if (null !== $lock) {
+            $lock->delete();
+        } else {
+            Log::warning("Attempted download lock removal of: $fileName, failed. Lock did not exist.");
+        }
     }
 }

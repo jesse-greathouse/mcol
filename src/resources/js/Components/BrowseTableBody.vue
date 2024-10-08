@@ -1,6 +1,6 @@
 <template>
   <tbody>
-    <tr v-for="packet in packets" :key="packet.id" class="hover:bg-gray-100 focus-within:bg-gray-100">
+    <tr v-for="packet in packets" :key="`packet-${packet.id}`" class="hover:bg-gray-100 focus-within:bg-gray-100">
       <browse-table-row-locked v-if="isLocked(packet)"
         :packet="packet"
         :completed="completed"
@@ -35,7 +35,7 @@ export default {
     isLocked(packet) {
       const i = this.locks.indexOf(packet.file_name)
 
-      if (0 >= i) {
+      if (0 > i) {
         return false
       }
 
