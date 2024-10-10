@@ -2,20 +2,21 @@
 
 namespace App\Dcc;
 
-use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Log;
 
 use App\Exceptions\IllegalPacketException,
+    App\Jobs\DccDownload,
     App\Models\Bot,
     App\Models\Download,
+    App\Models\FileDownloadLock,
     App\Models\Packet,
     App\Models\Network;
 
 class Client
 {
     const CHUNK_BYTES = 2048;
-
     const UPDATE_INTERVAL = 10; // 10 seconds
+    const PACKET_LIST_MASK = '/mylist\.txt$/i';
     const TRANSFER_TERMINATED_MESSAGE = 'TRANSFER TERMINATED';
 
     /**
@@ -39,25 +40,42 @@ class Client
     public function open(string $host, string $port, string $fileName, int $fileSize = null, $botId = null, int $resume = null): void
     {
         $bytes = 0;
-        $downloadDir = env('DOWNLOAD_DIR', '/var/download');
-        $uri = "$downloadDir/$fileName";
-        
-        $packet = Packet::where('file_name', $fileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
-        if (!$packet) {
-            throw new IllegalPacketException("Packet with bot id: $botId and file: $fileName were expected but not found");
-        }
+        $isPacketList = $this->isPacketList($fileName);
+        $bot = Bot::find($botId);
 
-        if (file_exists($uri)) {
-            if (null === $resume) {
+        if ($isPacketList) {
+            $varDir = env('VAR', '/var');
+            $downloadDir = "$varDir/packet-lists";
+            if (!is_dir($downloadDir)) {
+                mkdir($downloadDir);
+            }
+
+            $uri = "$downloadDir/$botId.txt";
+
+            if (file_exists($uri)) {
                 unlink($uri);
                 touch($uri);
-            } else {
-                $bytes = $resume;
+            }
+        } else {
+            $downloadDir = env('DOWNLOAD_DIR', '/var/download');
+            $packet = Packet::where('file_name', $fileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
+            if (!$packet) {
+                throw new IllegalPacketException("Packet with bot id: $botId and file: $fileName were expected but not found");
+            }
+            $uri = "$downloadDir/$fileName";
+
+            // Register or update the file download status data.
+            $download = $this->registerDownload($uri, $packet->id, $fileSize, $bytes);
+
+            if (file_exists($uri)) {
+                if (null === $resume) {
+                    unlink($uri);
+                    touch($uri);
+                } else {
+                    $bytes = $resume;
+                }
             }
         }
- 
-        // Register or update the file download status data.
-        $download = $this->registerDownload($uri, $packet->id, $fileSize, $bytes);
 
         // Open a stream to the remote file system.
         $fp = stream_socket_client("tcp://$host:$port", $errno, $errstr);
@@ -68,23 +86,37 @@ class Client
             // and set the pointer to the correct position.
             $file = fopen($uri, 'a');
             fseek($file, $bytes);
+
+            // Reading ends when length - 1 bytes have been read
+            // Adds +1 to byte length so added bytes can be tracked more evenly.
+            // bytes + chunk = downloaded progress.
+            $increment = self::CHUNK_BYTES + 1;
     
             while (!feof($fp)) {
-                // Reading ends when length - 1 bytes have been read
-                // Adds +1 to byte length so added bytes can be tracked more evenly.
-                // bytes + chunk = downloaded progress.
-                $chunk = fgets($fp, (self::CHUNK_BYTES + 1));
+                // Sometimes user deletes file before it's finished :-(
+                // Silly Users >:@
+                if (!file_exists($uri)) {
+                    break;
+                }
 
+                $chunk = fgets($fp, $increment);
                 if (false === $chunk) break;
-
-                $bytes += self::CHUNK_BYTES;
                 fwrite($file, $chunk);
 
                 // Only save the progress every n intervals for performance.
-                if ($this->shouldUpdate()) {
-                    // Register or update the file download status data.
-                    $download = $this->registerDownload($uri, $packet->id, $fileSize, $bytes);
+                if (!$isPacketList && $this->shouldUpdate()) {
+                    clearstatcache(true, $uri); // clears the caching of filesize
+                    $progressSize = fileSize($uri);
+                    $download = $this->registerDownload($uri, $packet->id, $fileSize, $progressSize);
                 }
+            }
+
+            // Packet lists can bail now.
+            if ($isPacketList) {
+                fclose($file);
+                fclose($fp);
+                Log::warning("Downloaded the packet list from {$bot->nick}");
+                return;
             }
 
             // If expected file size wasn't sent as a parameter, 
@@ -95,7 +127,8 @@ class Client
 
             $meta = stream_get_meta_data($file);
 
-            if (isset($meta['uri'])) {
+            if (isset($meta['uri']) && file_exists($uri)) {
+                clearstatcache(true, $meta['uri']); // clears the caching of filesize
                 $bytesDownloaded = filesize($meta['uri']);
                 if ((integer) $bytesDownloaded === (integer) $fileSize) {
                     $download->status = Download::STATUS_COMPLETED;
@@ -103,24 +136,19 @@ class Client
                     $download->save();
                 }
             } else {
-                $dir = env('DIR', '/usr');
-                $src = env('SRC', '/usr/src');
-                $bin = "$dir/bin";
+                // Delete the download and release the lock.
+                $download->delete();
+                $this->releaseLock($fileName);
                 $network = Network::where('id', $packet->network_id)->first();
-                $bot = Bot::where('id', $packet->bot_id)->first();
-                $command = "XDCC SEND $packet->number";
-                Log::info("Download of stream: \"$fileName\" closed prematurely.");
+                Log::warning("Download of stream: \"$fileName\" closed prematurely.");
 
-                if (null !== $network && null !== $bot) {
-                    Log::info("Queueing for resume (at $download->progress_bytes of $fileSize )");
-
-                    Process::path($src)->run("$bin/php artisan mcol:chat $network->name '$bot->nick' '$command'", function (string $type, string $output) use ($download) {
-                        $download->queued_status = 0;
-                        $download->save();
-                        Log::info("Command $type output: $output");
-                    });
+                // Attempt Resume or Bail
+                if (null !== $network && null !== $bot && file_exists($uri)) {
+                    $position = filesize($uri);
+                    DccDownload::dispatch($host, $port, $fileName, $fileSize, $bot->nick, $position)->onQueue('download');
+                    Log::warning("Queued to resume DCC Download Job: host: $host port: $port file: $fileName file-size: $fileSize bot: '{$bot->nick}' resume: $position");
                 } else {
-                    Log::info("Unable to Queue for resume because of incomplete network or bot data.");
+                    Log::warning("Unable to Queue for resume of: \"$fileName\" because of missing file or incomplete network/bot data.");
                 }
             }
 
@@ -155,6 +183,15 @@ class Client
         return false;
     }
 
+    /**
+     * Set up the download object
+     *
+     * @param string $uri
+     * @param integer $packetId
+     * @param integer|null $fileSize
+     * @param integer|null $bytes
+     * @return Download
+     */
     protected function registerDownload(string $uri,  int $packetId, int $fileSize = null, int $bytes = null): Download
     {
         return Download::updateOrCreate(
@@ -176,8 +213,38 @@ class Client
      * @param string $txtStr
      * @return string
      */
-    public function clnNumericStr(string $txtStr): string
+    protected function clnNumericStr(string $txtStr): string
     {
         return preg_replace("/[^0-9]/", "", $txtStr);
+    }
+
+    /**
+     * Returns a single Download model instance.
+     *
+     * @param string $fileName
+     * @return void
+     */
+    protected function releaseLock(string $fileName): void
+    {
+        $lock = FileDownloadLock::where('file_name', $fileName)->first();
+        if (null !== $lock) {
+            $lock->delete();
+        } else {
+            Log::warning("Attempted download lock removal of: $fileName, failed. Lock did not exist.");
+        }
+    }
+
+    /**
+     * Answers if a file is a packet list by the file name.
+     *
+     * @param string $fileName
+     * @return bool
+     */
+    protected function isPacketList(string $fileName): bool
+    {
+        $matches = [];
+        preg_match(self::PACKET_LIST_MASK, $fileName, $matches);
+
+        return (0 < count($matches));
     }
 }

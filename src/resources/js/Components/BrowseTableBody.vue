@@ -44,7 +44,6 @@ export default {
     requestDownload(packetId) {
       this.$emit('call:requestDownload', packetId)
     },
-
   },
   emits: ['call:requestDownload'],
 }

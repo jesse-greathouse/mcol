@@ -11,17 +11,14 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 use App\Exceptions\InvalidClientException,
-    App\Jobs\CheckFileDownloadScheduled,
+    App\Models\Packet,
     App\Models\Client,
     App\Models\Download,
     App\Models\FileDownloadLock,
     App\Models\Instance,
-    App\Models\Operation,
-    App\Models\Packet;
+    App\Models\Operation;
 
-use \DateTime;
-
-class DownloadRequest implements ShouldQueue, ShouldBeUnique
+class RemoveRequest implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -48,15 +45,7 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
      */
     public function handle(): void
     {
-        if ($this->isFileDownloadLocked()) {
-            $this->fail("The file: {$this->packet->file_name} is locked for Downloading.");
-            return;
-        }
-
-        // Archives any download records formerly associated with this packet.
-        $this->archiveDownloads();
-
-        $command = "PRIVMSG {$this->packet->bot->nick} XDCC SEND {$this->packet->number}";
+        $command = "PRIVMSG {$this->packet->bot->nick} XDCC REMOVE {$this->packet->number}";
         $client = $this->getClient();
 
         $instance = Instance::updateOrCreate(
@@ -73,23 +62,17 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
         );
 
         if (!$op) {
-            Log::error("Failed to queue for download of packet: {$this->packet->id} file: {$this->packet->file_name}");
+            Log::error("Failed to remove queue for: \"{$this->packet->file_name}\"  with: {$this->packet->bot->nick}");
         } else {
-            // Lock the file for Downloading to prevent further downloads of the same file.
-            FileDownloadLock::create(['file_name' => $this->packet->file_name]);
-
-            //Queue the job that checks if the bot scheduled the download.
-            $timeStamp = new DateTime('now');
-            CheckFileDownloadScheduled::dispatch($this->packet->file_name, $timeStamp)
-                ->delay(now()->addMinutes(CheckFileDownloadScheduled::SCHEDULE_INTERVAL));
+            $this->removeDownloads();
         }
     }
 
     public function getClient(): Client|null
     {
-        $client = Client::where('network_id', $this->packet->network->id)->first();
+        $client = Client::where('network_id', $this->packet->bot->network->id)->first();
         if (null === $client) {
-            throw new InvalidClientException("Client for network: {$this->packet->network->name} was not found.");
+            throw new InvalidClientException("Client for network: {$this->packet->bot->network->name} was not found.");
         }
 
         return $client;
@@ -100,7 +83,7 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
      */
     public function uniqueId(): string
     {
-        return (string) $this->packet->id;
+        return (string) "{$this->packet->id}-XDCC-REMOVE";
     }
 
     /**
@@ -108,28 +91,27 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
      *
      * @return void
      */
-    protected function archiveDownloads(): void
+    protected function removeDownloads(): void
     {
         $downloads = Download::where('packet_id', $this->packet->id)->get();
         foreach($downloads as $download) {
-            ArchiveDownload::dispatch($download);
+            $this->releaseLock($download);
+            $download->delete();
         }
     }
 
     /**
-     * Checks to see if there is a download lock on the file name.
-     * Download locks prevents a file from being simultanously downloaded from multiple sources.
+     * Removes any lock from a Download.
      *
-     * @return boolean
+     * @param Download $download
+     * @return void
      */
-    public function isFileDownloadLocked(): bool
+    protected function releaseLock(Download $download): void
     {
-        $lock = FileDownloadLock::where('file_name', $this->packet->file_name)->first();
-
+        $fileName = basename($download->file_uri);
+        $lock = FileDownloadLock::where('file_name', $fileName)->first();
         if (null !== $lock) {
-            return true;
-        } else {
-            return false;
+            $lock->delete();
         }
-    }
+    } 
 }

@@ -56,6 +56,8 @@ class CheckDownloadedFileRemoved implements ShouldQueue
             } else {
                 Log::warning("Attempted download lock removal of: $fileName, failed. Lock did not exist.");
             }
+            // Move the download to the archives table
+            ArchiveDownload::dispatch($this->download);
         } else {
             // Reschedule this job at the specified interval.
             self::dispatch($this->download)

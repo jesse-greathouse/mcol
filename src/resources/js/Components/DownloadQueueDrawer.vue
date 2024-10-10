@@ -3,9 +3,10 @@
   <div ref="queueDrawer" class="shadow-[0_30px_40px_15px_rgba(0,0,0,0.3)] fixed z-40 w-full overflow-y-auto bg-white border-t border-gray-200 rounded-t-lg dark:border-gray-700 dark:bg-gray-800 transition-transform translate-y-full bottom-0 left-0 right-0 top-1/2 bottom-[80px]" 
        id="drawer-swipe" 
        tabindex="-1" >
-    <div ref="drawerHeader" class="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700" data-drawer-toggle="drawer-swipe">
+    <div ref="drawerHeader" class="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700" 
+         data-drawer-toggle="drawer-swipe">
       <span class="absolute w-8 h-1 -translate-x-1/2 bg-gray-300 rounded-lg top-3 left-1/2 dark:bg-gray-600"></span>
-      <h5 id="drawer-swipe-label" class="inline-flex items-center text-base text-gray-500 dark:text-gray-400 font-medium text-nowrap">
+      <h5 id="drawer-swipe-label" class="font-semibold text-slate-600 inline-flex items-center text-base text-gray-500 dark:text-gray-400 font-medium text-nowrap">
         <svg viewBox="0 0 24 24" class="mr-4 fill-sky-400 h-8" xmlns="http://www.w3.org/2000/svg">
           <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
           <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -18,21 +19,21 @@
     </div>
     <div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-1">
       <div v-if="hasCompelted" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
-          <div class="font-medium text-left text-gray-500 dark:text-gray-400">Completed</div>
+          <div class="font-semibold text-left text-gray-400 dark:text-gray-400">Completed</div>
           <div v-for="download in queue.completed" :key="`download-${download.id}`" class="width-full">
             <download-queue-completed :download="download" />
           </div>
       </div>
       <div v-if="hasDownloading" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
-          <div class="font-medium text-left text-gray-500 dark:text-gray-400">Downloading</div>
+          <div class="font-semibold text-left text-gray-400 dark:text-gray-400">Downloading</div>
           <div v-for="download in queue.incomplete" :key="`download-${download.id}`" class="width-full">
-            <download-queue-downloading :download="download" />
+            <download-queue-downloading :download="download" @call:requestCancel="requestCancel" />
           </div>
       </div>
       <div v-if="hasQueued" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
-          <div class="font-medium text-left text-gray-500 dark:text-gray-400">Queued</div>
+          <div class="font-semibold text-left text-gray-400 dark:text-gray-400">Queued</div>
           <div v-for="download in queue.queued" :key="`download-${download.id}`" class="width-full">
-            <download-queue-queued :download="download" />
+            <download-queue-queued :download="download" @call:requestRemove="requestRemove" />
           </div>
       </div>
     </div>
@@ -61,14 +62,19 @@ export default {
   },
   mounted() {
     const drawerOptions = {
-        backdrop: false,
+        placement: 'bottom',
+        bodyScrolling: true,
         edge: true,
-        'bottom-edge': '80',
+        edgeOffset: 'bottom-[80px]',
+        backdrop: true,
+        backdropClasses:
+        'bg-gradient-to-t from-slate-500/50 from-40% via-slate-300/40 via-60% to-sky-300/01 to-100% fixed inset-0 z-30',
+        //'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-30',
     }
 
     const instanceOptions = {
       id: 'drawer-swipe',
-      override: false
+      override: true
     };
 
     this.queueDrawer = new Drawer(this.$refs.queueDrawer, drawerOptions, instanceOptions)
@@ -85,10 +91,6 @@ export default {
     }
   },
   methods: {
-    swipe() {
-      console.log(this.$refs.drawerHeader.$target)
-      this.$refs.drawerHeader.click()
-    },
     toggle() {
       this.queueDrawer.toggle()
     },
@@ -100,7 +102,14 @@ export default {
     },
     show() {
       this.queueDrawer.show()
-    }
-  }
+    },
+    requestCancel(download) {
+      this.$emit('call:requestCancel', download)
+    },
+    requestRemove(packetId) {
+      this.$emit('call:requestRemove', packetId)
+    },
+  },
+  emits: ['call:requestCancel', 'call:requestRemove'],
 }
 </script>

@@ -28,7 +28,8 @@ use App\Chat\LogDiverter,
     App\Models\Packet,
     App\Models\PacketSearch,
     App\Models\PacketSearchResult,
-    App\Packet\MediaType\MediaTypeGuesser;
+    App\Packet\MediaType\MediaTypeGuesser,
+    App\Packet\Parse;
 
 use Illuminate\Database\Eloquent\Collection;
 
@@ -406,7 +407,7 @@ class Client
     public function noticeHandler(): void
     {
         $this->client->on('notice', function (string $notice) {
-            $clean  = PacketLocator::cleanMessage($notice);
+            $clean  = Parse::cleanMessage($notice);
             $parts = explode(' ', $clean);
             $subject = array_shift($parts);
             $txt = implode(' ', $parts);

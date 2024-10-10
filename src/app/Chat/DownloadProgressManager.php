@@ -60,7 +60,7 @@ class DownloadProgressManager
                     $total = (null === $download->queued_status) ? '?' : $download->queued_total;
                     $progress = " {$download->queued_status} / $total";
                 } else if ($download->file_size_bytes && $download->progress_bytes) {
-                    $num = (string) ceil(($download->progress_bytes / ($download->file_size_bytes * 10)) * 100);
+                    $num = (string) ceil(($download->progress_bytes / $download->file_size_bytes) * 100);
                     $progress = "$num %";
                 }
 
