@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Exception,
     App\Dcc\Client,
     App\Exceptions\UnknownBotException,
+    App\Exceptions\FileDownloadLockedException,
     App\Jobs\CheckFileDownloadCompleted,
     App\Models\Bot,
     App\Models\FileDownloadLock;

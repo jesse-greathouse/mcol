@@ -8,10 +8,10 @@ use Jerodev\PhpIrcClient\IrcClient,
     Jerodev\PhpIrcClient\IrcChannel;
 
 use App\Chat\Client,
-    App\Chat\PacketLocator,
+    App\Models\Bot,
     App\Models\Nick,
     App\Models\Network,
-    App\Models\Channel;
+    App\Packet\Parse;
 
 class PacketLocatorClient extends Client
 {
@@ -38,13 +38,6 @@ class PacketLocatorClient extends Client
     protected $console;
 
     /**
-     * PacketLocator instance for this client.
-     *
-     * @var PacketLocator
-     */
-    protected $packetLocator;
-
-    /**
      * IRC client
      * 
      * @var IrcClient
@@ -52,7 +45,6 @@ class PacketLocatorClient extends Client
     protected $client;
 
     public function __construct(Nick $nick, Network $network, Command $console) {
-        $this->packetLocator = new PacketLocator();
         parent::__construct($nick, $network, $console);
     }
 
@@ -70,7 +62,12 @@ class PacketLocatorClient extends Client
             if (null !== $channel) {
                 $c = $this->getChannelFromName($channel->getName());
                 if (null !== $c && null === $c->parent) {
-                    $this->packetLocator->locate($message, $from, $this->network, $c);
+
+                    $bot = Bot::updateOrCreate(
+                        [ 'network_id' => $this->network->id, 'nick' => $from ]
+                    );
+
+                    Parse::packet($message, $bot, $c);
                 }
             }
         });

@@ -61,14 +61,8 @@
             />
           </div>
           <div v-show="showQueue" class="text-center">
-            <button @click="maybeCloseQueue()" ref="downloadsButton" type="button" class="text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:ring-sky-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-sky-600 dark:hover:bg-sky-700 focus:outline-none dark:focus:ring-sky-800"
-              data-drawer-target="drawer-swipe"
-              data-drawer-show="drawer-swipe"
-              data-drawer-hide="drawer-swipe"
-              data-drawer-placement="bottom"
-              data-drawer-edge="true"
-              data-drawer-edge-offset="bottom-[80px]"
-              aria-controls="drawer-swipe" >
+            <button ref="downloadsButton" type="button" class="text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:ring-sky-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-sky-600 dark:hover:bg-sky-700 focus:outline-none dark:focus:ring-sky-800"
+              @click="toggleQueue()" >
                 Downloads
             </button>
           </div>
@@ -92,7 +86,11 @@
         </div>
         <pagination class="mt-6" :links="pagination_nav" />
         <div v-show="showQueue">
-          <download-queue-drawer ref="queue" :queue="downloadQueue" />
+          <download-queue-drawer ref="queue" 
+            :queue="downloadQueue" 
+            @call:requestRemove="requestRemove" 
+            @call:requestCancel="requestCancel" 
+          />
         </div>
       </div>
     </div>
@@ -317,7 +315,12 @@
       downloadQueue: {
         deep: true,
         handler: throttle(function () {
-          this.showQueue = (this.hasQueue()) ? true : false
+          if (this.hasQueue()) {
+            this.showQueue = true
+          } else {
+            this.$refs.queue.hide()
+            this.showQueue = false
+          }
         }, 150),
       },
       locks: {
@@ -381,9 +384,8 @@
           (_.has(this.downloadQueue, 'queued') && 0 < this.downloadQueue.queued.length)
         )
       },
-      maybeCloseQueue() {
-        console.log('click')
-        this.$refs.queue.swipe()
+      toggleQueue() {
+        this.$refs.queue.toggle()
       },
       updateTotalPackets(data) {
         this.total = data.meta.total
@@ -406,7 +408,7 @@
       },
       refresh() {
         // Close the downloads queue
-        // this.$refs.queue.hide()
+        this.$refs.queue.hide()
 
         // refresh the current results.
         this.new_records_count = 0
@@ -521,6 +523,65 @@
           // Schedule the next reload
           clearLocksInterval()
           locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
+        } catch (error) {
+          console.error(error)
+        }
+      },
+      async requestRemove(packetId) {
+        const url = '/api/rpc/remove'
+        const rpcMethod = 'remove@request'
+        const headers = { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+        const body = {
+          jsonrpc: '2.0',
+            method: rpcMethod,
+            params: {
+                packet: packetId
+            },
+            id: 1
+        }
+
+        try {
+          const response = await axios.post(url, body, {headers: headers})
+          const fileName = response.data.result.packet.file_name
+          const locksIndex = this.locks.indexOf(fileName)
+          if (0 <= locksIndex) {
+            delete this.locks[locksIndex]
+          }
+
+          if (_.has(this.queued, fileName)) {
+            delete this.queued[fileName];
+          }
+
+          if (_.has(this.downloadQueue.queued, fileName)) {
+            delete this.downloadQueue.queued[fileName];
+          }
+        } catch (error) {
+          console.error(error)
+        }
+      },
+      async requestCancel(download) {
+        const url = '/api/rpc/cancel'
+        const rpcMethod = 'cancel@request'
+        const headers = { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+        const body = {
+          jsonrpc: '2.0',
+            method: rpcMethod,
+            params: {
+                bot: download.packet.bot_id
+            },
+            id: 1
+        }
+
+        try {
+          await axios.post(url, body, {headers: headers})
+          this.fetchLocks()
+          this.fetchQueue()
         } catch (error) {
           console.error(error)
         }

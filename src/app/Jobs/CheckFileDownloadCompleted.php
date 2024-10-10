@@ -10,7 +10,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
-use App\Jobs\CheckDownloadedFileRemoved,
+use App\Jobs\ArchiveDownload,
+    App\Jobs\CheckDownloadedFileRemoved,
     App\Models\Download,
     App\Models\FileDownloadLock,
     App\Packet\DownloadQueue;
@@ -96,6 +97,8 @@ class CheckFileDownloadCompleted implements ShouldQueue
                     ->delay(now()->addMinutes(CheckDownloadedFileRemoved::SCHEDULE_INTERVAL));
             } else {
                 $this->releaseLock($download);
+                // Move the download to the archives table
+                ArchiveDownload::dispatch($download);
             }
         }
     }
@@ -103,9 +106,9 @@ class CheckFileDownloadCompleted implements ShouldQueue
     /**
      * Returns a single Download model instance.
      *
-     * @return Model
+     * @return Model|null
      */
-    protected function getDownload(): Model
+    protected function getDownload(): Model|null
     {
         $this->downloadQueue->setFilterFileName($this->fileName);
         $this->downloadQueue->setStartDate($this->timeStamp);
@@ -113,9 +116,10 @@ class CheckFileDownloadCompleted implements ShouldQueue
     }
 
     /**
-     * Returns a single Download model instance.
+     * Removes any lock from a Download.
      *
-     * @return Model
+     * @param Download $download
+     * @return void
      */
     protected function releaseLock(Download $download): void
     {

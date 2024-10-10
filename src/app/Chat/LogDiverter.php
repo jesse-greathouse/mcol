@@ -2,7 +2,7 @@
 
 namespace App\Chat;
 
-use App\Chat\PacketLocator;
+use App\Packet\Parse;
 
 class LogDiverter
 {
@@ -22,7 +22,7 @@ class LogDiverter
 
     public function log(string $message): void
     {
-        $clean  = PacketLocator::cleanMessage($message);
+        $clean  = Parse::cleanMessage($message);
         $message = '[' . date("c", strtotime('now')) . "] $clean \n";
         $fh = fopen($this->instanceLogUri, 'a');
         fwrite($fh, $message);

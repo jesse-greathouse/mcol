@@ -39,6 +39,7 @@ class DownloadQueue
     public static array $columns = [
         'downloads.id',
         'packets.file_name',
+        'bots.nick',
         'downloads.packet_id',
         'downloads.status',
         'downloads.queued_status',
@@ -201,7 +202,8 @@ class DownloadQueue
     public static function getDownloads(string $status = null, array $packetList = []): Collection
     {
         $qb = Download::join('packets', 'packets.id', '=', 'downloads.packet_id')
-            ->join ('file_download_locks', 'file_download_locks.file_name', 'packets.file_name');
+            ->join ('file_download_locks', 'file_download_locks.file_name', 'packets.file_name')
+            ->join ('bots', 'bots.id', 'packets.bot_id');
 
         if (0 < count($packetList)) {
             $qb->whereIn('packet_id', $packetList);
@@ -288,9 +290,9 @@ class DownloadQueue
     /**
      * Run the Query and return a single model instance.
      *
-     * @return Model
+     * @return Model|null
      */
-    public function first(): Model
+    public function first(): Model|null
     {
         return $this->makeQuery()->first(self::$columns);
     }
@@ -405,7 +407,7 @@ class DownloadQueue
             self::ORDER_OPTION_CREATED  => self::ORDER_BY_CREATED,
             self::ORDER_OPTION_NAME     => self::ORDER_BY_NAME,
             self::ORDER_OPTION_STATUS   => self::ORDER_BY_STATUS,
-            self::ORDER_OPTION_QUEUE   => self::ORDER_BY_QUEUE,
+            self::ORDER_OPTION_QUEUE    => self::ORDER_BY_QUEUE,
         ];
     }
 
@@ -444,7 +446,8 @@ class DownloadQueue
         $qb = Download::join('packets', 'packets.id', '=', 'downloads.packet_id')
                 ->join('networks', 'networks.id', 'packets.network_id')
                 ->join ('clients', 'clients.network_id', 'networks.id')
-                ->join ('instances', 'instances.client_id', 'clients.id');
+                ->join ('instances', 'instances.client_id', 'clients.id')
+                ->join ('bots', 'bots.id', 'packets.bot_id');
 
         if ($this->getFilterLocked()) {
             $qb->join ('file_download_locks', 'file_download_locks.file_name', 'packets.file_name');

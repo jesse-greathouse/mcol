@@ -23,6 +23,7 @@ export default {
     total() {
       return (null === this.download.queued_status) ? '?' : this.download.queued_status
     },
-  }
+  },
+  emits: ['call:requestRemove'],
 }
 </script>

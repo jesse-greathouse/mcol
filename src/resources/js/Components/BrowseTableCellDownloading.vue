@@ -26,7 +26,7 @@ export default {
   },
   computed: {
     progress() {
-      return (this.download.progress_bytes / (this.download.file_size_bytes * 10)) * 100
+      return (this.download.progress_bytes / this.download.file_size_bytes) * 100
     },
   }
 }
