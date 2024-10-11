@@ -30,7 +30,7 @@ class CancelProcedure extends Procedure
         $id = $request->input('bot');
         $bot = Bot::where('id', $id)->first();
         if (null === $bot) {
-            throw new UnknownBotException("Bot: {$bot->nick} was not found.");
+            throw new UnknownBotException("Bot: {$id} was not found.");
         }
 
         CancelRequest::dispatch($bot);

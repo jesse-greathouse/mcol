@@ -104,7 +104,7 @@ class Client
                 fwrite($file, $chunk);
 
                 // Only save the progress every n intervals for performance.
-                if (!$isPacketList && $this->shouldUpdate()) {
+                if (!$isPacketList && file_exists($uri) && $this->shouldUpdate()) {
                     clearstatcache(true, $uri); // clears the caching of filesize
                     $progressSize = fileSize($uri);
                     $download = $this->registerDownload($uri, $packet->id, $fileSize, $progressSize);

@@ -308,6 +308,7 @@
         deep: true,
         handler: throttle(function () {
           lastTotalPacketsCount = null
+          if (_.has(this.form, 'page')) delete this.form.page // if the search changes, reset page.
           this.$inertia.get('/browse', pickBy(this.form), { preserveState: true })
           this.resetIntervals()
         }, 150),

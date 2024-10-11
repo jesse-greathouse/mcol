@@ -9,11 +9,15 @@
     <div class="py-5 place-self-stretch" tabindex="-1">
       <p class="px-5 font-semibold text-slate-600">{{ fileSize }}</p>
     </div>
-    <div class="col-span-7 py-5 place-self-stretch" tabindex="-1">
+    <div class="col-span-6 py-5 place-self-stretch" tabindex="-1">
       <fwb-progress :progress="progress" :label="download.packet.file_name"  />
     </div>
-    <div class="py-5 place-self-center" tabindex="-1">
-      <p class="px-5 whitespace-nowrap text-slate-600 text-sm">{{ download.nick }}</p>
+    <div class="col-span-2 py-5 place-self-left" tabindex="-1">
+      <p class="px-8 whitespace-nowrap">
+        <span class="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-blue-400 border border-blue-400">
+          {{ download.nick }}
+        </span>
+      </p>
     </div>
     <div class="py-5 place-self-center" tabindex="-1">
       <button ref="cancel" type="button" class="text-white disabled:opacity-75 disabled:bg-gray-700 bg-red-400 hover:bg-red-500 focus:ring-4 focus:outline-none focus:ring-red-200 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:bg-red-400 dark:hover:bg-red-400 dark:focus:ring-red-500"
