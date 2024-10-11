@@ -5,7 +5,7 @@
         <queued-icon />
       </div>
       <div class="col-span-10 py-6 px-0" tabindex="-1">
-        {{ packet.file_name }}
+        <p class="underline decoration-2 decoration-amber-400">{{ packet.file_name }}</p>
       </div>
     </div>
   </td>

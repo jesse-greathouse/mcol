@@ -28,7 +28,11 @@
       </th>
       <th class="p-4 align-middle items-center">Size</th>
       <th class="p-4 align-middle items-center">Network</th>
-      <th class="p-4 align-middle items-center">Bot</th>
+      <th class="p-4 align-middle items-center">
+        <span class="flex items-center pl-20" >
+          Bot
+        </span>
+      </th>
     </tr>
   </thead>
 </template>
