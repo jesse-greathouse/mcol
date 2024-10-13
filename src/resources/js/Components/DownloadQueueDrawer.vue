@@ -21,19 +21,19 @@
       <div v-if="hasCompelted" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
           <div class="font-semibold text-left text-gray-400 dark:text-gray-400">Completed</div>
           <div v-for="download in queue.completed" :key="`download-${download.id}`" class="width-full">
-            <download-queue-completed :download="download" />
+            <download-queue-completed :download="download" :settings="settings" />
           </div>
       </div>
       <div v-if="hasDownloading" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
           <div class="font-semibold text-left text-gray-400 dark:text-gray-400">Downloading</div>
           <div v-for="download in queue.incomplete" :key="`download-${download.id}`" class="width-full">
-            <download-queue-downloading :download="download" @call:requestCancel="requestCancel" />
+            <download-queue-downloading :download="download" :settings="settings" @call:requestCancel="requestCancel" />
           </div>
       </div>
       <div v-if="hasQueued" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
           <div class="font-semibold text-left text-gray-400 dark:text-gray-400">Queued</div>
           <div v-for="download in queue.queued" :key="`download-${download.id}`" class="width-full">
-            <download-queue-queued :download="download" @call:requestRemove="requestRemove" />
+            <download-queue-queued :download="download" :settings="settings" @call:requestRemove="requestRemove" />
           </div>
       </div>
     </div>
@@ -54,6 +54,7 @@ export default {
   },
   props: {
     queue: Object,
+    settings: Object,
   },
   data() {
     return {

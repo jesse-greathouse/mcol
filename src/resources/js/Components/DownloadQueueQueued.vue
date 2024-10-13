@@ -44,6 +44,7 @@ export default {
   },
   props: {
     download: Object,
+    settings: Object,
   },
   data() {
     return {

@@ -6,7 +6,7 @@ use App\Store\Data;
 
 final class MediaStoreSettings extends Data
 {
-    const URI = 'settings' . DIRECTORY_SEPARATOR . 'media-store.yml';
+    const FILE = 'media-store.yml';
 
     const MOVIES_KEY = 'movies';
     const TV_KEY = 'tv';
@@ -30,12 +30,12 @@ final class MediaStoreSettings extends Data
     ];
 
     /**
-     * @param string $varDir The root where application data is stored.
+     * @param string $path The root where settings data is stored.
      * @param ?array $config
      */
-    public function __construct(string $varDir, $config =[])
+    public function __construct(string $path, $config =[])
     {
-        $uri = $varDir . DIRECTORY_SEPARATOR . self::URI;
+        $uri = $path . DIRECTORY_SEPARATOR . self::FILE;
         parent::__construct($uri, $config);
     }
 }

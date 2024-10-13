@@ -45,7 +45,6 @@ class Parse {
                 ['file_name' => $packet->file_name],
                 ['created_at' => $packet->created_at]
             );
-
             return $packet;
         }
 

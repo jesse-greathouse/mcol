@@ -12,7 +12,8 @@ use App\Packet\BrowseRequestHandler as Handler,
     App\Media\MediaDynamicRange,
     App\Media\MediaLanguage,
     App\Media\MediaType,
-    App\Models\FileDownloadLock;
+    App\Models\FileDownloadLock,
+    App\Settings;
 
 class BrowseController
 {
@@ -36,6 +37,7 @@ class BrowseController
 
         return Inertia::render('Browse', [
             'packet_list'       => $packetList,
+            'settings'          => fn (Settings $settings) => $settings->toArray(),
             'locks'             => fn () => FileDownloadLock::all()->pluck('file_name')->toArray(),
             'queue'             => fn () => DownloadQueue::getQueue(),
             'queued'            => fn () => DownloadQueue::getQueuedDownloads($packetList),
@@ -88,15 +90,4 @@ class BrowseController
 function browseOverrides(Request $request) {
     // Don't include Beast chat bots, a lot of them never work.
     $request->merge([Handler::OUT_NICK_KEY => ['Beast-']]);
-
-    // Include all media types by default (excludes nulls).
-    // if (!$request->has(Handler::IN_MEDIA_TYPE_KEY) && !$request->has(Handler::OUT_MEDIA_TYPE_KEY)) {
-    //     $request->merge([Handler::IN_MEDIA_TYPE_KEY => MediaType::getMediaTypes()]);
-    // }
-
-    // // Include all file extensions by default (excludes files misisng file extensions).
-    // if (!$request->has(Handler::IN_FILE_EXTENSION_KEY) && !$request->has(Handler::OUT_FILE_EXTENSION_KEY)) {
-    //     $fileExtensions = FileExtension::getFileExtensions();
-    //     $request->merge([Handler::IN_FILE_EXTENSION_KEY => $fileExtensions]);
-    // }
 }

@@ -68,6 +68,7 @@ export default {
     incomplete: Object,
     queued: Object,
     packet: Object,
+    settings: Object,
   },
   methods: {
     getStatus() {
