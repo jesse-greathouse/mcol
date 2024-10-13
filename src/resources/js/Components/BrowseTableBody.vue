@@ -6,6 +6,7 @@
         :completed="completed"
         :incomplete="incomplete"
         :queued="queued"
+        :settings="settings"
       />
       <browse-table-row v-else :packet="packet" @call:requestDownload="requestDownload" />
     </tr>
@@ -30,6 +31,7 @@ export default {
     incomplete: Object,
     queued: Object,
     packets: Object,
+    settings: Object,
   },
   methods: {
     isLocked(packet) {

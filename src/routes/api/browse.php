@@ -11,7 +11,7 @@ use App\Http\Resources\BrowseCollection,
 
 // GET /api/browse
 Route::middleware('auth:sanctum')->get('/browse', function (Request $request) {
-    browseOverrides($request);
+    browseApiOverrides($request);
 
     $browseHandler = new Handler($request);
     return new BrowseCollection($browseHandler->paginate([
@@ -22,7 +22,7 @@ Route::middleware('auth:sanctum')->get('/browse', function (Request $request) {
 
 // GET /api/browse/locks
 Route::middleware('auth:sanctum')->get('/browse/locks', function (Request $request) {
-    browseOverrides($request);
+    browseApiOverrides($request);
 
     $packetList = [];
 
@@ -44,18 +44,7 @@ Route::middleware('auth:sanctum')->get('/browse/locks', function (Request $reque
  * @param Request $request
  * @return void
  */
-function browseOverrides(Request $request) {
+function browseApiOverrides(Request $request) {
     // Don't include Beast chat bots, a lot of them never work.
     $request->merge([Handler::OUT_NICK_KEY => ['Beast-']]);
-
-    // Include all media types by default (excludes nulls).
-    // if (!$request->has(Handler::IN_MEDIA_TYPE_KEY) && !$request->has(Handler::OUT_MEDIA_TYPE_KEY)) {
-    //     $request->merge([Handler::IN_MEDIA_TYPE_KEY => MediaType::getMediaTypes()]);
-    // }
-
-    // Include all file extensions by default (excludes files misisng file extensions).
-    // if (!$request->has(Handler::IN_FILE_EXTENSION_KEY) && !$request->has(Handler::OUT_FILE_EXTENSION_KEY)) {
-    //     $fileExtensions = FileExtension::getFileExtensions();
-    //     $request->merge([Handler::IN_FILE_EXTENSION_KEY => $fileExtensions]);
-    // }
 }

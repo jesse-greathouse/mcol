@@ -84,6 +84,16 @@ abstract class Data
     }
 
     /**
+     * Returns the storable object as an array.
+     *
+     * @return array
+     */
+    public function toArray(): array
+    {
+        return $this->getStorable();
+    }
+
+    /**
      * Returns a list of all the storable keys.
      *
      * @return array
@@ -142,8 +152,8 @@ abstract class Data
         if (isset($this->storable[$name])) {
             return $this->storable[$name];
         } else {
-        $class = self::class;
-        throw new DataStoreInvalidPropertyException("Accessed invalid property: $name on $class");
+            $class = self::class;
+            throw new DataStoreInvalidPropertyException("Accessed invalid property: $name on $class");
         }
     }
 

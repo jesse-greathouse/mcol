@@ -10,7 +10,7 @@ use App\Http\Resources\DownloadQueueCollection,
 
 // GET /api/download-queue
 Route::middleware('auth:sanctum')->get('/download-queue', function (Request $request) {
-    downloadQueueOverrides($request);
+    apiDownloadQueueOverrides($request);
 
     $browseHandler = new Handler($request);
     return new DownloadQueueCollection($browseHandler->paginate([
@@ -21,7 +21,7 @@ Route::middleware('auth:sanctum')->get('/download-queue', function (Request $req
 
 // GET /api/download-queue/queue
 Route::middleware('auth:sanctum')->get('/download-queue/queue', function (Request $request) {
-    downloadQueueOverrides($request);
+    apiDownloadQueueOverrides($request);
 
     $browseHandler = new Handler($request);
     return $browseHandler->queue();
@@ -33,7 +33,7 @@ Route::middleware('auth:sanctum')->get('/download-queue/queue', function (Reques
  * @param Request $request
  * @return void
  */
-function downloadQueueOverrides(Request $request) {
+function apiDownloadQueueOverrides(Request $request) {
     // Include only queued and incomplete by default.
     // Only if file_name is not specifically being queried.
     if (!$request->has(Handler::FILE_NAME_KEY) && (1 > strlen($request->has(Handler::FILE_NAME_KEY)))) {

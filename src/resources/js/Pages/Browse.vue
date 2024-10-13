@@ -81,15 +81,17 @@
               :completed="completed"
               :incomplete="incomplete"
               :queued="queued"
+              :settings="settings"
             />
           </table>
         </div>
         <pagination class="mt-6" :links="pagination_nav" />
         <div v-show="showQueue">
           <download-queue-drawer ref="queue" 
-            :queue="downloadQueue" 
-            @call:requestRemove="requestRemove" 
-            @call:requestCancel="requestCancel" 
+            :queue="downloadQueue"
+            :settings="settings"
+            @call:requestRemove="requestRemove"
+            @call:requestCancel="requestCancel"
           />
         </div>
       </div>
@@ -99,11 +101,11 @@
   
   <script>
   import axios from 'axios';
+  import _ from 'lodash'
   import { Head, Link } from '@inertiajs/vue3'
   import { initFlowbite } from 'flowbite'
   import { mergeDataIntoQueryString, hrefToUrl } from '@inertiajs/core'
   import Multiselect from '@vueform/multiselect'
-  import _ from 'lodash'
   import pickBy from 'lodash/pickBy'
   import throttle from 'lodash/throttle'
   import mapValues from 'lodash/mapValues'
@@ -206,6 +208,7 @@
     },
     layout: AppLayout,
     props: {
+      settings: Object,
       filters: Object,
       packets: Object,
       path: String,

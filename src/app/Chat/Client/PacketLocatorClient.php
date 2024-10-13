@@ -56,11 +56,10 @@ class PacketLocatorClient extends Client
     public function messageHandler(): void
     {
         $this->client->on('message', function (string $from, IrcChannel $channel = null, string $message) {
-            # Record downloadable packet #'s in the message.
-            # Only record packet #'s if this is a parent channel.
-            
+            // Record downloadable packet #'s in the message.
             if (null !== $channel) {
                 $c = $this->getChannelFromName($channel->getName());
+                // Only record packet #'s if this is a parent channel.
                 if (null !== $c && null === $c->parent) {
 
                     $bot = Bot::updateOrCreate(
