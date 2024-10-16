@@ -15,6 +15,10 @@ class Packet extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'meta' => 'array'
+    ];
+
     /**
      * Get the content for the bot.
      */

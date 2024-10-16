@@ -1,9 +1,11 @@
 /vendor/
 /.vscode/
 .vstags
+.devdbrc
 node_modules/
 npm-debug.log
 yarn-error.log
+*commit*
 
 # IDEs and editors
 /.idea

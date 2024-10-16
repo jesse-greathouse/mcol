@@ -9,7 +9,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-use App\Models\Download,
+use App\Jobs\TrasferDownloadedMedia,
+    App\Models\Download,
+    App\Models\DownloadDestination,
     App\Models\FileDownloadLock;
 
 class CheckDownloadedFileRemoved implements ShouldQueue
@@ -59,9 +61,30 @@ class CheckDownloadedFileRemoved implements ShouldQueue
             // Move the download to the archives table
             ArchiveDownload::dispatch($this->download);
         } else {
+            $this->handleDownloadDestination();
+
             // Reschedule this job at the specified interval.
             self::dispatch($this->download)
                 ->delay(now()->addMinutes(self::SCHEDULE_INTERVAL));
+        }
+    }
+
+    /**
+     * Handles transferring a file that has a destination registered.
+     *
+     * @return void
+     */
+    protected function handleDownloadDestination(): void
+    {
+        // Check if a download destination has been registered for this download.
+        $downloadDestination = DownloadDestination::where('download_id', $this->download->id)
+            ->where('status', DownloadDestination::STATUS_WAITING)
+            ->first();
+
+        if (null !== $downloadDestination) {
+            $downloadDestination->status = DownloadDestination::STATUS_QUEUED;
+            $downloadDestination->save();
+            TrasferDownloadedMedia::dispatch($downloadDestination)->onQueue('transfer');
         }
     }
 }

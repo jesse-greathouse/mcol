@@ -76,7 +76,7 @@ class Browse
      * @var array
      */
     protected array $filterInLanguages = [];
-    
+
     /**
      * @var array
      */
@@ -117,7 +117,7 @@ class Browse
 
     /**
      * String entered for search.
-     * 
+     *
      * @var string
      */
     protected $searchString;
@@ -145,7 +145,7 @@ class Browse
 
     /**
      * Direction of result order.
-     * 
+     *
      * @var string
      */
     protected $direction;
@@ -662,6 +662,7 @@ class Browse
         $query .= ', b.nick';
         $query .= ', p.number';
         $query .= ', f.created_at as first_appearance';
+        $query .= ', p.meta';
         $query .= "\n";
 
         return $query;
@@ -714,7 +715,7 @@ class Browse
     {
         $expanded = MediaLanguage::getExpandedLanguages();
         $expandedMediaLanguageList = $mediaLanguageList;
-        
+
         foreach($mediaLanguageList as $language) {
             if (isset($expanded[$language])) {
                 $expandedMediaLanguageList = array_merge($expandedMediaLanguageList, $expanded[$language]);
@@ -847,7 +848,7 @@ class Browse
      * Get the value of filterInBots
      *
      * @return  array
-     */ 
+     */
     public function getFilterInBots()
     {
         return $this->filterInBots;
@@ -859,7 +860,7 @@ class Browse
      * @param  array  $filterInBots
      *
      * @return  void
-     */ 
+     */
     public function setFilterInBots(array $filterInBots): void
     {
         $this->filterInBots = $this->sanitizeBotList($filterInBots);
@@ -869,7 +870,7 @@ class Browse
      * Get the value of filterOutBots
      *
      * @return  array
-     */ 
+     */
     public function getFilterOutBots()
     {
         return $this->filterOutBots;
@@ -881,7 +882,7 @@ class Browse
      * @param  array  $filterOutBots
      *
      * @return  void
-     */ 
+     */
     public function setFilterOutBots(array $filterOutBots): void
     {
         $this->filterOutBots = $this->sanitizeBotList($filterOutBots);
@@ -891,7 +892,7 @@ class Browse
      * Get the value of filterInLanguages
      *
      * @return  array
-     */ 
+     */
     public function getFilterInLanguages()
     {
         return $this->filterInLanguages;
@@ -903,7 +904,7 @@ class Browse
      * @param  array  $filterInLanguages
      *
      * @return  void
-     */ 
+     */
     public function setFilterInLanguages(array $filterInLanguages): void
     {
         $sanitizedLanguages = $this->sanitizeMediaLanguageList($filterInLanguages);
@@ -915,7 +916,7 @@ class Browse
      * Get the value of filterOutLanguages
      *
      * @return  array
-     */ 
+     */
     public function getFilterOutLanguages()
     {
         return $this->filterOutLanguages;
@@ -927,7 +928,7 @@ class Browse
      * @param  array  $filterOutLanguages
      *
      * @return  void
-     */ 
+     */
     public function setFilterOutLanguages(array $filterOutLanguages): void
     {
         $sanitizedLanguages = $this->sanitizeMediaLanguageList($filterOutLanguages);
@@ -939,7 +940,7 @@ class Browse
      * Get the value of filterInResolutions
      *
      * @return  array
-     */ 
+     */
     public function getFilterInResolutions()
     {
         return $this->filterInResolutions;
@@ -951,7 +952,7 @@ class Browse
      * @param  array  $filterInResolutions
      *
      * @return  void
-     */ 
+     */
     public function setFilterInResolutions(array $filterInResolutions): void
     {
         $this->filterInResolutions = $this->sanitizeMediaResolutionList($filterInResolutions);
@@ -961,7 +962,7 @@ class Browse
      * Get the value of filterOutResolutions
      *
      * @return  array
-     */ 
+     */
     public function getFilterOutResolutions()
     {
         return $this->filterOutResolutions;
@@ -973,7 +974,7 @@ class Browse
      * @param  array  $filterOutResolutions
      *
      * @return  void
-     */ 
+     */
     public function setFilterOutResolutions(array $filterOutResolutions): void
     {
         $this->filterOutResolutions = $this->sanitizeMediaResolutionList($filterOutResolutions);
@@ -983,7 +984,7 @@ class Browse
      * Get the value of filterInDynamicRange
      *
      * @return  array
-     */ 
+     */
     public function getFilterInDynamicRange()
     {
         return $this->filterInDynamicRange;
@@ -995,7 +996,7 @@ class Browse
      * @param  array  $filterInDynamicRange
      *
      * @return  void
-     */ 
+     */
     public function setFilterInDynamicRange(array $filterInDynamicRange): void
     {
         $sanitizedDynamicRanges = $this->sanitizeMediaDynamicRangeList($filterInDynamicRange);
@@ -1008,7 +1009,7 @@ class Browse
      * Get the value of filterOutDynamicRange
      *
      * @return  array
-     */ 
+     */
     public function getFilterOutDynamicRange()
     {
         return $this->filterOutDynamicRange;
@@ -1020,7 +1021,7 @@ class Browse
      * @param  array  $filterOutDynamicRange
      *
      * @return  void
-     */ 
+     */
     public function setFilterOutDynamicRange(array $filterOutDynamicRange): void
     {
         $sanitizedDynamicRanges = $this->sanitizeMediaDynamicRangeList($filterOutDynamicRange);
@@ -1032,7 +1033,7 @@ class Browse
      * Get the value of filterInFileExtensions
      *
      * @return  array
-     */ 
+     */
     public function getFilterInFileExtensions()
     {
         return $this->filterInFileExtensions;
@@ -1044,7 +1045,7 @@ class Browse
      * @param  array  $filterInFileExtensions
      *
      * @return  void
-     */ 
+     */
     public function setFilterInFileExtensions(array $filterInFileExtensions): void
     {
         $this->filterInFileExtensions = $this->sanitizeFileExtensionList($filterInFileExtensions);
@@ -1054,7 +1055,7 @@ class Browse
      * Get the value of filterOutFileExtensions
      *
      * @return  array
-     */ 
+     */
     public function getFilterOutFileExtensions()
     {
         return $this->filterOutFileExtensions;
@@ -1066,7 +1067,7 @@ class Browse
      * @param  array  $filterOutFileExtensions
      *
      * @return  void
-     */ 
+     */
     public function setFilterOutFileExtensions(array $filterOutFileExtensions): void
     {
         $this->filterOutFileExtensions = $this->sanitizeFileExtensionList($filterOutFileExtensions);
@@ -1076,7 +1077,7 @@ class Browse
      * Get the value of searchString
      *
      * @return  string|null
-     */ 
+     */
     public function getSearchString(): string|null
     {
         return $this->searchString;
@@ -1088,7 +1089,7 @@ class Browse
      * @param  string  $searchString
      *
      * @return  void
-     */ 
+     */
     public function setSearchString(string $searchString): void
     {
         $this->searchString = $searchString;
@@ -1098,7 +1099,7 @@ class Browse
      * Get earlist DateTime of query.
      *
      * @return  DateTime
-     */ 
+     */
     public function getStartDate()
     {
         return $this->startDate;
@@ -1110,7 +1111,7 @@ class Browse
      * @param  DateTime  $startDate  Earlist DateTime of query.
      *
      * @return  void
-     */ 
+     */
     public function setStartDate(DateTime $startDate): void
     {
         $this->startDate = $startDate;
@@ -1120,7 +1121,7 @@ class Browse
      * Get latest DateTime of query.
      *
      * @return  DateTime
-     */ 
+     */
     public function getEndDate()
     {
         return $this->endDate;
@@ -1132,7 +1133,7 @@ class Browse
      * @param  DateTime  $endDate  Latest DateTime of query.
      *
      * @return  void
-     */ 
+     */
     public function setEndDate(DateTime $endDate):void
     {
         $this->endDate = $endDate;
@@ -1142,13 +1143,13 @@ class Browse
      * Get direction of result order
      *
      * @return  string
-     */ 
+     */
     public function getDirection(): string
     {
         if (null === $this->direction) {
             return $this->getDefaultDirection();
         }
-    
+
         return $this->direction;
     }
 
@@ -1158,7 +1159,7 @@ class Browse
      * @param  string  $direction  Direction of result order
      *
      * @return  void
-     */ 
+     */
     public function setDirection(string $direction):void
     {
         $this->direction = $direction;
@@ -1168,7 +1169,7 @@ class Browse
      * Get the value of filterInMediaTypes
      *
      * @return  array
-     */ 
+     */
     public function getFilterInMediaTypes()
     {
         return $this->filterInMediaTypes;
@@ -1180,7 +1181,7 @@ class Browse
      * @param  array  $filterInMediaTypes
      *
      * @return  void
-     */ 
+     */
     public function setFilterInMediaTypes(array $filterInMediaTypes): void
     {
         $this->filterInMediaTypes = $this->sanitizeMediaTypeList($filterInMediaTypes);
@@ -1190,7 +1191,7 @@ class Browse
      * Get the value of filterOutMediaTypes
      *
      * @return  array
-     */ 
+     */
     public function getFilterOutMediaTypes()
     {
         return $this->filterOutMediaTypes;
@@ -1202,7 +1203,7 @@ class Browse
      * @param  array  $filterOutMediaTypes
      *
      * @return  void
-     */ 
+     */
     public function setFilterOutMediaTypes(array $filterOutMediaTypes): void
     {
         $this->filterOutMediaTypes = $this->sanitizeMediaTypeList($filterOutMediaTypes);
@@ -1212,7 +1213,7 @@ class Browse
      * Get holds the value of the order.
      *
      * @return  string
-     */ 
+     */
     public function getOrder(): string|null
     {
         return $this->order;
@@ -1224,7 +1225,7 @@ class Browse
      * @param  string  $order  Holds the value of the order.
      *
      * @return  void
-     */ 
+     */
     public function setOrder(string $order): void
     {
         $this->order = $this->sanitizeOrder($order);
@@ -1234,9 +1235,9 @@ class Browse
      * Get records per page.
      *
      * @return  int
-     */ 
+     */
     public function getRpp(): int
-    { 
+    {
         return $this->rpp;
     }
 
@@ -1246,7 +1247,7 @@ class Browse
      * @param  int  $rpp  Records per page.
      *
      * @return  void
-     */ 
+     */
     public function setRpp(int $rpp): void
     {
         // Prevent Rpp from being a funky number.
@@ -1261,7 +1262,7 @@ class Browse
      * Get page of the recordset.
      *
      * @return  int
-     */ 
+     */
     public function getPage(): int
     {
         return $this->page;
@@ -1273,7 +1274,7 @@ class Browse
      * @param  int  $page  Page of the recordset.
      *
      * @return  void
-     */ 
+     */
     public function setPage(int $page): void
     {
         // Prevent Page from being a funky number.
@@ -1288,7 +1289,7 @@ class Browse
      * Get the value of filterInNickMask
      *
      * @return  array
-     */ 
+     */
     public function getFilterInNickMask(): array
     {
         return $this->filterInNickMask;
@@ -1300,7 +1301,7 @@ class Browse
      * @param  array  $filterInNickMask
      *
      * @return  self
-     */ 
+     */
     public function setFilterInNickMask(array $filterInNickMask): void
     {
         $this->filterInNickMask = $filterInNickMask;
@@ -1310,7 +1311,7 @@ class Browse
      * Get the value of filterOutNickMask
      *
      * @return  array
-     */ 
+     */
     public function getFilterOutNickMask(): array
     {
         return $this->filterOutNickMask;
@@ -1322,7 +1323,7 @@ class Browse
      * @param  array  $filterOutNickMask
      *
      * @return  self
-     */ 
+     */
     public function setFilterOutNickMask(array $filterOutNickMask): void
     {
         $this->filterOutNickMask = $filterOutNickMask;

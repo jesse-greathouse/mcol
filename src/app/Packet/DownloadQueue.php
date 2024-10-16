@@ -81,7 +81,7 @@ class DownloadQueue
 
     /**
      * Whether to include only files that are locked.
-     * 
+     *
      * @var boolean
      */
     protected $filterLocked;
@@ -116,7 +116,7 @@ class DownloadQueue
 
     /**
      * Direction of result order.
-     * 
+     *
      * @var string
      */
     protected $direction;
@@ -325,7 +325,7 @@ class DownloadQueue
      *
      * @return Builder
      */
-    public function makeQueueQuery(): Builder 
+    public function makeQueueQuery(): Builder
     {
         // temporarily force the locked property to be true.
         $oldLocked = $this->getFilterLocked();
@@ -461,7 +461,7 @@ class DownloadQueue
      *
      * @return Builder
      */
-    protected function getQueryFilters(Builder $qb): Builder 
+    protected function getQueryFilters(Builder $qb): Builder
     {
         $qb = $this->filterFileName($qb);
         $qb = $this->filterStatuses($qb);
@@ -502,7 +502,7 @@ class DownloadQueue
      * @param Builder $qb
      * @return Builder
      */
-    protected function filterFileName(Builder $qb): Builder 
+    protected function filterFileName(Builder $qb): Builder
     {
         $filterFileName = $this->getFilterFileName();
 
@@ -529,7 +529,7 @@ class DownloadQueue
         } else if (0 < count($filterOutStatuses)) {
             $qb = $qb->whereNotIn('downloads.status', $filterOutStatuses);
         }
-    
+
         return $qb;
     }
 
@@ -642,7 +642,7 @@ class DownloadQueue
      * Get holds the value of the order.
      *
      * @return  string
-     */ 
+     */
     public function getOrder(): string|null
     {
         return $this->order;
@@ -654,7 +654,7 @@ class DownloadQueue
      * @param  string  $order  Holds the value of the order.
      *
      * @return  void
-     */ 
+     */
     public function setOrder(string $order): void
     {
         $this->order = $this->sanitizeOrder($order);
@@ -664,9 +664,9 @@ class DownloadQueue
      * Get records per page.
      *
      * @return  int
-     */ 
+     */
     public function getRpp(): int
-    { 
+    {
         return $this->rpp;
     }
 
@@ -676,7 +676,7 @@ class DownloadQueue
      * @param  int  $rpp  Records per page.
      *
      * @return  void
-     */ 
+     */
     public function setRpp(int $rpp): void
     {
         // Prevent Rpp from being a funky number.
@@ -691,7 +691,7 @@ class DownloadQueue
      * Get page of the recordset.
      *
      * @return  int
-     */ 
+     */
     public function getPage(): int
     {
         return $this->page;
@@ -703,7 +703,7 @@ class DownloadQueue
      * @param  int  $page  Page of the recordset.
      *
      * @return  void
-     */ 
+     */
     public function setPage(int $page): void
     {
         // Prevent Page from being a funky number.
@@ -718,7 +718,7 @@ class DownloadQueue
      * Get earlist DateTime of query.
      *
      * @return  DateTime
-     */ 
+     */
     public function getStartDate()
     {
         return $this->startDate;
@@ -730,7 +730,7 @@ class DownloadQueue
      * @param  DateTime  $startDate  Earlist DateTime of query.
      *
      * @return  void
-     */ 
+     */
     public function setStartDate(DateTime $startDate): void
     {
         $this->startDate = $startDate;
@@ -740,7 +740,7 @@ class DownloadQueue
      * Get latest DateTime of query.
      *
      * @return  DateTime
-     */ 
+     */
     public function getEndDate()
     {
         return $this->endDate;
@@ -752,7 +752,7 @@ class DownloadQueue
      * @param  DateTime  $endDate  Latest DateTime of query.
      *
      * @return  void
-     */ 
+     */
     public function setEndDate(DateTime $endDate):void
     {
         $this->endDate = $endDate;
@@ -762,13 +762,13 @@ class DownloadQueue
      * Get direction of result order
      *
      * @return  string
-     */ 
+     */
     public function getDirection(): string
     {
         if (null === $this->direction) {
             return $this->getDefaultDirection();
         }
-    
+
         return $this->direction;
     }
 
@@ -778,7 +778,7 @@ class DownloadQueue
      * @param  string  $direction  Direction of result order
      *
      * @return  void
-     */ 
+     */
     public function setDirection(string $direction): void
     {
         $this->direction = $direction;
@@ -789,7 +789,7 @@ class DownloadQueue
      * Get list of Statuses to filter In
      *
      * @return  array<string>
-     */ 
+     */
     public function getFilterInStatuses()
     {
         return $this->filterInStatuses;
@@ -801,7 +801,7 @@ class DownloadQueue
      * @param  array<string>  $filterInStatuses  List of Statuses to filter In
      *
      * @return  void
-     */ 
+     */
     public function setFilterInStatuses(array $filterInStatuses): void
     {
         $this->filterInStatuses = $this->sanitizeStatusList($filterInStatuses);
@@ -811,7 +811,7 @@ class DownloadQueue
      * Get list of Statuses to filter out
      *
      * @return  array<string>
-     */ 
+     */
     public function getFilterOutStatuses()
     {
         return $this->filterOutStatuses;
@@ -823,7 +823,7 @@ class DownloadQueue
      * @param  array<string>  $filterOutStatuses  List of Statuses to filter out
      *
      * @return  void
-     */ 
+     */
     public function setFilterOutStatuses(array $filterOutStatuses): void
     {
         $this->filterOutStatuses = $this->sanitizeStatusList($filterOutStatuses);
@@ -833,7 +833,7 @@ class DownloadQueue
      * Get list of Instance IDs to filter in.
      *
      * @return  array<int>
-     */ 
+     */
     public function getFilterInInstances()
     {
         return $this->filterInInstances;
@@ -845,7 +845,7 @@ class DownloadQueue
      * @param  array<int>  $filterInInstances  List of Instance IDs to filter in.
      *
      * @return  void
-     */ 
+     */
     public function setFilterInInstances(array $filterInInstances): void
     {
         $this->filterInInstances = $this->sanitizeInstanceList($filterInInstances);
@@ -855,7 +855,7 @@ class DownloadQueue
      * Get list of Instance IDs to filter out.
      *
      * @return  array<int>
-     */ 
+     */
     public function getFilterOutInstances()
     {
         return $this->filterOutInstances;
@@ -867,7 +867,7 @@ class DownloadQueue
      * @param  array<int>  $filterOutInstances  List of Instance IDs to filter out.
      *
      * @return  void
-     */ 
+     */
     public function setFilterOutInstances(array $filterOutInstances): void
     {
         $this->filterOutInstances = $this->sanitizeInstanceList($filterOutInstances);
@@ -877,7 +877,7 @@ class DownloadQueue
      * Get name of file to filter by.
      *
      * @return  string
-     */ 
+     */
     public function getFilterFileName()
     {
         return $this->filterFileName;
@@ -889,7 +889,7 @@ class DownloadQueue
      * @param  string  $filterFileName  Name of file to filter by.
      *
      * @return  void
-     */ 
+     */
     public function setFilterFileName(string $filterFileName): void
     {
         $this->filterFileName = $filterFileName;
@@ -899,7 +899,7 @@ class DownloadQueue
      * Get whether to include only files that are locked.
      *
      * @return  boolean
-     */ 
+     */
     public function getFilterLocked(): bool
     {
         return $this->filterLocked;
@@ -911,7 +911,7 @@ class DownloadQueue
      * @param  boolean  $filterLocked  Whether to include only files that are locked.
      *
      * @return  void
-     */ 
+     */
     public function setFilterLocked(bool $filterLocked): void
     {
         $this->filterLocked = $filterLocked;

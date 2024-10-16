@@ -5,6 +5,7 @@ use Illuminate\Http\Request,
 
 use App\Http\Resources\DownloadDestinationResource,
     App\Http\Resources\DownloadDestinationCollection,
+    App\Http\Requests\ApiStoreDownloadDestinationRequest,
     App\Models\DownloadDestination;
 
 // GET /api/download-destination
@@ -30,7 +31,46 @@ Route::middleware('auth:sanctum')->get('/download-destination', function (Reques
     return new DownloadDestinationCollection($qb->paginate());
 });
 
+// POST /api/download-destination
+Route::middleware('auth:sanctum')->post('/download-destination', function (ApiStoreDownloadDestinationRequest $request) {
+    $validated = $request->validated();
+
+    $inputs = [
+        'destination_dir'   => $validated['destination_dir'],
+        'download_id'       => $validated['download'],
+    ];
+
+    $downloadDestination = DownloadDestination::create($inputs);
+
+    return redirect("/api/download-destination/{$downloadDestination->id}");
+});
+
 // GET /api/download-destination/:id
 Route::middleware('auth:sanctum')->get('/download-destination/{id}', function (string $id) {
     return new DownloadDestinationResource(DownloadDestination::findOrFail($id));
+});
+
+// PUT /api/download-destination/:id
+Route::middleware('auth:sanctum')->put('/download-destination/{id}', function (string $id, ApiStoreDownloadDestinationRequest $request) {
+    $downloadDestination = DownloadDestination::findOrFail($id);
+
+    $validated = $request->validated();
+    $downloadDestination->destination_dir = $validated['destination_dir'];
+    $downloadDestination->download_id = $validated['download'];
+
+    $downloadDestination->save();
+
+    return redirect("/api/download-destination/{$downloadDestination->id}");
+});
+
+// DEL /api/download-destination/:id
+Route::middleware('auth:sanctum')->delete('/download-destination/{id}', function (string $id) {
+    $downloadDestination = DownloadDestination::findOrFail($id);
+    $file = $downloadDestination->download->file_uri;
+    $downloadDestination->delete();
+
+    return response()->json([
+        'success' => true,
+        'message' => "Download destination of: $file with id: $id was deleted."
+    ]);
 });

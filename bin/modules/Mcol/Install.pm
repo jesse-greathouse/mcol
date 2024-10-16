@@ -68,8 +68,7 @@ sub install {
     if ($options{'php'}) {
         configure_php($applicationRoot);
         install_php($applicationRoot);
-        install_pear($applicationRoot);
-        install_imagick($applicationRoot);
+        install_rar($applicationRoot);
     }
 
     if ($options{'composer'}) {
@@ -252,6 +251,52 @@ sub install_imagick {
     if (-e $phpIniBackupFile) {
          move($phpIniBackupFile, $phpIniFile);
     }
+}
+
+# installs rar.
+sub install_rar {
+    my ($dir) = @_;
+    my $optDir = $dir . '/opt';
+    my $phpizeBinary = $optDir . '/php/bin/phpize';
+    my $phpconfigBinary = $optDir . '/php/bin/php-config';
+    my $phpRarRepo = 'https://github.com/cataphract/php-rar.git';
+    my $originalDir = getcwd();
+
+    # Download Repo Command
+    my @downloadPhpRar = ('git');
+    push @downloadPhpRar, 'clone';
+    push @downloadPhpRar, $phpRarRepo;
+
+    # Configure Command
+    my @phpRarConfigure = ('./configure');
+    push @phpRarConfigure, '--prefix=' . $optDir;
+    push @phpRarConfigure, '--with-php-config=' . $phpconfigBinary;
+
+    # Delete Repo Command
+    my @phpRarDeleteRepo = ('rm');
+    push @phpRarDeleteRepo, '-rf';
+    push @phpRarDeleteRepo, "$originalDir/php-rar";
+
+    system(@downloadPhpRar);
+    command_result($?, $!, 'Downloading php-rar repo...', \@downloadPhpRar);
+    chdir glob("$originalDir/php-rar");
+
+    system($phpizeBinary);
+    command_result($?, $!, 'phpize...', \$phpizeBinary);
+
+    system(@phpRarConfigure);
+    command_result($?, $!, 'Configuring php-rar...', \@phpRarConfigure);
+
+    system('make');
+    command_result($?, $!, 'make php-rar...', 'make');
+
+    system('make install');
+    command_result($?, $!, 'make install php-rar', 'make install');
+
+    chdir glob("$originalDir");
+
+    system(@phpRarDeleteRepo);
+    command_result($?, $!, 'Deleting php-rar repo...', \@phpRarDeleteRepo);
 }
 
 # installs Composer.
