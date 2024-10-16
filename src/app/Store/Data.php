@@ -64,8 +64,8 @@ abstract class Data
         }
 
         [
-            'dirname' => $dirName, 
-            'basename' => $baseName, 
+            'dirname' => $dirName,
+            'basename' => $baseName,
             'extension' => $extension,
             'filename' => $fileName
         ] = pathinfo($uri);
@@ -130,7 +130,7 @@ abstract class Data
     * @param array $config
     * @return void
     */
-    protected function configure(array $config) 
+    protected function configure(array $config)
     {
         if (0 < count($config)) {
             foreach($this->config as $key => $val) {
@@ -196,7 +196,7 @@ abstract class Data
      * Get location of where the data files will be stored.
      *
      * @return  string
-     */ 
+     */
     public function getPath(): string
     {
         return $this->path;
@@ -208,7 +208,7 @@ abstract class Data
      * @param  string  $path  location of where the data files will be stored.
      *
      * @return void
-     */ 
+     */
     public function setPath(string $path): void
     {
         $this->path = $path;
@@ -216,9 +216,9 @@ abstract class Data
 
     /**
      * Make the file path work recursively
-     * 
+     *
      * @param  string  $path  location of where the data files will be stored.
-     * @return book
+     * @return bool
      */
     protected function createPath(string $path): bool
     {

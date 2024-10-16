@@ -11,7 +11,8 @@
         }
     ],
     "require": {
-        "php": "^8.1",
+        "php": "^8.3",
+        "ext-rar": "*",
         "deerdama/console-zoo-laravel": "^1.4",
         "doctrine/dbal": "^3.6",
         "guzzlehttp/guzzle": "^7.2",
@@ -25,8 +26,10 @@
         "laravel/scout": "^10.0",
         "laravel/tinker": "^2.9",
         "sajya/server": "^6.1",
+        "splitbrain/php-archive": "^1.3",
         "symfony/yaml": "^7.1",
-        "tightenco/ziggy": "^2.0"
+        "tightenco/ziggy": "^2.0",
+        "voku/stringy": "^6.5"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",

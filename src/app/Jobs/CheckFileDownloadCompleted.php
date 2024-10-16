@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\Log;
 
 use App\Jobs\ArchiveDownload,
     App\Jobs\CheckDownloadedFileRemoved,
+    App\Jobs\TrasferDownloadedMedia,
     App\Models\Download,
+    App\Models\DownloadDestination,
     App\Models\FileDownloadLock,
     App\Packet\DownloadQueue;
 
@@ -92,6 +94,8 @@ class CheckFileDownloadCompleted implements ShouldQueue
             }
         } else { // Download::STATUS_COMPLETED
             if (file_exists($download->file_uri)) {
+                $this->handleDownloadDestination($download);
+
                 // Schedule Job that checks to see that the downloaded file was removed from the File system.
                 CheckDownloadedFileRemoved::dispatch($download)
                     ->delay(now()->addMinutes(CheckDownloadedFileRemoved::SCHEDULE_INTERVAL));
@@ -113,6 +117,25 @@ class CheckFileDownloadCompleted implements ShouldQueue
         $this->downloadQueue->setFilterFileName($this->fileName);
         $this->downloadQueue->setStartDate($this->timeStamp);
         return $this->downloadQueue->first();
+    }
+
+    /**
+     * Handles transferring a file that has a destination registered.
+     *
+     * @return void
+     */
+    protected function handleDownloadDestination(Download $download): void
+    {
+        // Check if a download destination has been registered for this download.
+        $downloadDestination = DownloadDestination::where('download_id', $download->id)
+            ->where('status', DownloadDestination::STATUS_WAITING)
+            ->first();
+
+        if (null !== $downloadDestination) {
+            $downloadDestination->status = DownloadDestination::STATUS_QUEUED;
+            $downloadDestination->save();
+            TrasferDownloadedMedia::dispatch($downloadDestination)->onQueue('transfer');
+        }
     }
 
     /**

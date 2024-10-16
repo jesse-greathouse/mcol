@@ -2,15 +2,37 @@
 
 namespace App\Packet;
 
-use App\Models\Bot,
+use Illuminate\Support\Facades\Log;
+
+use App\Media\Application,
+    App\Media\Book,
+    App\Media\Game,
+    App\Media\MediaType,
+    App\Media\Movie,
+    App\Media\Music,
+    App\Media\TvEpisode,
+    App\Media\TvSeason,
+    App\Models\Bot,
     App\Models\Packet,
     App\Models\Channel,
     App\Models\FileFirstAppearance,
     App\Packet\MediaType\MediaTypeGuesser;
 
+use \Exception;
+
 class Parse {
 
     const PACKET_MASK = '/#([0-9]+)\s+([0-9]+)x\s+\[([0-9B-k\.\s]+)\]\s+(.+)/';
+
+    const MEDIA_MAP = [
+        MediaType::APPLICATION  => Application::class,
+        MediaType::BOOK         => Book::class,
+        MediaType::GAME         => Game::class,
+        MediaType::MOVIE        => Movie::class,
+        MediaType::MUSIC        => Music::class,
+        MediaType::TV_EPISODE   => TvEpisode::class,
+        MediaType::TV_SEASON    => TvSeason::class,
+    ];
 
     /**
      * Takes in a packet Text line and returns a persisted packet object.
@@ -27,7 +49,7 @@ class Parse {
         if (!self::isPacket($message)) {
             return null;
         }
-    
+
         $channel = (null === $channel) ? self::getBotChannelByBestGuess($bot) : $channel;
 
         [$number, $gets, $size, $fileName] = self::extract($message);
@@ -114,9 +136,22 @@ class Parse {
      */
     public static function getDataToUpdate(string $fileName, string $size, int $gets, int $number, Bot $bot, Channel $channel = null): array
     {
+        $meta = [];
         $guesser = new MediaTypeGuesser($fileName);
         $mediaType = $guesser->guess();
-        $dataToUpdate = ['file_name' => $fileName, 'gets' => $gets, 'size' => $size, 'media_type' => $mediaType];
+
+        if (isset(self::MEDIA_MAP[$mediaType])) {
+            $mediaClass = self::MEDIA_MAP[$mediaType];
+
+            try {
+                $media = new $mediaClass($fileName);
+                $meta = $media->toArray();
+            } catch(Exception $e) {
+                Log::warning($e);
+            }
+        }
+
+        $dataToUpdate = ['file_name' => $fileName, 'gets' => $gets, 'size' => $size, 'media_type' => $mediaType, 'meta' => $meta];
 
         # Check to see if a different file has previously filled this position.
         # Sometimes the bot owner can change which file is being served on this packet number.

@@ -6,7 +6,7 @@ use App\Store\Data;
 
 final class MediaStoreSettings extends Data
 {
-    const FILE = 'media-store.yml';
+    const FILE = 'settings' . DIRECTORY_SEPARATOR . 'media-store.yml';
 
     const MOVIES_KEY = 'movies';
     const TV_KEY = 'tv';

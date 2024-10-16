@@ -25,6 +25,7 @@ final class FileExtension
     const TAR = 'tar';
     const TXT = 'txt';
     const WAV = 'wav';
+    const ZIP = 'zip';
 
     /**
      * Returns a list of a all the media types.

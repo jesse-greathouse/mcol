@@ -27,6 +27,7 @@ class BrowseResource extends JsonResource
             'nick'              => $this->nick,
             'number'            => $this->number,
             'first_appearance'  => $this->updated_at,
+            'meta'              => json_decode($this->meta),
         ];
     }
 }

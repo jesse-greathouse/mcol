@@ -25,6 +25,7 @@ class PacketResource extends JsonResource
             'bot' => $this->bot,
             'channel' => $this->channel,
             'network' => $this->network,
+            'meta' => $this->meta,
         ];
     }
 }

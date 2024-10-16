@@ -53,6 +53,17 @@ final class Settings
     }
 
     /**
+    * Magic function to dynamically check if a property is set.
+    *
+    * @param string $name
+    * @return boolean
+    */
+    public function __isset(string $name): bool
+    {
+        return isset($this->stores[$name]);
+    }
+
+    /**
     * Magic function to retrieve stores as poperties of a Settings instance.
     *
     * @param string $name
