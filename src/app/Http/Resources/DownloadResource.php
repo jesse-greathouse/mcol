@@ -26,6 +26,7 @@ class DownloadResource extends JsonResource
             'queued_total'      => $this->queued_total,
             'queued_status'     => $this->queued_status,
             'packet'            => $this->packet,
+            'destination'       => $this->destination,
         ];
     }
 }

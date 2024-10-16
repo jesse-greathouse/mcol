@@ -275,6 +275,7 @@ class DownloadQueue
         $downloads = $this->makeQueueQuery()
             ->get(self::$columns)
             ->load('packet')
+            ->load('destination')
             ->toArray();
 
         forEach($downloads as $download) {
