@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory,
+    Illuminate\Database\Eloquent\Model,
+    Illuminate\Database\Eloquent\Relations\BelongsTo,
+    Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Download extends Model
 {
@@ -32,5 +33,13 @@ class Download extends Model
     public function packet(): BelongsTo
     {
         return $this->belongsTo(Packet::class);
+    }
+
+    /**
+     * Get the Download Destination.
+     */
+    public function destination(): HasOne
+    {
+        return $this->hasOne(DownloadDestination::class);
     }
 }

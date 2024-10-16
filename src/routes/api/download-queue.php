@@ -12,8 +12,8 @@ use App\Http\Resources\DownloadQueueCollection,
 Route::middleware('auth:sanctum')->get('/download-queue', function (Request $request) {
     apiDownloadQueueOverrides($request);
 
-    $browseHandler = new Handler($request);
-    return new DownloadQueueCollection($browseHandler->paginate([
+    $queueHandler = new Handler($request);
+    return new DownloadQueueCollection($queueHandler->paginate([
         'path' => Paginator::resolveCurrentPath(),
         'pageName' => 'page',
     ]));
@@ -23,8 +23,8 @@ Route::middleware('auth:sanctum')->get('/download-queue', function (Request $req
 Route::middleware('auth:sanctum')->get('/download-queue/queue', function (Request $request) {
     apiDownloadQueueOverrides($request);
 
-    $browseHandler = new Handler($request);
-    return $browseHandler->queue();
+    $queueHandler = new Handler($request);
+    return $queueHandler->queue();
 });
 
 /**
