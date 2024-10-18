@@ -14,6 +14,10 @@ class DownloadHistory extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'meta' => 'array'
+    ];
+
     /**
      * Get the name of the index associated with the model.
      */

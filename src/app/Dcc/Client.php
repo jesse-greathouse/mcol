@@ -57,7 +57,7 @@ class Client
                 touch($uri);
             }
         } else {
-            $downloadDir = env('DOWNLOAD_DIR', '/var/download');
+            $downloadDir = env('DOWNLOAD_DIR', '/var/mcol/download');
             $packet = Packet::where('file_name', $fileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
             if (!$packet) {
                 throw new IllegalPacketException("Packet with bot id: $botId and file: $fileName were expected but not found");
@@ -65,7 +65,7 @@ class Client
             $uri = "$downloadDir/$fileName";
 
             // Register or update the file download status data.
-            $download = $this->registerDownload($uri, $packet->id, $fileSize, $bytes);
+            $download = $this->registerDownload($uri, $fileName, $packet->id, $packet->meta, $fileSize, $bytes);
 
             if (file_exists($uri)) {
                 if (null === $resume) {
@@ -91,7 +91,7 @@ class Client
             // Adds +1 to byte length so added bytes can be tracked more evenly.
             // bytes + chunk = downloaded progress.
             $increment = self::CHUNK_BYTES + 1;
-    
+
             while (!feof($fp)) {
                 // Sometimes user deletes file before it's finished :-(
                 // Silly Users >:@
@@ -107,7 +107,7 @@ class Client
                 if (!$isPacketList && file_exists($uri) && $this->shouldUpdate()) {
                     clearstatcache(true, $uri); // clears the caching of filesize
                     $progressSize = fileSize($uri);
-                    $download = $this->registerDownload($uri, $packet->id, $fileSize, $progressSize);
+                    $download = $this->registerDownload($uri, $fileName, $packet->id, $packet->meta, $fileSize, $progressSize);
                 }
             }
 
@@ -119,9 +119,9 @@ class Client
                 return;
             }
 
-            // If expected file size wasn't sent as a parameter, 
+            // If expected file size wasn't sent as a parameter,
             // it's impossible to know how large the file should be.
-            if (null === $fileSize) { 
+            if (null === $fileSize) {
                 $fileSize = $download->progress_bytes;
             }
 
@@ -167,7 +167,7 @@ class Client
     public function shouldUpdate(): bool
     {
         $now = time();
-        
+
         if (null === $this->lastUpdate) {
             $this->lastUpdate = $now;
             return true;
@@ -187,21 +187,25 @@ class Client
      * Set up the download object
      *
      * @param string $uri
+     * @param string $fileName
      * @param integer $packetId
+     * @param array $meta
      * @param integer|null $fileSize
      * @param integer|null $bytes
      * @return Download
      */
-    protected function registerDownload(string $uri,  int $packetId, int $fileSize = null, int $bytes = null): Download
+    protected function registerDownload(string $uri,  string $fileName, int $packetId, array $meta, int $fileSize = null, int $bytes = null): Download
     {
         return Download::updateOrCreate(
             [ 'file_uri' => $uri ],
             [
+                'file_name'         => $fileName,
                 'packet_id'         => $packetId,
-                'status'            => Download::STATUS_INCOMPLETE, 
-                'file_size_bytes'   => $fileSize, 
-                'progress_bytes'    => $bytes,  
-                'queued_total'      => null, 
+                'meta'              => $meta,
+                'status'            => Download::STATUS_INCOMPLETE,
+                'file_size_bytes'   => $fileSize,
+                'progress_bytes'    => $bytes,
+                'queued_total'      => null,
                 'queued_status'     => null,
             ]
         );

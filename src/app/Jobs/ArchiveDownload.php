@@ -55,12 +55,13 @@ class ArchiveDownload implements ShouldQueue
 
             DownloadHistory::create([
                 'file_name'         => basename($packet->file_name),
-                'media_type'        => basename($mediaType),
+                'media_type'        => $mediaType,
                 'file_uri'          => $download->file_uri,
                 'bot_nick'          => $bot->nick,
                 'network_name'      => $network->name,
                 'channel_name'      => $channel->name,
-                'file_size_bytes'   => $download->file_size_bytes
+                'file_size_bytes'   => $download->file_size_bytes,
+                'meta'              => $download->meta,
             ]);
 
             $download->delete();

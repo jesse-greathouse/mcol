@@ -27,7 +27,7 @@ class BrowseController
         $resolutions = MediaResolution::getMediaResolutions();
         $languages = MediaLanguage::getMediaLanguages();
         $dynamicRanges = MediaDynamicRange::getMediaDynamicRanges();
-        
+
         $resp = $browseHandler->paginate([
             'path' => LengthAwarePaginator::resolveCurrentPath(),
             'pageName' => 'page',

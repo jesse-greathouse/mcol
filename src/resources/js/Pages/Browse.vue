@@ -3,9 +3,6 @@
     <div class="max-w-full mx-auto sm:px-6 lg:px-8">
       <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5">
         <Head title="Browse" />
-        <div v-if="0 < new_records_count" class="z-50 fixed bottom-6 right-6 shadow-lg">
-          <new-records-alert ref="newRecordAlert" :count="new_records_count" @refresh="refresh" />
-        </div>
         <div class="flex items-start justify-start mb-4">
           <div class="relative flex w-1/5 min-w-72 m-0 mr-4">
             <search-filter :model="form.search_string" class="flex w-full" @update:searchString="updateSearchString" @reset="reset" />
@@ -87,18 +84,22 @@
         </div>
         <pagination class="mt-6" :links="pagination_nav" />
         <div v-show="showQueue">
-          <download-queue-drawer ref="queue" 
+          <download-queue-drawer ref="queue"
             :queue="downloadQueue"
             :settings="settings"
+            @call:removeCompleted="removeCompleted"
             @call:requestRemove="requestRemove"
             @call:requestCancel="requestCancel"
           />
+        </div>
+        <div v-if="0 < new_records_count" class="z-50 fixed bottom-6 right-6 shadow-lg">
+            <new-records-alert ref="newRecordAlert" :count="new_records_count" @refresh="refresh" />
         </div>
       </div>
     </div>
   </div>
   </template>
-  
+
   <script>
   import axios from 'axios';
   import _ from 'lodash'
@@ -123,7 +124,7 @@
   import SearchFilter from '@/Components/SearchFilter.vue'
   import SortButtons from '@/Components/SortButtons.vue'
 
-  let lastTotalPacketsCount; // Tracks the total packet count to compare against refreshed count.  
+  let lastTotalPacketsCount; // Tracks the total packet count to compare against refreshed count.
   const totalPacketsInterval = 60000; // Check total packets every 60 seconds.
   let totalPacketsTimeoutId;
   const clearTotalPacketsInterval = function () {
@@ -188,7 +189,7 @@
       return `${dateStr}`
     }
   }
-  
+
   export default {
     components: {
       Head,
@@ -508,7 +509,7 @@
       async requestDownload(packetId) {
         const url = '/api/rpc/download'
         const rpcMethod = 'download@request'
-        const headers = { 
+        const headers = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         };
@@ -534,7 +535,7 @@
       async requestRemove(packetId) {
         const url = '/api/rpc/remove'
         const rpcMethod = 'remove@request'
-        const headers = { 
+        const headers = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         };
@@ -569,7 +570,7 @@
       async requestCancel(download) {
         const url = '/api/rpc/cancel'
         const rpcMethod = 'cancel@request'
-        const headers = { 
+        const headers = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         };
@@ -590,10 +591,34 @@
           console.error(error)
         }
       },
+      async removeCompleted(download) {
+        const url = '/api/rpc/remove-completed'
+        const rpcMethod = 'removeCompleted@request'
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+        const body = {
+          jsonrpc: '2.0',
+            method: rpcMethod,
+            params: {
+                download: download.id
+            },
+            id: 1
+        }
+
+        try {
+          await axios.post(url, body, {headers: headers})
+          this.fetchLocks()
+          this.fetchQueue()
+        } catch (error) {
+          console.error(error)
+        }
+      },
       async fetchLocks(packetList) {
         const [_href, _data] = mergeDataIntoQueryString('get', '/api/browse/locks', {packet_list: packetList}, 'brackets')
         const url = hrefToUrl(_href)
-        const headers = { 
+        const headers = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         };

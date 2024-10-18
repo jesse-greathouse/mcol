@@ -4,7 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 
-use App\Jobs\GeneratePacketMeta as GeneratePacketMetaJob;
+use App\Jobs\GeneratePacketMeta as GeneratePacketMetaJob,
+    App\Models\Packet;
 
 class GeneratePacketMeta extends Command
 {
@@ -13,7 +14,7 @@ class GeneratePacketMeta extends Command
      *
      * @var string
      */
-    protected $signature = 'mcol:generate-packet-meta {--full}';
+    protected $signature = 'mcol:generate-packet-meta {--packet=}';
 
     /**
      * The console command description.
@@ -27,9 +28,19 @@ class GeneratePacketMeta extends Command
      */
     public function handle()
     {
-        $full = (true === $this->option('full')) ? true : false;
+        $packet = null;
+        $queue = 'longruns';
 
-        GeneratePacketMetaJob::dispatch($full)->onQueue('longruns');
+        if ($this->option('packet')) {
+            $id = intval($this->option('packet'));
+            $packet = Packet::find($id);
+            if (null === $packet) {
+                throw new \Exception("Packet with id: $id could not be found.");
+            }
+            $queue = 'meta';
+        }
+
+        GeneratePacketMetaJob::dispatch($packet)->onQueue($queue);
         $this->warn("Queued job for Generating Packet Meta.");
     }
 }

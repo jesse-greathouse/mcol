@@ -21,9 +21,11 @@ class ChannelUpdater
         $userCount = count($users);
         $topic = $ircChannel->getTopic();
 
-        Channel::updateOrCreate(
-            ['name' => $ircChannel->getName()],
-            ['topic' => $topic, 'users' => $userCount]
-        );
+        if (null !== $topic && (0 < $userCount)) {
+            Channel::updateOrCreate(
+                ['name' => $ircChannel->getName()],
+                ['topic' => $topic, 'users' => $userCount]
+            );
+        }
     }
 }
