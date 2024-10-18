@@ -13,6 +13,10 @@ class Download extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'meta' => 'array'
+    ];
+
     const STATUS_INCOMPLETE = 'incomplete';
     const STATUS_COMPLETED = 'completed';
     const STATUS_QUEUED = 'queued';

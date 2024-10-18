@@ -19,7 +19,7 @@ class DownloadQueue
     const MYSQL_TIMESTAMP_FORMAT = 'Y-m-d H:i:s';
 
     const ORDER_BY_CREATED = 'downloads.updated_at';
-    const ORDER_BY_NAME = 'packets.file_name';
+    const ORDER_BY_NAME = 'downloads.file_name';
     const ORDER_BY_STATUS = 'downloads.status';
     const ORDER_BY_QUEUE = 'downloads.queued_status';
 
@@ -38,7 +38,7 @@ class DownloadQueue
 
     public static array $columns = [
         'downloads.id',
-        'packets.file_name',
+        'downloads.file_name',
         'bots.nick',
         'downloads.packet_id',
         'downloads.status',
@@ -47,6 +47,7 @@ class DownloadQueue
         'downloads.file_size_bytes',
         'downloads.progress_bytes',
         'downloads.file_uri',
+        'downloads.meta',
         'downloads.created_at',
         'downloads.updated_at',
     ];
@@ -202,7 +203,7 @@ class DownloadQueue
     public static function getDownloads(string $status = null, array $packetList = []): Collection
     {
         $qb = Download::join('packets', 'packets.id', '=', 'downloads.packet_id')
-            ->join ('file_download_locks', 'file_download_locks.file_name', 'packets.file_name')
+            ->join ('file_download_locks', 'file_download_locks.file_name', 'downloads.file_name')
             ->join ('bots', 'bots.id', 'packets.bot_id');
 
         if (0 < count($packetList)) {
@@ -451,7 +452,7 @@ class DownloadQueue
                 ->join ('bots', 'bots.id', 'packets.bot_id');
 
         if ($this->getFilterLocked()) {
-            $qb->join ('file_download_locks', 'file_download_locks.file_name', 'packets.file_name');
+            $qb->join ('file_download_locks', 'file_download_locks.file_name', 'downloads.file_name');
         }
 
         return $qb;

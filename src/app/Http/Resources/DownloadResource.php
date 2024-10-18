@@ -19,6 +19,7 @@ class DownloadResource extends JsonResource
             'created_at'        => $this->created_at,
             'updated_at'        => $this->updated_at,
             'file_uri'          => $this->file_uri,
+            'file_name'         => $this->file_name,
             'status'            => $this->status,
             'enabled'           => $this->enabled,
             'file_size_bytes'   => $this->file_size_bytes,
@@ -27,6 +28,7 @@ class DownloadResource extends JsonResource
             'queued_status'     => $this->queued_status,
             'packet'            => $this->packet,
             'destination'       => $this->destination,
+            'meta'              => $this->meta,
         ];
     }
 }

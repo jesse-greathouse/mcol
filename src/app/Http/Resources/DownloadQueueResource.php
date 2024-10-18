@@ -27,6 +27,7 @@ class DownloadQueueResource extends JsonResource
             'progress_bytes'    => $this->progress_bytes,
             'file_uri'          => $this->file_uri,
             'destination'       => $this->destination,
+            'meta'              => $this->meta,
         ];
     }
 }

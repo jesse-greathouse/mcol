@@ -58,6 +58,14 @@ return [
             'after_commit' => false,
         ],
 
+        'meta' => [
+            'driver' => 'database',
+            'table' => 'jobs',
+            'queue' => 'meta',
+            'retry_after' => 90,
+            'after_commit' => false,
+        ],
+
         'longruns' => [
             'driver' => 'database',
             'table' => 'jobs',

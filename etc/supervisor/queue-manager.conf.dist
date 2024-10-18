@@ -32,6 +32,21 @@ stdout_logfile_maxbytes=0
 stopwaitsecs=3
 priority=7
 
+[program:mcol-meta-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work meta --queue=meta
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=1
+numprocs_start=1
+redirect_stderr=true
+stdout_logfile=%(ENV_LOG_DIR)s/meta.log
+stdout_logfile_maxbytes=0
+stopwaitsecs=3
+priority=8
+
 [program:mcol-transfer-worker]
 process_name=%(program_name)s_%(process_num)02d
 command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work transfer --queue=transfer --timeout=3600
@@ -45,7 +60,7 @@ redirect_stderr=true
 stdout_logfile=%(ENV_LOG_DIR)s/transfer.log
 stdout_logfile_maxbytes=0
 stopwaitsecs=3
-priority=8
+priority=9
 
 [program:mcol-download-worker]
 process_name=%(program_name)s_%(process_num)02d
@@ -54,13 +69,13 @@ autostart=true
 autorestart=true
 stopasgroup=true
 killasgroup=true
-numprocs=12
+numprocs=8
 numprocs_start=1
 redirect_stderr=true
 stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
 stdout_logfile_maxbytes=0
 stopwaitsecs=3
-priority=9
+priority=10
 
 [program:mcol-longruns-worker]
 process_name=%(program_name)s_%(process_num)02d
@@ -75,4 +90,4 @@ redirect_stderr=true
 stdout_logfile=%(ENV_LOG_DIR)s/longruns.log
 stdout_logfile_maxbytes=0
 stopwaitsecs=3
-priority=10
+priority=11
