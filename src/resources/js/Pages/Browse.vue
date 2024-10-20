@@ -1,7 +1,7 @@
 <template>
   <div class="py-12">
     <div class="max-w-full mx-auto sm:px-6 lg:px-8">
-      <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5">
+      <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5" :class="contentClass">
         <Head title="Browse" />
         <div class="flex items-start justify-start mb-4">
           <div class="relative flex w-1/5 min-w-72 m-0 mr-4">
@@ -90,6 +90,7 @@
             @call:removeCompleted="removeCompleted"
             @call:requestRemove="requestRemove"
             @call:requestCancel="requestCancel"
+            @call:saveDownloadDestination="saveDownloadDestination"
           />
         </div>
         <div v-if="0 < new_records_count" class="z-50 fixed bottom-6 right-6 shadow-lg">
@@ -291,6 +292,15 @@
       }
     },
     computed: {
+      contentClass() {
+        const style = []
+
+        if (this.showQueue) {
+            style.push('mb-12')
+        }
+
+        return style
+      },
       searchStringActive() {
         return this.form.search_string && this.form.search_string.length > 0
       },
@@ -668,6 +678,33 @@
         try {
           const response = await axios.get(url, { headers: headers })
           this.downloadQueue = response.data
+        } catch (error) {
+          console.error(error)
+        }
+      },
+      async saveDownloadDestination(download, uri) {
+        let method = 'post'
+        let url = '/api/download-destination'
+
+        // Use put instead of post if dd already exists.
+        if (null !== download.destination) {
+            method = 'put'
+            url = `${url}/${download.destination.id}`
+        }
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+
+        const body = {
+            destination_dir: uri,
+            download: download.id
+        }
+
+        try {
+          await axios[method](url, body, {headers: headers})
+          this.fetchQueue()
         } catch (error) {
           console.error(error)
         }

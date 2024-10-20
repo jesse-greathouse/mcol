@@ -65,7 +65,7 @@ class Client
             $uri = "$downloadDir/$fileName";
 
             // Register or update the file download status data.
-            $download = $this->registerDownload($uri, $fileName, $packet->id, $packet->meta, $fileSize, $bytes);
+            $download = $this->registerDownload($uri, $fileName, $packet->media_type, $packet->id, $packet->meta, $fileSize, $bytes);
 
             if (file_exists($uri)) {
                 if (null === $resume) {
@@ -107,7 +107,7 @@ class Client
                 if (!$isPacketList && file_exists($uri) && $this->shouldUpdate()) {
                     clearstatcache(true, $uri); // clears the caching of filesize
                     $progressSize = fileSize($uri);
-                    $download = $this->registerDownload($uri, $fileName, $packet->id, $packet->meta, $fileSize, $progressSize);
+                    $download = $this->registerDownload($uri, $fileName, $packet->media_type, $packet->id, $packet->meta, $fileSize, $progressSize);
                 }
             }
 
@@ -188,18 +188,20 @@ class Client
      *
      * @param string $uri
      * @param string $fileName
+     * @param string $mediaType
      * @param integer $packetId
      * @param array $meta
      * @param integer|null $fileSize
      * @param integer|null $bytes
      * @return Download
      */
-    protected function registerDownload(string $uri,  string $fileName, int $packetId, array $meta, int $fileSize = null, int $bytes = null): Download
+    protected function registerDownload(string $uri,  string $fileName, string $mediaType, int $packetId, array $meta, int $fileSize = null, int $bytes = null): Download
     {
         return Download::updateOrCreate(
             [ 'file_uri' => $uri ],
             [
                 'file_name'         => $fileName,
+                'media_type'        => $mediaType,
                 'packet_id'         => $packetId,
                 'meta'              => $meta,
                 'status'            => Download::STATUS_INCOMPLETE,

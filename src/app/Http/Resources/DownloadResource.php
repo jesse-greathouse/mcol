@@ -20,6 +20,7 @@ class DownloadResource extends JsonResource
             'updated_at'        => $this->updated_at,
             'file_uri'          => $this->file_uri,
             'file_name'         => $this->file_name,
+            'media_type'        => $this->media_type,
             'status'            => $this->status,
             'enabled'           => $this->enabled,
             'file_size_bytes'   => $this->file_size_bytes,

@@ -35,7 +35,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 use \DateTime;
 
-class Client 
+class Client
 {
     const LINE_COLUMN_SPACES = 50;
     const QUEUED_MASK = '/^Queued \d+h\d+m for \"(.+)\", in position (\d+) of (\d+)\. .+$/';
@@ -110,7 +110,7 @@ class Client
 
     /**
      * IRC client
-     * 
+     *
      * @var IrcClient
      */
     protected $client;
@@ -186,7 +186,7 @@ class Client
      */
     protected function getClientId(): int|null
     {
-        // Returns the id of a Client Model. 
+        // Returns the id of a Client Model.
         // Save id to refrain future DBAL client calls in long-running processes.
         if (null === $this->clientId) {
             $client = ClientModel::where('enabled', true)
@@ -273,7 +273,7 @@ class Client
                 foreach($channel->children as $child) {
                     $this->client->join($child->name);
                 }
-            }  
+            }
         });
     }
 
@@ -313,7 +313,7 @@ class Client
 
             # DCC SEND PROTOCOL
             if (false !== strpos($message, 'DCC SEND')) {
-                // $message is a string like: "DCC SEND Frasier.2023.S01E04.1080p.WEB.h264-ETHEL.mkv 1311718603 58707 2073127114" 
+                // $message is a string like: "DCC SEND Frasier.2023.S01E04.1080p.WEB.h264-ETHEL.mkv 1311718603 58707 2073127114"
                 [, , $fileName, $ip, $port, $fileSize] = explode(' ', $message);
                 $fileSizeCln = $this->clnNumericStr($fileSize);
                 $ipCln = $this->clnNumericStr($ip);
@@ -472,7 +472,7 @@ class Client
                 $this->hotReportSummaryHandler($channelNameSanitized, $hotReportSummaryStr);
                 return;
             }
-    
+
             $this->console->warn(" ========[  $txt ");
         });
     }
@@ -805,7 +805,13 @@ class Client
         if ($packet) {
             Download::updateOrCreate(
                 [ 'file_uri' => "$downloadDir/$file", 'packet_id' => $packet->id ],
-                [ 'status' => Download::STATUS_QUEUED, 'queued_status' => $position ]
+                [
+                    'status'        => Download::STATUS_QUEUED,
+                    'file_name'     => $packet->file_name,
+                    'queued_status' => $position,
+                    'meta'          => $packet->meta,
+                    'media_type'    => $packet->media_type
+                ]
             );
 
             if (!$this->isFileDownloadLocked($file)) {
@@ -940,7 +946,7 @@ class Client
                 foreach($userList as $user) {
                     $rows[] = [$user];
                 }
-    
+
                 $this->console->table(['Nick'], $rows);
             }
         });

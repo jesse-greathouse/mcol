@@ -20,22 +20,18 @@
       </p>
     </div>
     <div class="py-5 place-self-center" tabindex="-1">
-      <button ref="saveFile" type="button" class="text-white disabled:opacity-75 disabled:bg-gray-700 bg-blue-400 hover:bg-blue-500 focus:ring-4 focus:outline-none focus:ring-blue-200 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:bg-blue-400 dark:hover:bg-blue-400 dark:focus:ring-blue-500"
-        :disabled="saveFileDisabled"
-        @click="saveFile()" >
-        <svg class="stroke-white fill-none stroke-2 w-6 h-6" aria-hidden="true" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-          <g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M9 13H15M15 13L13 11M15 13L13 15M12.0627 6.06274L11.9373 5.93726C11.5914 5.59135 11.4184 5.4184 11.2166 5.29472C11.0376 5.18506 10.8425 5.10425 10.6385 5.05526C10.4083 5 10.1637 5 9.67452 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V15.8C3 16.9201 3 17.4802 3.21799 17.908C3.40973 18.2843 3.71569 18.5903 4.09202 18.782C4.51984 19 5.07989 19 6.2 19H17.8C18.9201 19 19.4802 19 19.908 18.782C20.2843 18.5903 20.5903 18.2843 20.782 17.908C21 17.4802 21 16.9201 21 15.8V10.2C21 9.0799 21 8.51984 20.782 8.09202C20.5903 7.71569 20.2843 7.40973 19.908 7.21799C19.4802 7 18.9201 7 17.8 7H14.3255C13.8363 7 13.5917 7 13.3615 6.94474C13.1575 6.89575 12.9624 6.81494 12.7834 6.70528C12.5816 6.5816 12.4086 6.40865 12.0627 6.06274Z" stroke-linecap="round" stroke-linejoin="round"></path> </g>
-        </svg>
-        <span class="sr-only">Save File</span>
-      </button>
-      <button ref="cancel" type="button" class="text-white disabled:opacity-75 disabled:bg-gray-700 bg-red-400 hover:bg-red-500 focus:ring-4 focus:outline-none focus:ring-red-200 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:bg-red-400 dark:hover:bg-red-400 dark:focus:ring-red-500"
-        :data-modal-target="confirmRemoveId" :data-modal-toggle="confirmRemoveId"
-        :disabled="cancelDisabled" >
-        <svg class="fill-white w-6 h-6" aria-hidden="true" viewBox="0 0 460.775 460.775" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-          <g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M285.08,230.397L456.218,59.27c6.076-6.077,6.076-15.911,0-21.986L423.511,4.565c-2.913-2.911-6.866-4.55-10.992-4.55 c-4.127,0-8.08,1.639-10.993,4.55l-171.138,171.14L59.25,4.565c-2.913-2.911-6.866-4.55-10.993-4.55 c-4.126,0-8.08,1.639-10.992,4.55L4.558,37.284c-6.077,6.075-6.077,15.909,0,21.986l171.138,171.128L4.575,401.505 c-6.074,6.077-6.074,15.911,0,21.986l32.709,32.719c2.911,2.911,6.865,4.55,10.992,4.55c4.127,0,8.08-1.639,10.994-4.55 l171.117-171.12l171.118,171.12c2.913,2.911,6.866,4.55,10.993,4.55c4.128,0,8.081-1.639,10.992-4.55l32.709-32.719 c6.074-6.075,6.074-15.909,0-21.986L285.08,230.397z"></path> </g>
-        </svg>
-        <span class="sr-only">Cancel Download</span>
-      </button>
+        <save-download-button
+            :download="download"
+            :settings="settings"
+            @call:saveDownloadDestination="saveDownloadDestination" />
+        <button ref="cancel" type="button" class="text-white disabled:opacity-75 disabled:bg-gray-700 bg-red-400 hover:bg-red-500 focus:ring-4 focus:outline-none focus:ring-red-200 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:bg-red-400 dark:hover:bg-red-400 dark:focus:ring-red-500"
+            :data-modal-target="confirmRemoveId" :data-modal-toggle="confirmRemoveId"
+            :disabled="cancelDisabled" >
+            <svg class="fill-white w-6 h-6" aria-hidden="true" viewBox="0 0 460.775 460.775" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M285.08,230.397L456.218,59.27c6.076-6.077,6.076-15.911,0-21.986L423.511,4.565c-2.913-2.911-6.866-4.55-10.992-4.55 c-4.127,0-8.08,1.639-10.993,4.55l-171.138,171.14L59.25,4.565c-2.913-2.911-6.866-4.55-10.993-4.55 c-4.126,0-8.08,1.639-10.992,4.55L4.558,37.284c-6.077,6.075-6.077,15.909,0,21.986l171.138,171.128L4.575,401.505 c-6.074,6.077-6.074,15.911,0,21.986l32.709,32.719c2.911,2.911,6.865,4.55,10.992,4.55c4.127,0,8.08-1.639,10.994-4.55 l171.117-171.12l171.118,171.12c2.913,2.911,6.866,4.55,10.993,4.55c4.128,0,8.081-1.639,10.992-4.55l32.709-32.719 c6.074-6.075,6.074-15.909,0-21.986L285.08,230.397z"></path> </g>
+            </svg>
+            <span class="sr-only">Cancel Download</span>
+        </button>
     </div>
   </div>
 
@@ -69,26 +65,22 @@ import { FwbProgress } from 'flowbite-vue'
 import { formatSize } from '@/file-size'
 import { shouldDisableFileSave } from '@/download-queue'
 import CompletedIcon from '@/Components/CompletedIcon.vue'
+import SaveDownloadButton from '@/Components/SaveDownloadButton.vue'
 
 export default {
   components: {
     CompletedIcon,
     FwbProgress,
+    SaveDownloadButton,
   },
   props: {
     download: Object,
     settings: Object,
   },
   data() {
-    const destinationPopTarget = document.getElementById('popoverContent');
-
     return {
-      destination: this.download.destination,
       cancelDisabled: false,
     }
-  },
-  mounted() {
-
   },
   computed: {
     confirmRemoveId() {
@@ -105,15 +97,14 @@ export default {
     },
   },
   methods: {
-    saveFile() {
-      console.log('picking save location...')
-      console.log(this.download)
+    saveDownloadDestination(download, uri) {
+      this.$emit('call:saveDownloadDestination', download, uri)
     },
     remove() {
       this.cancelDisabled = true
       this.$emit('call:removeCompleted', this.download)
     }
   },
-  emits: ['call:removeCompleted'],
+  emits: ['call:requestCancel', 'call:saveDownloadDestination'],
 }
 </script>

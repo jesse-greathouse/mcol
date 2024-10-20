@@ -4,11 +4,32 @@ import _ from 'lodash'
 const mediaTypeToStoreMap = {
     movie: 'movies',
     'tv episode': 'tv',
-    'tv series': 'tv',
+    'tv season': 'tv',
     book: 'books',
     music: 'music',
-    game: 'game',
-    application: 'application',
+    game: 'games',
+    application: 'applications',
+}
+
+function splitDestinationDir(destination, roots) {
+    const split = {
+        root: null,
+        uri: null,
+    }
+
+    if (!_.has(destination, 'destination_dir')) return split
+
+    if (destination.destination_dir && null !== roots) {
+        roots.forEach((root) => {
+            if (0 <= destination.destination_dir.indexOf(root)) {
+                split.uri = destination.destination_dir.split(root).pop()
+                split.root = root
+                return
+            }
+        })
+    }
+
+    return split
 }
 
 // This complicated algorithm ...
@@ -18,11 +39,11 @@ function shouldDisableFileSave(download, settings) {
     // Must have the "media_store" section of settings
     if (!_.has(settings, 'media_store')) return true
 
-    // Must have packet.media_type in mediaTypeToStoreMap
-    if (!_.has(mediaTypeToStoreMap, download.packet.media_type)) return true
+    // Must have media_type in mediaTypeToStoreMap
+    if (!_.has(mediaTypeToStoreMap, download.media_type)) return true
 
     // Must have the mapped media store in settings.media_store
-    const mediaStore = mediaTypeToStoreMap[download.packet.media_type]
+    const mediaStore = mediaTypeToStoreMap[download.media_type]
     if (!_.has(settings.media_store, mediaStore)) return true
 
     // settings.media_store[mediaStore][] cannot be emnpty
@@ -35,15 +56,14 @@ function shouldDisableFileSave(download, settings) {
 // Does not include the root directory.
 function suggestDownloadDestination(download) {
     const DS = '/'
-    const packet = download.packet
     // If metadata doesn't exist, bail.
-    if (null === packet.meta) {
+    if (null === download.meta) {
         return ''
     }
 
-    const { title, season = null} = packet.meta
+    const { title, season = null} = download.meta
 
-    switch(packet.media_type) {
+    switch(download.media_type) {
         case 'movie':
             return '';
         case 'tv season':
@@ -55,7 +75,7 @@ function suggestDownloadDestination(download) {
                 return DS + title + DS + season;
             }
         default:
-            if (null !== title) {
+            if (null !== title && '' !== title) {
                 return DS + title;
             } else {
                 return '';
@@ -64,7 +84,7 @@ function suggestDownloadDestination(download) {
 }
 
 function getDownloadDestinationRoots(download, settings) {
-    const mediaStore = mediaTypeToStoreMap[download.packet.media_type]
+    const mediaStore = mediaTypeToStoreMap[download.media_type]
     return settings.media_store[mediaStore]
 }
 
@@ -72,5 +92,6 @@ export {
     mediaTypeToStoreMap,
     shouldDisableFileSave,
     suggestDownloadDestination,
-    getDownloadDestinationRoots
+    getDownloadDestinationRoots,
+    splitDestinationDir
 };

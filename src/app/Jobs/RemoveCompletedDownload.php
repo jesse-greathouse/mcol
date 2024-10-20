@@ -40,7 +40,9 @@ class RemoveCompletedDownload implements ShouldQueue, ShouldBeUnique
     public function handle(): void
     {
         $this->releaseLock();
-        unlink($this->download->file_uri);
+        if (file_exists($this->download->file_uri)) {
+            unlink($this->download->file_uri);
+        }
 
         // Move the download to the archives table
         ArchiveDownload::dispatch($this->download);

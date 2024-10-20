@@ -39,6 +39,7 @@ class DownloadQueue
     public static array $columns = [
         'downloads.id',
         'downloads.file_name',
+        'downloads.media_type',
         'bots.nick',
         'downloads.packet_id',
         'downloads.status',
