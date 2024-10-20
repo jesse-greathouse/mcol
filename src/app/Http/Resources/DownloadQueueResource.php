@@ -19,6 +19,7 @@ class DownloadQueueResource extends JsonResource
             'created_at'        => $this->created_at,
             'updated_at'        => $this->updated_at,
             'file_name'         => $this->file_name,
+            'media_type'        => $this->media_type,
             'packet'            => $this->packet,
             'status'            => $this->status,
             'queued_status'     => $this->queued_status,

@@ -60,7 +60,7 @@ Route::middleware('auth:sanctum')->put('/download-destination/{id}', function (s
 
     $downloadDestination->save();
 
-    return redirect("/api/download-destination/{$downloadDestination->id}");
+    return new DownloadDestinationResource($downloadDestination);
 });
 
 // DEL /api/download-destination/:id

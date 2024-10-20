@@ -18,22 +18,28 @@
       </h5>
     </div>
     <div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-1">
-      <div v-if="hasCompelted" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
+      <div v-if="hasCompleted" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
           <div class="font-semibold text-left text-gray-400 dark:text-gray-400">Completed</div>
           <div v-for="download in queue.completed" :key="`download-${download.id}`" class="width-full">
-            <download-queue-completed :download="download" :settings="settings" @call:removeCompleted="removeCompleted" />
+            <download-queue-completed :download="download" :settings="settings"
+                @call:removeCompleted="removeCompleted"
+                @call:saveDownloadDestination="saveDownloadDestination" />
           </div>
       </div>
       <div v-if="hasDownloading" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
           <div class="font-semibold text-left text-gray-400 dark:text-gray-400">Downloading</div>
           <div v-for="download in queue.incomplete" :key="`download-${download.id}`" class="width-full">
-            <download-queue-downloading :download="download" :settings="settings" @call:requestCancel="requestCancel" />
+            <download-queue-downloading :download="download" :settings="settings"
+                @call:requestCancel="requestCancel"
+                @call:saveDownloadDestination="saveDownloadDestination" />
           </div>
       </div>
       <div v-if="hasQueued" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
           <div class="font-semibold text-left text-gray-400 dark:text-gray-400">Queued</div>
           <div v-for="download in queue.queued" :key="`download-${download.id}`" class="width-full">
-            <download-queue-queued :download="download" :settings="settings" @call:requestRemove="requestRemove" />
+            <download-queue-queued :download="download" :settings="settings"
+                @call:requestRemove="requestRemove"
+                @call:saveDownloadDestination="saveDownloadDestination" />
           </div>
       </div>
     </div>
@@ -81,7 +87,7 @@ export default {
     this.queueDrawer = new Drawer(this.$refs.queueDrawer, drawerOptions, instanceOptions)
   },
   computed: {
-    hasCompelted() {
+    hasCompleted() {
       return (0 < this.queue.completed.length) ? true : false
     },
     hasDownloading() {
@@ -113,7 +119,10 @@ export default {
     requestRemove(packetId) {
       this.$emit('call:requestRemove', packetId)
     },
+    saveDownloadDestination(download, uri) {
+      this.$emit('call:saveDownloadDestination', download, uri)
+    },
   },
-  emits: ['call:requestCancel', 'call:requestRemove', 'call:removeCompleted'],
+  emits: ['call:requestCancel', 'call:requestRemove', 'call:removeCompleted', 'call:saveDownloadDestination'],
 }
 </script>

@@ -7,6 +7,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 use App\Exceptions\TransferDownloadFileNotFoundException,
     App\Media\TransferManager,
@@ -66,11 +67,13 @@ class TrasferDownloadedMedia implements ShouldQueue
                 }
             } catch(Exception $e) {
                 $this->fail($e);
+                Log::warning($e);
             }
         } else {
             // file Disappeared.
             $e = new TransferDownloadFileNotFoundException("Job attempted to transfer: \"{$download->file_uri}\" but file no longer exists.");
             $this->fail($e);
+            Log::warning($e->getMessage());
         }
     }
 }

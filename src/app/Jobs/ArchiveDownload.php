@@ -51,10 +51,10 @@ class ArchiveDownload implements ShouldQueue
             $channel = $packet->channel;
             $bot = $packet->bot;
             $network = $bot->network;
-            $mediaType = (null !== $packet->media_type) ? $packet->media_type : 'unknown'; // Not null.
+            $mediaType = (null !== $download->media_type) ? $download->media_type : 'unknown'; // Not null.
 
             DownloadHistory::create([
-                'file_name'         => basename($packet->file_name),
+                'file_name'         => $download->file_name,
                 'media_type'        => $mediaType,
                 'file_uri'          => $download->file_uri,
                 'bot_nick'          => $bot->nick,

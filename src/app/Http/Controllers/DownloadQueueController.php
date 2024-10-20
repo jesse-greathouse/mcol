@@ -17,13 +17,13 @@ class DownloadQueueController
     public function index(Request $request)
     {
         downloadQueueOverrides($request);
-        $browseHandler = new Handler($request);
+        $queueHandler = new Handler($request);
 
-        $filters = $browseHandler->getFilters();
+        $filters = $queueHandler->getFilters();
         $statuses = DownloadQueue::getStatusOptions();
         $instanceList = $this->getInstanceList();
-        
-        $resp = $browseHandler->paginate([
+
+        $resp = $queueHandler->paginate([
             'path' => LengthAwarePaginator::resolveCurrentPath(),
             'pageName' => 'page',
         ])->withQueryString()->toArray();
