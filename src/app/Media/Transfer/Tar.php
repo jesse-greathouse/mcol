@@ -38,11 +38,14 @@ final class Tar extends Transfer implements TransferInterface
             $rii = new RecursiveIteratorIterator($rdi);
 
             foreach ($rii as $di) {
-                $baseName = $di->getFilename();
-                $uri = $tmpPath . DIRECTORY_SEPARATOR . $baseName;
+                if ($di->isDir()) {
+                    continue;
+                }
+
+                $uri = $di->getPath() . DIRECTORY_SEPARATOR . $di->getFilename();
                 $this->addToManifest($uri);
                 $copyFile = new CopyFile($this->manager);
-                $copyFile->transfer($uri);
+                $copyFile->transfer($uri, $tmpPath);
             }
         } catch (Exception $e) {
             throw new TransferTarFileException($e->getMessage());

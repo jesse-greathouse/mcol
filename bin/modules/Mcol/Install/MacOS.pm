@@ -23,7 +23,7 @@ my @systemDependencies = (
     'curl',
     'libiconv',
     'pkg-config',
-    'openssl@1.1',
+    'openssl@3.0',
     'mysql-client',
     'oniguruma',
     'libxml2',
@@ -101,7 +101,7 @@ sub install_php {
     push @configurePhp, '--with-iconv=/usr/local/opt/libiconv';
 
     my $originalDir = getcwd();
-   
+
     # Unpack
     system(('bash', '-c', "tar -xzf $dir/opt/php-*.tar.gz -C $dir/opt/"));
     command_result($?, $!, 'Unpack PHP Archive...', 'tar -xf ' . $dir . '/opt/php-*.tar.gz -C ' . $dir . ' /opt/');
@@ -155,5 +155,5 @@ sub install_supervisor {
     push @installSupervisorCmd, 'install';
     push @installSupervisorCmd, 'supervisor';
     system(@installSupervisorCmd);
-    command_result($?, $!, "Installed Supervisor...", @installSupervisorCmd); 
+    command_result($?, $!, "Installed Supervisor...", @installSupervisorCmd);
 }

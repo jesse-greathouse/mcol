@@ -55,7 +55,7 @@ final class Application extends Media implements MediaTypeInterface
      */
     public function map(): void
     {
-        if (2 > count($this->matches)) return;
+        if (1 > count($this->matches)) return;
 
         $titleWords = [];
         $release = '';
@@ -64,7 +64,7 @@ final class Application extends Media implements MediaTypeInterface
 
         // Find the version string and chop it from $applicationStr
         $version = $this->getVersionFromApplicationStr($applicationStr);
-        if ('' !== $version) {
+        if ('' !== $version && null !== $version) {
             $i = strpos($applicationStr, $version);
             if ($i !== false) {
                 $cleaned = substr($applicationStr, 0, $i);
