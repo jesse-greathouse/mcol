@@ -2,10 +2,13 @@
 
 namespace App\Media\Transfer;
 
-use App\Media\TransferManager;
+use App\Media\TransferManager,
+    App\Media\Transfer\FileSystem;
 
 abstract class Transfer
 {
+    use FileSystem;
+
     /**
      * Holds the TransferManager instance.
      *
@@ -48,9 +51,23 @@ abstract class Transfer
      */
     public function addToManifest(string $uri)
     {
+        clearstatcache(true, $uri);
+        $size = filesize($uri);
+        $fileName = basename($uri);
+
+        $tmpPath = $this->manager->getTmpPath();
+        if (null !== $tmpPath) {
+            $fileName = (str_replace($tmpPath, '', $uri));
+
+            // Remove the slash if it starts with one.
+            if (0 === strpos($fileName, DIRECTORY_SEPARATOR)) {
+                $fileName = ltrim($fileName, $fileName[0]);
+            }
+        }
+
         $this->manifest[] = [
-            'name' => basename($uri),
-            'size' => filesize($uri),
+            'name' => $fileName,
+            'size' => $size,
         ];
     }
 
@@ -93,40 +110,6 @@ abstract class Transfer
     public function cleanup(): void
     {
         $tmpPath = $tmpPath = $this->manager->getTmpPath();
-        foreach ($this->manifest as $file) {
-            $uri = $tmpPath . DIRECTORY_SEPARATOR . $file['name'];
-            if (file_exists($uri)) {
-                $this->recursiveRm($uri);
-            }
-        }
-        rmdir($tmpPath);
-    }
-
-    /**
-     * Deletes the file, or recursively removes the directly.
-     *
-     * @param string $uri
-     * @return void
-     */
-    public function recursiveRm(string $uri): void
-    {
-        if (!is_dir($uri)) {
-            unlink($uri);
-            return;
-        }
-
-        $rdi = new RecursiveDirectoryIterator($uri, FilesystemIterator::SKIP_DOTS);
-        $rii = new RecursiveIteratorIterator($rdi);
-
-        foreach ($rii as $di) {
-            $full = $di->getPathname();
-            if (is_dir($full) ) {
-                $this->recursiveRm($full);
-            } else {
-                unlink($full);
-            }
-        }
-
-        rmdir($uri);
+        $this->rmContents($tmpPath);
     }
 }

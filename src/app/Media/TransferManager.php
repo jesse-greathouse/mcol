@@ -6,10 +6,13 @@ use App\Exceptions\TransferFileDestinationPathException,
     App\Exceptions\TransferFileInvalidTmpDirException,
     App\Exceptions\TransferFileUriNotFoundException,
     App\Exceptions\TransferIllegalArchiveException,
+    App\Media\Transfer\FileSystem,
     App\Packet\File\FileExtension;
 
 class TransferManager
 {
+    use Filesystem;
+
     const TRANSFER_AGENT_DEFAULT = '\App\Media\Transfer\CopyFile';
     const TRANSFER_AGENT_RAR = '\App\Media\Transfer\Rar';
     const TRANSFER_AGENT_TAR = '\App\Media\Transfer\Tar';
@@ -194,21 +197,6 @@ class TransferManager
     }
 
     /**
-     * Make the path work recursively
-     *
-     * @param  string  $path  location of where the data files will be stored.
-     * @return bool
-     */
-    protected function preparePath(string $path): bool
-    {
-        if (is_dir($path)) return true;
-
-        $prev_path = substr($path, 0, strrpos($path, DIRECTORY_SEPARATOR, -2) + 1 );
-        $return = $this->preparePath($prev_path);
-        return ($return && is_writable($prev_path)) ? mkdir($path) : false;
-    }
-
-    /**
      * Get the file to be transferred.
      *
      * @return  string
@@ -241,9 +229,9 @@ class TransferManager
     /**
      * Get the the temporary path for working with archives.
      *
-     * @return  string
+     * @return  string|null
      */
-    public function getTmpPath(): string
+    public function getTmpPath(): string|null
     {
         return $this->tmpPath;
     }

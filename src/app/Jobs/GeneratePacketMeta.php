@@ -68,7 +68,7 @@ class GeneratePacketMeta implements ShouldQueue
         if (null !== $this->packet) {
             $this->makeMeta($this->packet);
         } else {
-            $rs = Packet::whereNull('meta')->lazy();
+            $rs = Packet::lazy();
             foreach ($rs as $packet) {
                 $this->makeMeta($packet);
             }

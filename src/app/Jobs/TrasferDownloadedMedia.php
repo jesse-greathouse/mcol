@@ -76,4 +76,12 @@ class TrasferDownloadedMedia implements ShouldQueue
             Log::warning($e->getMessage());
         }
     }
+
+    /**
+     * Get the unique ID for the job.
+     */
+    public function uniqueId(): string
+    {
+        return $this->downloadDestination->id;
+    }
 }
