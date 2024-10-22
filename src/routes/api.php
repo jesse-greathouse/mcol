@@ -23,6 +23,7 @@ require_once __DIR__ . '/api/file-first-appearance.php';
 require_once __DIR__ . '/api/hot-report.php';
 require_once __DIR__ . '/api/instance.php';
 require_once __DIR__ . '/api/media.php';
+require_once __DIR__ . '/api/media-store.php';
 require_once __DIR__ . '/api/network.php';
 require_once __DIR__ . '/api/nick.php';
 require_once __DIR__ . '/api/operation.php';
