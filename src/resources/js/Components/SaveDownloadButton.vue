@@ -40,8 +40,9 @@
         </div>
         <div class="flex flex-row p-3 justify-end">
         <div class="flex">
-            <button type="button" class="focus:ring-4 focus:outline-none inline-flex items-center me-2 text-center text-white font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 bg-blue-400 hover:bg-blue-500 focus:ring-blue-200 font-medium rounded-lg text-sm p-2.5 dark:bg-blue-400 dark:hover:bg-blue-400 dark:focus:ring-blue-500">
-                Choose
+            <button type="button" class="focus:ring-4 focus:outline-none inline-flex items-center me-2 text-center text-white font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 bg-blue-400 hover:bg-blue-500 focus:ring-blue-200 font-medium rounded-lg text-sm p-2.5 dark:bg-blue-400 dark:hover:bg-blue-400 dark:focus:ring-blue-500"
+                @click="toggleBrowser()">
+                Browse Files
             </button>
             <button type="button" class="focus:ring-4 focus:outline-none inline-flex items-center me-2 text-center text-white font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 bg-green-400 hover:bg-green-500 focus:ring-green-200 font-medium rounded-lg text-sm p-2.5 dark:bg-green-400 dark:hover:bg-green-400 dark:focus:ring-green-500"
                 @click="saveDownloadDestination()">
@@ -52,22 +53,43 @@
     </div>
     <div data-popper-arrow></div>
     </div>
+
+    <!--Modal -->
+    <div tabindex="-1" aria-hidden="true" class="fixed hidden overflow-y-hidden overflow-x-hidden z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] h-5/6"
+        ref="directoryBrowserModal"
+        :id="modalId"
+        >
+        <div class="relative p-4 w-full max-w-5xl h-full">
+            <!-- Modal content -->
+            <directory-browser
+                ref="directoryBrowser"
+                :settings="settings"
+                :mediaType="download.media_type"
+                :root="destinationForm.root"
+                :uri="destinationForm.uri"
+                @call:toggleBrowser="toggleBrowser"
+
+            />
+        </div>
+    </div>
 </template>
 
 <script>
 import _ from 'lodash'
-import { Popover } from 'flowbite';
+import { Popover, Modal } from 'flowbite';
 import {
     shouldDisableFileSave,
     suggestDownloadDestination,
     getDownloadDestinationRoots,
     splitDestinationDir
 } from '@/download-queue'
+import DirectoryBrowser from '@/Components/DirectoryBrowser.vue'
 import DownloadingIcon from '@/Components/DownloadingIcon.vue'
 import Multiselect from '@vueform/multiselect'
 
 export default {
   components: {
+    DirectoryBrowser,
     DownloadingIcon,
     Multiselect,
   },
@@ -86,6 +108,10 @@ export default {
       destination: this.download.destination,
       destinationRoots: [],
       disableSaveFile: true,
+      mediaType: this.download.media_type,
+      modalId: `file-browser-modal-${this.download.id}`,
+      modal: null,
+      modalDisplayUri: null,
     }
   },
   mounted() {
@@ -98,6 +124,22 @@ export default {
     this.destinationPop = new Popover(this.$refs.destinationPop, this.$refs.saveFile, {placement: 'left'}, {
         id: this.destinationPopId,
         override: true,
+    })
+
+    const modalOptions = {
+        placement: 'center-center',
+        backdrop: 'dynamic',
+        backdropClasses:
+            'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+        closable: true,
+        onShow: () => {
+            this.$refs.directoryBrowser.refreshDir()
+        },
+    }
+
+    this.modal = new Modal(this.$refs.directoryBrowserModal, modalOptions, {
+        id: this.modalId,
+        override: true
     })
   },
   watch: {
@@ -152,6 +194,14 @@ export default {
     saveDownloadDestination() {
       const uri = this.destinationForm.root + this.destinationForm.uri
       this.$emit('call:saveDownloadDestination', this.download, uri)
+    },
+    toggleBrowser(uri) {
+        if (this.modal.isHidden()) {
+            this.modal.show()
+        } else {
+            console.log(uri)
+            this.modal.hide()
+        }
     },
   },
   emits: ['call:saveDownloadDestination'],

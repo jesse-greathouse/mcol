@@ -5,6 +5,7 @@ namespace App\Media;
 use App\Exceptions\DirectoryAlreadyExistsException,
     App\Exceptions\DirectoryCreateFailedException,
     App\Exceptions\DirectoryNotWithinMediaStoreException,
+    App\Exceptions\DirectoryRemoveMediaRootException,
     App\Exceptions\FileNotFoundException,
     App\Exceptions\MediaStoreDirectoryIndexOutOfBoundsException,
     App\Exceptions\SettingsIllegalStoreException,
@@ -99,6 +100,14 @@ final class Store
             );
         }
 
+        // Cannot remove the root of a Media Store.
+        $uri = $this->withoutTrailingSlash($uri);
+        if (in_array($uri, $this->getStoreList())) {
+            throw new DirectoryRemoveMediaRootException(
+                "Cannot remove \"$uri\" because it is the root of a Media Store."
+            );
+        }
+
         // Can only remove a directory inside a store.
         if (!$this->isBranchOfMediaStore($uri)) {
             throw new DirectoryNotWithinMediaStoreException(
@@ -119,9 +128,11 @@ final class Store
      *
      * @param string $storeName
      * @param int $index
+     * @param string $sort
+     * @param string $direction
      * @return array<int, DirectoryIterator>
      */
-    public function  getStoreRootDir(string $storeName, int $index = 0): array
+    public function  getStoreRootDir(string $storeName, int $index = 0, $sort = null, $direction = null): array
     {
         $stores = $this->settings->toArray();
 
@@ -137,16 +148,18 @@ final class Store
             );
         }
 
-        return $this->getDir($stores[$storeName][$index]);
+        return $this->getDir($stores[$storeName][$index], $sort, $direction);
     }
 
     /**
      * Returns the content of a directory.
      *
      * @param string $uri
+     * @param string $sort
+     * @param string $direction
      * @return array<int, DirectoryIterator>
      */
-    public function getDir(string $uri): array
+    public function getDir(string $uri, $sort = null, $direction = null): array
     {
 
         // It's a security concern to show directories that contain a dot and slash like: ../../
@@ -165,7 +178,7 @@ final class Store
             );
         }
 
-        return $this->list($uri);
+        return $this->list($uri, $sort, $direction);
     }
 
     /**

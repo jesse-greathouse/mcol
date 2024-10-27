@@ -1,9 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request,
+    Illuminate\Http\Exceptions\HttpResponseException;
 
-use App\Exceptions\DirectoryNotWithinMediaStoreException,
+use App\Exceptions\DirectoryDirectionSortIllegalOptionException,
+    App\Exceptions\DirectoryNotWithinMediaStoreException,
+    App\Exceptions\DirectoryRemoveMediaRootException,
+    App\Exceptions\DirectorySortIllegalOptionException,
     App\Exceptions\FileNotFoundException,
     App\Exceptions\MediaStoreDirectoryIndexOutOfBoundsException,
     App\Exceptions\SettingsIllegalStoreException,
@@ -18,15 +22,38 @@ use App\Exceptions\DirectoryNotWithinMediaStoreException,
 Route::middleware('auth:sanctum')->get('/media-store/{name}', function (string $name, Request $request, Settings $settings) {
     $store = new Store($settings->media_store);
     $index = 0;
+    $sort = Store::SORT_DEFAULT;
+    $direction = Store::DIRECTION_SORT_DEFAULT;
 
     if ($request->has('index') && is_numeric($request->input('index'))) {
         $index = $request->input('index');
     }
 
+    if ($request->has('sort')) {
+        $sort = $request->input('sort');
+    }
+
+    if ($request->has('direction')) {
+        $direction = $request->input('direction');
+    }
+
     try {
-        $resp =$store->getStoreRootDir($name, $index);
-    } catch(MediaStoreDirectoryIndexOutOfBoundsException | SettingsIllegalStoreException $e) {
-        return response($e->getMessage(), 400);
+        $resp =$store->getStoreRootDir($name, $index, $sort, $direction);
+    } catch(
+        DirectoryDirectionSortIllegalOptionException |
+        DirectorySortIllegalOptionException |
+        MediaStoreDirectoryIndexOutOfBoundsException |
+        SettingsIllegalStoreException $e) {
+        throw new HttpResponseException(response()->json([
+            'success'   => false,
+            'message'   => $e->getMessage(),
+            'data'      => [
+                'name'      => $name,
+                'index'     => $index,
+                'sort'      => $sort,
+                'direction' => $direction,
+            ]
+        ]));
     }
 
     return new MediaStoreCollection($resp);
@@ -43,27 +70,57 @@ Route::middleware('auth:sanctum')->post('/media-store', function (CreateDirector
 
 // GET /api/media-store?uri=/some/file/path
 Route::middleware('auth:sanctum')->get('/media-store', function (Request $request, Settings $settings) {
+    $store = new Store($settings->media_store);
+    $sort = Store::SORT_DEFAULT;
+    $direction = Store::DIRECTION_SORT_DEFAULT;
+
     if (!$request->has('uri')) {
-        return response('uri parameter is required.', 400);
+        throw new HttpResponseException(response()->json([
+            'success'   => false,
+            'message'   => 'uri parameter is required.',
+            'data'      => []
+        ], 400));
     }
 
     $uri = $request->input('uri');
 
-    $store = new Store($settings->media_store);
+    if ($request->has('sort')) {
+        $sort = $request->input('sort');
+    }
+
+    if ($request->has('direction')) {
+        $direction = $request->input('direction');
+    }
 
     try {
-        $resp = $store->getDir($uri);
-    } catch(DirectoryNotWithinMediaStoreException | UriHasDotSlashException $e) {
-        return response($e->getMessage(), 400);
+        $resp = $store->getDir($uri, $sort, $direction);
+    } catch(
+        DirectoryDirectionSortIllegalOptionException |
+        DirectorySortIllegalOptionException |
+        DirectoryNotWithinMediaStoreException |
+        UriHasDotSlashException $e) {
+        throw new HttpResponseException(response()->json([
+            'success'   => false,
+            'message'   => $e->getMessage(),
+            'data'      => [
+                'uri'  => $uri,
+                'sort'      => $sort,
+                'direction' => $direction,
+            ]
+        ]));
     }
 
     return new MediaStoreCollection($resp);
-})->name('api-media-store');
+});
 
 // DEL /api/media-store?uri=/some/file/path
 Route::middleware('auth:sanctum')->delete('/media-store', function (Request $request, Settings $settings) {
     if (!$request->has('uri')) {
-        return response('uri parameter is required.', 400);
+        throw new HttpResponseException(response()->json([
+            'success'   => false,
+            'message'   => 'uri parameter is required.',
+            'data'      => []
+        ], 400));
     }
 
     $uri = $request->input('uri');
@@ -72,8 +129,14 @@ Route::middleware('auth:sanctum')->delete('/media-store', function (Request $req
 
     try {
         $store->rm($uri);
-    } catch(DirectoryNotWithinMediaStoreException | UriHasDotSlashException | FileNotFoundException $e) {
-        return response($e->getMessage(), 400);
+    } catch(DirectoryNotWithinMediaStoreException| DirectoryRemoveMediaRootException | UriHasDotSlashException | FileNotFoundException $e) {
+        throw new HttpResponseException(response()->json([
+            'success'   => false,
+            'message'   => $e->getMessage(),
+            'data'      => [
+                'uri'  => $uri,
+            ]
+        ], 400));
     }
 
     return response()->json([

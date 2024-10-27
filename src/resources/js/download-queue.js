@@ -11,6 +11,7 @@ const mediaTypeToStoreMap = {
     application: 'applications',
 }
 
+// Separates a Uri string between the destination root and the rest of the uri.
 function splitDestinationDir(destination, roots) {
     const split = {
         root: null,

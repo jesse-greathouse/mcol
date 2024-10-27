@@ -79,13 +79,11 @@ export default {
   },
   data() {
     return {
+      confirmRemoveId: `popup-remove-confirm-${this.download.id}`,
       cancelDisabled: false,
     }
   },
   computed: {
-    confirmRemoveId() {
-      return `popup-remove-confirm-${this.download.id}`
-    },
     fileSize() {
       return formatSize(this.download.file_size_bytes)
     },

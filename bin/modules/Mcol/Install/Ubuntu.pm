@@ -24,7 +24,6 @@ my @systemDependencies = (
     'pkg-config',
     'cpanminus',
     'mysql-client',
-    'mysql-client',
     'imagemagick',
     'libpcre3-dev',
     'libcurl4',
