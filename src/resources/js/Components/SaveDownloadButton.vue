@@ -199,7 +199,6 @@ export default {
         if (this.modal.isHidden()) {
             this.modal.show()
         } else {
-            console.log(uri)
             this.modal.hide()
         }
     },

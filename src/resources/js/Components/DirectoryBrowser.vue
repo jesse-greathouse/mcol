@@ -40,35 +40,22 @@
         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
             <thead class="sticky top-0 text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">
+                    <th scope="col" class="cursor-pointer px-6 py-3">
                         File Name
                     </th>
-                    <th scope="col" class="px-6 py-3">
+                    <th scope="col" class="cursor-pointer px-6 py-3">
                         Size
                     </th>
-                    <th scope="col" class="px-6 py-3">
-                        Modified Date
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                        <span class="sr-only">Select</span>
+                    <th scope="col" class="cursor-pointer py-3">
+                        Modified
                     </th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="file in directoryTable" :key="`file-${file.uri}`" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                        {{ file.basename }}
-                    </th>
-                    <td class="px-6 py-4">
-                        {{ size }}
-                    </td>
-                    <td class="px-6 py-4">
-                        {{ modified }}
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                        <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Select</a>
-                    </td>
-                </tr>
+                <directory-browser-row v-for="file in directoryTable"
+                    :settings="settings"
+                    :file="file"
+                    @call:openDir="openDir" />
             </tbody>
         </table>
     </div>
@@ -95,10 +82,12 @@ import {
     mediaStores
 } from '@/Clients/media-store'
 import { mediaTypeToStoreMap } from '@/download-queue'
+import DirectoryBrowserRow from '@/Components/DirectoryBrowserRow.vue'
 import Multiselect from '@vueform/multiselect'
 
 export default {
   components: {
+    DirectoryBrowserRow,
     Multiselect,
   },
   props: {
@@ -158,6 +147,9 @@ export default {
     },
     toggle() {
         this.$emit('call:toggleBrowser', this.displayUri)
+    },
+    openDir(uri) {
+        this.displayUri = uri
     }
   },
   emits: ['call:toggleBrowser'],

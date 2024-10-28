@@ -113,6 +113,7 @@
   import mapValues from 'lodash/mapValues'
   import VueTailwindDatepicker from "vue-tailwind-datepicker"
   // local imports
+  import { formatDate } from '@/format'
   import AppLayout from '@/Layouts/AppLayout.vue'
   import BrowseTableBody from '@/Components/BrowseTableBody.vue'
   import BrowseTableHead from '@/Components/BrowseTableHead.vue'
@@ -175,20 +176,6 @@
     })
 
     return abbr.sort().join(', ').substring(0, 16)
-  }
-
-  const formatDate = (date, time = false) => {
-    if (null === date) return ''
-    const dateMask = /(\d{4}-\d{2}-\d{2})\s*(\d{2}\:\d{2}\:\d{2})*/
-    const matches = date.date.match(dateMask)
-    const dateStr = matches[1]
-
-    if (time) {
-      const timeStr = matches[2]
-      return `${dateStr} ${timeStr}`
-    } else {
-      return `${dateStr}`
-    }
   }
 
   export default {

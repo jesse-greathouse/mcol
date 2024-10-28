@@ -46,5 +46,8 @@
         "vue": "^3.3.13",
         "vue-tailwind-datepicker": "^1.7.3"
     },
-    "type": "module"
+    "type": "module",
+    "dependencies": {
+        "date-fns": "^4.1.0"
+    }
 }

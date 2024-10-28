@@ -20,6 +20,7 @@ class MediaStoreResource extends JsonResource
         return [
             'uri'               => $uri,
             'basename'          => $this->getBasename(),
+            'extension'         => $this->getExtension(),
             'modified'          => Carbon::createFromTimestamp($this->getMTime())->toDateTimeString(),
             'changed'           => Carbon::createFromTimestamp($this->getCTime())->toDateTimeString(),
             'owner'             => $this->getOwner(),
