@@ -55,8 +55,8 @@ function shouldDisableFileSave(download, settings) {
 }
 
 // Does not include the root directory.
-function suggestDownloadDestination(download) {
-    const DS = '/'
+function suggestDownloadDestination(download, settings) {
+    const DS = settings.system.DS // DIRECTORY_SEPARATOR
     // If metadata doesn't exist, bail.
     if (null === download.meta) {
         return ''

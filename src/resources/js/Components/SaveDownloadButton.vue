@@ -12,46 +12,45 @@
     <div data-popover class="invisible absolute inline-block w-auto rounded-lg border border-gray-200 bg-white text-sm text-gray-500 opacity-0 shadow-sm transition-opacity duration-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400"
         ref="destinationPop"
         :id="destinationPopId"
-        role="tooltip"
-    >
-    <div class="p-3">
-        <div class="flex flex-row p-3">
-        <div>
-            <p class="mb-1 text-base font-semibold leading-none text-gray-900 dark:text-white">
-                <a href="#" class="hover:underline">Save File</a>
-            </p>
+        role="tooltip" >
+        <div class="p-3">
+            <div class="flex flex-row p-3">
+            <div>
+                <p class="mb-1 text-base font-semibold leading-none text-gray-900 dark:text-white">
+                    <a href="#" class="hover:underline">Save File</a>
+                </p>
+            </div>
+            </div>
+            <div class="flex flex-row p-3">
+            <div class="basis-1/3 px-3">
+                <multiselect tabindex="-1" class="min-w-48 p-1 hover:text-gray-700 focus:text-indigo-500 text-sm"
+                    v-model="destinationForm.root"
+                    :options="destinationRoots"
+                    :canClear="false"
+                    ref="destinationRoot"
+                />
+            </div>
+            <div class="basis-2/3">
+                <input type="text" class="min-w-60 relative px-6 py-3 w-full rounded focus:shadow-outline"
+                    v-model="destinationForm.uri"
+                    ref="destinationUri"
+                />
+            </div>
+            </div>
+            <div class="flex flex-row p-3 justify-end">
+            <div class="flex">
+                <button type="button" class="focus:ring-4 focus:outline-none inline-flex items-center me-2 text-center text-white font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 bg-blue-400 hover:bg-blue-500 focus:ring-blue-200 font-medium rounded-lg text-sm p-2.5 dark:bg-blue-400 dark:hover:bg-blue-400 dark:focus:ring-blue-500"
+                    @click="toggleBrowser()">
+                    Browse Files
+                </button>
+                <button type="button" class="focus:ring-4 focus:outline-none inline-flex items-center me-2 text-center text-white font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 bg-green-400 hover:bg-green-500 focus:ring-green-200 font-medium rounded-lg text-sm p-2.5 dark:bg-green-400 dark:hover:bg-green-400 dark:focus:ring-green-500"
+                    @click="saveDownloadDestination()">
+                    Save
+                </button>
+            </div>
+            </div>
         </div>
-        </div>
-        <div class="flex flex-row p-3">
-        <div class="basis-1/3 px-3">
-            <multiselect tabindex="-1" class="min-w-48 p-1 hover:text-gray-700 focus:text-indigo-500 text-sm"
-                v-model="destinationForm.root"
-                :options="destinationRoots"
-                :canClear="false"
-                ref="destinationRoot"
-            />
-        </div>
-        <div class="basis-2/3">
-            <input type="text" class="min-w-60 relative px-6 py-3 w-full rounded focus:shadow-outline"
-                v-model="destinationForm.uri"
-                ref="destinationUri"
-            />
-        </div>
-        </div>
-        <div class="flex flex-row p-3 justify-end">
-        <div class="flex">
-            <button type="button" class="focus:ring-4 focus:outline-none inline-flex items-center me-2 text-center text-white font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 bg-blue-400 hover:bg-blue-500 focus:ring-blue-200 font-medium rounded-lg text-sm p-2.5 dark:bg-blue-400 dark:hover:bg-blue-400 dark:focus:ring-blue-500"
-                @click="toggleBrowser()">
-                Browse Files
-            </button>
-            <button type="button" class="focus:ring-4 focus:outline-none inline-flex items-center me-2 text-center text-white font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 bg-green-400 hover:bg-green-500 focus:ring-green-200 font-medium rounded-lg text-sm p-2.5 dark:bg-green-400 dark:hover:bg-green-400 dark:focus:ring-green-500"
-                @click="saveDownloadDestination()">
-                Save
-            </button>
-        </div>
-        </div>
-    </div>
-    <div data-popper-arrow></div>
+        <div data-popper-arrow></div>
     </div>
 
     <!--Modal -->
@@ -188,14 +187,14 @@ export default {
         this.destinationForm.uri = uri
       } else {
         this.destinationForm.root = this.destinationRoots[0]
-        this.destinationForm.uri = suggestDownloadDestination(this.download)
+        this.destinationForm.uri = suggestDownloadDestination(this.download, this.settings)
       }
     },
     saveDownloadDestination() {
       const uri = this.destinationForm.root + this.destinationForm.uri
       this.$emit('call:saveDownloadDestination', this.download, uri)
     },
-    toggleBrowser(uri) {
+    toggleBrowser() {
         if (this.modal.isHidden()) {
             this.modal.show()
         } else {

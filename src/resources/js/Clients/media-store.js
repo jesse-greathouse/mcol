@@ -59,7 +59,7 @@ async function fetchUri(uri) {
 async function mkDir(uri) {
     let data = null
     let error = null
-    const url = `${endpoint}/${store}`
+    const url = `${endpoint}`
     const body = {uri}
 
     try {

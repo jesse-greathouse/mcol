@@ -1,15 +1,18 @@
 <template>
     <tr :key="`file-${file.uri}`" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-        <td class="cursor-default px-6 py-4 text-sm text-gray-900 dark:text-white">
-            <span class="inline-flex whitespace-nowrap">
+        <td class="cursor-default select-none px-6 py-4 text-sm"
+            @dblclick="openDir" >
+            <span  class="inline-flex whitespace-nowrap">
                 <directory-browser-icon :file="file" /> {{ name }}
             </span>
         </td>
-        <td class="cursor-default px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-            {{ size }}
+        <td class="cursor-default select-none px-6 py-4 text-sm "
+            @dblclick="openDir" >
+            <span class="inline-flex whitespace-nowrap">{{ size }}</span>
         </td>
-        <td class="cursor-default px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-            {{ date }}
+        <td class="cursor-default select-none px-6 py-4 text-sm"
+            @dblclick="openDir" >
+            <span class="inline-flex whitespace-nowrap">{{ date }}</span>
         </td>
     </tr>
 </template>
@@ -43,6 +46,11 @@ export default {
         },
     },
     methods: {
+        openDir() {
+            if (this.file.is_dir) {
+                this.$emit('call:openDir', this.file.uri)
+            }
+        },
     },
     emits: ['call:openDir'],
 }
