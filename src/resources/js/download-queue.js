@@ -11,24 +11,27 @@ const mediaTypeToStoreMap = {
     application: 'applications',
 }
 
+// Holds an index of root uris to store names.
+// Useful if you have a destination uri but you don't have the media store name.
+// call getRootToStoreMap() function to populate it.
+const rootToStoreMap = {}
+
 // Separates a Uri string between the destination root and the rest of the uri.
-function splitDestinationDir(destination, roots) {
+function splitDestinationDir(uri, roots) {
     const split = {
         root: null,
         uri: null,
     }
 
-    if (!_.has(destination, 'destination_dir')) return split
+    if (null === uri || null === roots) return split
 
-    if (destination.destination_dir && null !== roots) {
-        roots.forEach((root) => {
-            if (0 <= destination.destination_dir.indexOf(root)) {
-                split.uri = destination.destination_dir.split(root).pop()
-                split.root = root
-                return
-            }
-        })
-    }
+    roots.forEach((root) => {
+        if (0 <= uri.indexOf(root)) {
+            split.uri = uri.split(root).pop()
+            split.root = root
+            return
+        }
+    })
 
     return split
 }
@@ -84,13 +87,51 @@ function suggestDownloadDestination(download, settings) {
     }
 }
 
-function getDownloadDestinationRoots(download, settings) {
-    const mediaStore = mediaTypeToStoreMap[download.media_type]
+// Reverse index root uris to store names.
+// This function is so it doesn't have to be mapped multiple times.
+// const rootToStoreMap is in the higher scope.
+function getRootToStoreMapMap(settings) {
+    const mapped = Object.keys(rootToStoreMap).length
+
+    if (0 >= mapped) {
+        Object.entries(settings.media_store).forEach(([storeName, store]) => {
+            store.forEach((root) => {
+                rootToStoreMap[root] = storeName
+            })
+        });
+    }
+
+    return rootToStoreMap
+}
+
+// Determines a media store from a uri.
+function getMediaStoreFromUri(uri, settings) {
+    let mediaStore;
+    const map = getRootToStoreMapMap(settings)
+
+    // Compare each mapped index to the uri
+    // If the mapped index is found in the uri, return the store.
+    Object.entries(map).forEach(([root, store]) => {
+        if (0 === uri.indexOf(root)) {
+            mediaStore = store
+            return
+        }
+    })
+
+    return mediaStore;
+}
+
+function getDownloadDestinationRoots(download, settings, mediaStore = null) {
+    if (null === mediaStore) {
+        mediaStore = mediaTypeToStoreMap[download.media_type]
+    }
+
     return settings.media_store[mediaStore]
 }
 
 export {
     mediaTypeToStoreMap,
+    getMediaStoreFromUri,
     shouldDisableFileSave,
     suggestDownloadDestination,
     getDownloadDestinationRoots,

@@ -66,6 +66,7 @@
                 :mediaType="download.media_type"
                 :root="destinationForm.root"
                 :uri="destinationForm.uri"
+                @call:setDownloadDestinationFormAndSave="setDownloadDestinationFormAndSave"
                 @call:toggleBrowser="toggleBrowser"
 
             />
@@ -77,6 +78,7 @@
 import _ from 'lodash'
 import { Popover, Modal } from 'flowbite';
 import {
+    getMediaStoreFromUri,
     shouldDisableFileSave,
     suggestDownloadDestination,
     getDownloadDestinationRoots,
@@ -114,7 +116,7 @@ export default {
     }
   },
   mounted() {
-    this.disableSaveFile = (shouldDisableFileSave(this.download, this.settings)) ? true : false
+    this.disableSaveFile = shouldDisableFileSave(this.download, this.settings)
 
     if (!this.disableSaveFile) {
         this.setDownloadDestinationForm()
@@ -178,9 +180,24 @@ export default {
     },
   },
   methods: {
-    setDownloadDestinationForm() {
-      this.destinationRoots = getDownloadDestinationRoots(this.download, this.settings)
-      const {root, uri} = splitDestinationDir(this.download.destination, this.destinationRoots)
+    setDownloadDestinationFormAndSave(fullUri = null, mediaStore = null) {
+        // Combines two operations for event handling reasons.
+        // When a user selects the destination from the Media Browser modal.
+        this.setDownloadDestinationForm(fullUri, mediaStore)
+        this.saveDownloadDestination()
+    },
+    setDownloadDestinationForm(fullUri = null, mediaStore = null) {
+      // If a destination has already been saved, determine the values from the destination.
+      if (null === fullUri && _.has(this.destination, 'destination_dir')) {
+        fullUri =  this.destination.destination_dir
+
+        if (null === mediaStore) {
+            mediaStore = getMediaStoreFromUri(fullUri, this.settings)
+        }
+      }
+
+      this.destinationRoots = getDownloadDestinationRoots(this.download, this.settings, mediaStore)
+      const {root, uri} = splitDestinationDir(fullUri, this.destinationRoots)
 
       if (null !== root && null !== uri) {
         this.destinationForm.root = root

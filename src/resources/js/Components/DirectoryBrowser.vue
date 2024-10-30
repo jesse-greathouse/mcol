@@ -85,7 +85,7 @@
             @click="toggle()" >
             Cancel</button>
         <button type="button" class="text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:outline-none focus:ring-green-200 font-medium rounded-lg text-sm px-5 py-2.5 ms-3 text-center dark:bg-green-400 dark:hover:bg-green-500 dark:focus:ring-green-600"
-            @click="toggle()" >
+            @click="setDownloadDestinationForm()" >
             Save in
             <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-green-400 border border-green-400">
                 {{ displayUri }}
@@ -189,8 +189,7 @@ export default {
     this.createDirPop = new Popover(this.$refs.createDirPop, this.$refs.new, {
         placement: 'bottom',
         triggerType: 'none',
-    },
-    {
+    }, {
         id: this.createDirPopId,
         override: true,
     })
@@ -216,6 +215,16 @@ export default {
             this.refreshDir()
         }
     },
+    root: {
+        handler: function () {
+            this.formDisplayUri()
+        }
+    },
+    uri: {
+        handler: function () {
+            this.formDisplayUri()
+        }
+    },
   },
   computed: {
   },
@@ -232,6 +241,10 @@ export default {
     },
     formDisplayUri() {
         this.displayUri = `${this.root}${this.uri}`
+    },
+    setDownloadDestinationForm() {
+        this.$emit('call:setDownloadDestinationFormAndSave', this.displayUri, this.selectedStore)
+        this.toggle()
     },
     toggle() {
         this.$emit('call:toggleBrowser', this.displayUri)
@@ -277,6 +290,6 @@ export default {
         return uri.substring(0, lastSlash)
     },
   },
-  emits: ['call:toggleBrowser'],
+  emits: ['call:toggleBrowser', 'call:setDownloadDestinationFormAndSave'],
 }
 </script>
