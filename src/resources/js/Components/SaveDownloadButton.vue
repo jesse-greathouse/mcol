@@ -95,12 +95,13 @@ export default {
     Multiselect,
   },
   props: {
+    context: String,
     download: Object,
     settings: Object,
   },
   data() {
     return {
-      destinationPopId: `destination-pop-${this.download.id}`,
+      destinationPopId: `destination-pop-${this.context}-${this.download.id}`,
       destinationPop: null,
       destinationForm: {
         root: '',
@@ -144,6 +145,16 @@ export default {
     })
   },
   watch: {
+    download: {
+      deep: true,
+      handler: function () {
+        this.destination = this.download.destination,
+        this.mediaType = this.download.media_type
+        this.modalId = `file-browser-modal-${this.download.id}`
+        this.destinationPopId = `destination-pop-${this.context}-${this.download.id}`
+        this.disableSaveFile = shouldDisableFileSave(this.download, this.settings)
+      },
+    },
     disableSaveFile: {
       handler: function () {
         if (!this.disableSaveFile) {
@@ -155,8 +166,8 @@ export default {
   computed: {
     saveClass() {
       let color = 'blue'
-      if (null !== this.download.destination) {
-        switch(this.download.destination.status) {
+      if (null !== this.destination) {
+        switch(this.destination.status) {
             case 'incomplete':
                 color = 'amber'
                 this.disableSaveFile = true
@@ -208,6 +219,7 @@ export default {
       }
     },
     saveDownloadDestination() {
+      this.destination = { status: 'clicked' }
       const uri = this.destinationForm.root + this.destinationForm.uri
       this.$emit('call:saveDownloadDestination', this.download, uri)
     },

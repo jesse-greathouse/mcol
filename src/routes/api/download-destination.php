@@ -35,12 +35,13 @@ Route::middleware('auth:sanctum')->get('/download-destination', function (Reques
 Route::middleware('auth:sanctum')->post('/download-destination', function (ApiStoreDownloadDestinationRequest $request) {
     $validated = $request->validated();
 
-    $inputs = [
-        'destination_dir'   => $validated['destination_dir'],
-        'download_id'       => $validated['download'],
-    ];
-
-    $downloadDestination = DownloadDestination::create($inputs);
+    $downloadDestination = DownloadDestination::updateOrCreate(
+        ['download_id' => $validated['download']],
+        [
+            'destination_dir' => $validated['destination_dir'],
+            'status' => DownloadDestination::STATUS_WAITING,
+        ]
+    );
 
     return redirect("/api/download-destination/{$downloadDestination->id}");
 });

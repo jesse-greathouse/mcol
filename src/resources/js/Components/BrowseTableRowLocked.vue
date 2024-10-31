@@ -6,7 +6,7 @@
   </td>
   <td class="border-t bg-gray-100">
       <span class="flex items-center px-6 py-4" >
-          <packet-date :date="packet.created_at" /> 
+          <packet-date :date="packet.created_at" />
       </span>
   </td>
   <td class="border-t bg-gray-100">
@@ -14,9 +14,24 @@
           {{ packet.gets }}
       </span>
   </td>
-  <browse-table-cell-completed v-if="isStatus('completed')" :packet="packet" :download="getDownload('completed')" />
-  <browse-table-cell-downloading v-else-if="isStatus('incomplete')" :packet="packet" :download="getDownload('incomplete')" />
-  <browse-table-cell-queued v-else-if="isStatus('queued')" :packet="packet" :download="getDownload('queued')" />
+  <browse-table-cell-completed v-if="isStatus('completed')"
+    :packet="packet"
+    :settings="settings"
+    :download="getDownload('completed')"
+    @call:removeCompleted="removeCompleted"
+    @call:saveDownloadDestination="saveDownloadDestination" />
+  <browse-table-cell-downloading v-else-if="isStatus('incomplete')"
+    :packet="packet"
+    :settings="settings"
+    :download="getDownload('incomplete')"
+    @call:requestCancel="requestCancel"
+    @call:saveDownloadDestination="saveDownloadDestination" />
+  <browse-table-cell-queued v-else-if="isStatus('queued')"
+    :packet="packet"
+    :settings="settings"
+    :download="getDownload('queued')"
+    @call:requestRemove="requestRemove"
+    @call:saveDownloadDestination="saveDownloadDestination" />
   <browse-table-cell-locked v-else :packet="packet" />
   <td class="border-t bg-gray-100">
       <span class="flex items-center px-6 py-4" tabindex="-1">
@@ -37,7 +52,7 @@
       </span>
   </td>
 </template>
-  
+
 <script>
 import _ from 'lodash'
 import BrowseTableCellCompleted from '@/Components/BrowseTableCellCompleted.vue'
@@ -70,25 +85,6 @@ export default {
     packet: Object,
     settings: Object,
   },
-  methods: {
-    getStatus() {
-      if (_.has(this.completed, this.packet.file_name)) {
-        return 'completed'
-      } else if (_.has(this.incomplete, this.packet.file_name)) {
-        return 'incomplete'
-      } else if (_.has(this.queued, this.packet.file_name)) {
-        return 'queued'
-      }
-
-      return 'default'
-    },
-    isStatus(status) {
-      return _.has(this[status], this.packet.file_name)
-    },
-    getDownload(status) {
-      return this[status][this.packet.file_name]
-    }
-  },
   computed: {
     nickClass() {
       let color = colorMap.default
@@ -105,6 +101,38 @@ export default {
         `border-${color}-400`
       ]
     },
-  }
+  },
+  methods: {
+        getStatus() {
+            if (_.has(this.completed, this.packet.file_name)) {
+                return 'completed'
+            } else if (_.has(this.incomplete, this.packet.file_name)) {
+                return 'incomplete'
+            } else if (_.has(this.queued, this.packet.file_name)) {
+                return 'queued'
+            }
+
+            return 'default'
+        },
+        isStatus(status) {
+            return _.has(this[status], this.packet.file_name)
+        },
+        getDownload(status) {
+            return this[status][this.packet.file_name]
+        },
+        removeCompleted(download) {
+            this.$emit('call:removeCompleted', download)
+        },
+        requestCancel(download) {
+            this.$emit('call:requestCancel', download)
+        },
+        requestRemove(packetId) {
+            this.$emit('call:requestRemove', packetId)
+        },
+        saveDownloadDestination(download, uri) {
+            this.$emit('call:saveDownloadDestination', download, uri)
+        },
+    },
+    emits: ['call:requestCancel', 'call:requestRemove', 'call:removeCompleted', 'call:saveDownloadDestination'],
 }
 </script>

@@ -12,14 +12,14 @@ class OperationManager
 
     /**
      * Client of chat client
-     * 
+     *
      * @var IrcClient
      */
     protected $client;
 
     /**
      * Instance of chat client
-     * 
+     *
      * @var Instance
      */
     protected $instance;

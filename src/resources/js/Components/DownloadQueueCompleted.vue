@@ -21,6 +21,7 @@
     </div>
     <div class="py-5 place-self-center" tabindex="-1">
         <save-download-button
+            context="queue-drawer"
             :download="download"
             :settings="settings"
             @call:saveDownloadDestination="saveDownloadDestination" />
@@ -103,6 +104,6 @@ export default {
       this.$emit('call:removeCompleted', this.download)
     }
   },
-  emits: ['call:requestCancel', 'call:saveDownloadDestination'],
+  emits: ['call:removeCompleted', 'call:saveDownloadDestination'],
 }
 </script>

@@ -215,7 +215,10 @@ class DownloadQueue
             $qb->where('status', $status);
         }
 
-        return $qb->get(self::$columns)->mapWithKeys(function (Download $download, int $key) {
+        return $qb->get(self::$columns)
+            ->load('packet')
+            ->load('destination')
+            ->mapWithKeys(function (Download $download, int $key) {
             $fileName = basename($download->file_uri);
             return [$fileName => $download];
         });

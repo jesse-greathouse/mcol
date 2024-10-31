@@ -24,6 +24,7 @@
     </div>
     <div class="py-5 place-self-center" tabindex="-1">
         <save-download-button
+            context="queue-drawer"
             :download="download"
             :settings="settings"
             @call:saveDownloadDestination="saveDownloadDestination" />

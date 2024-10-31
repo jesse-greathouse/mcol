@@ -7,6 +7,10 @@
         :incomplete="incomplete"
         :queued="queued"
         :settings="settings"
+        @call:removeCompleted="removeCompleted"
+        @call:requestCancel="requestCancel"
+        @call:requestRemove="requestRemove"
+        @call:saveDownloadDestination="saveDownloadDestination"
       />
       <browse-table-row v-else :packet="packet" @call:requestDownload="requestDownload" />
     </tr>
@@ -15,7 +19,7 @@
     </tr>
   </tbody>
 </template>
-  
+
 <script>
 import BrowseTableRow from '@/Components/BrowseTableRow.vue'
 import BrowseTableRowLocked from '@/Components/BrowseTableRowLocked.vue'
@@ -46,7 +50,25 @@ export default {
     requestDownload(packetId) {
       this.$emit('call:requestDownload', packetId)
     },
+    removeCompleted(download) {
+        this.$emit('call:removeCompleted', download)
+    },
+    requestCancel(download) {
+        this.$emit('call:requestCancel', download)
+    },
+    requestRemove(packetId) {
+        this.$emit('call:requestRemove', packetId)
+    },
+    saveDownloadDestination(download, uri) {
+        this.$emit('call:saveDownloadDestination', download, uri)
+    },
   },
-  emits: ['call:requestDownload'],
+  emits: [
+        'call:requestDownload',
+        'call:requestCancel',
+        'call:requestRemove',
+        'call:removeCompleted',
+        'call:saveDownloadDestination'
+    ],
 }
 </script>

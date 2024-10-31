@@ -9,6 +9,7 @@ use App\Exceptions\DirectoryDirectionSortIllegalOptionException,
     App\Exceptions\DirectoryRemoveMediaRootException,
     App\Exceptions\DirectorySortIllegalOptionException,
     App\Exceptions\FileNotFoundException,
+    App\Exceptions\InvalidDirectoryException,
     App\Exceptions\MediaStoreDirectoryIndexOutOfBoundsException,
     App\Exceptions\SettingsIllegalStoreException,
     App\Exceptions\UriHasDotSlashException,
@@ -53,7 +54,7 @@ Route::middleware('auth:sanctum')->get('/media-store/{name}', function (string $
                 'sort'      => $sort,
                 'direction' => $direction,
             ]
-        ]));
+        ], 400));
     }
 
     return new MediaStoreCollection($resp);
@@ -98,6 +99,7 @@ Route::middleware('auth:sanctum')->get('/media-store', function (Request $reques
         DirectoryDirectionSortIllegalOptionException |
         DirectorySortIllegalOptionException |
         DirectoryNotWithinMediaStoreException |
+        InvalidDirectoryException |
         UriHasDotSlashException $e) {
         throw new HttpResponseException(response()->json([
             'success'   => false,
@@ -107,7 +109,7 @@ Route::middleware('auth:sanctum')->get('/media-store', function (Request $reques
                 'sort'      => $sort,
                 'direction' => $direction,
             ]
-        ]));
+        ], 400));
     }
 
     return new MediaStoreCollection($resp);

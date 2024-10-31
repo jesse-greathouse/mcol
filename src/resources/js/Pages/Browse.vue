@@ -72,13 +72,18 @@
         <div class="bg-white rounded-md shadow overflow-x-auto">
           <table class="w-full whitespace-nowrap">
             <browse-table-head :currentOrder="form.order" :currentDirection="form.direction" @call:toggleSort="toggleSort" />
-            <browse-table-body @call:requestDownload="requestDownload"
+            <browse-table-body
               :packets="packets"
               :locks="locks"
               :completed="completed"
               :incomplete="incomplete"
               :queued="queued"
               :settings="settings"
+              @call:requestDownload="requestDownload"
+              @call:removeCompleted="removeCompleted"
+              @call:requestRemove="requestRemove"
+              @call:requestCancel="requestCancel"
+              @call:saveDownloadDestination="saveDownloadDestination"
             />
           </table>
         </div>
