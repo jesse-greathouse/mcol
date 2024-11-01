@@ -56,7 +56,7 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
         // Archives any download records formerly associated with this packet.
         $this->archiveDownloads();
 
-        $command = "PRIVMSG {$this->packet->bot->nick} XDCC SEND {$this->packet->number}";
+        $command = "PRIVMSG {$this->packet->bot->nick} DCC SEND {$this->packet->number}";
         $client = $this->getClient();
 
         $instance = Instance::updateOrCreate(
@@ -67,7 +67,7 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
         $op = Operation::create(
             [
                 'instance_id' => $instance->id,
-                'status' => Operation::STATUS_PENDING, 
+                'status' => Operation::STATUS_PENDING,
                 'command' => $command,
             ]
         );

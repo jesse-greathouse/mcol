@@ -2,6 +2,9 @@
 
 namespace App\Chat;
 
+use Illuminate\Console\Command,
+    Illuminate\Support\Facades\Log;
+
 use Jerodev\PhpIrcClient\IrcClient;
 
 use App\Models\Instance,
@@ -24,10 +27,18 @@ class OperationManager
      */
     protected $instance;
 
-    public function __construct(IrcClient $client, Instance $instance)
+    /**
+     * Console for using this client
+     *
+     * @var Command
+     */
+    protected $console;
+
+    public function __construct(IrcClient $client, Instance $instance, Command $console)
     {
         $this->client = $client;
         $this->instance = $instance;
+        $this->console = $console;
     }
 
     public function doOperations(): void
@@ -39,9 +50,16 @@ class OperationManager
             $status = Operation::STATUS_COMPLETED;
 
             try {
+                $this->console->info(sprintf("[%s]: %s > %s",
+                    $this->instance->client->network->name,
+                    $this->instance->client->nick->nick,
+                    $operation->command
+                ));
                 $this->client->send($operation->command);
             } catch (\Exception $e) {
                 $status = Operation::STATUS_FAILED;
+                $this->console->error($e->getMessage());
+                Log::error($e);
             }
 
             $operation->status = $status;

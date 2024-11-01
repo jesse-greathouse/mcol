@@ -2,8 +2,9 @@
 
 namespace App\Chat;
 
-use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Console\Command,
+    Illuminate\Database\Eloquent\Builder,
+    Illuminate\Database\Eloquent\Collection;
 
 use App\Models\Instance,
     App\Models\Download;
@@ -22,14 +23,14 @@ class DownloadProgressManager
 
     /**
      * Console client
-     * 
+     *
      * @var Command
      */
     protected $console;
 
     /**
      * Instance of chat client
-     * 
+     *
      * @var Instance
      */
     protected $instance;
@@ -50,7 +51,8 @@ class DownloadProgressManager
         if ($this->shouldAnnounce()) {
             $downloads = $this->getDownloads();
             $completeds = $this->getCompleteds();
-            $headers = ['File Download Queue', 'Progress', 'Downloaded', 'File Size'];
+            $network = $this->instance->client->network->name;
+            $headers = ["$network File Download Queue ", 'Progress', 'Downloaded', 'File Size'];
             $body = [];
 
             foreach($downloads as $download) {
@@ -119,8 +121,10 @@ class DownloadProgressManager
                 ->join ('clients', 'clients.network_id', 'networks.id')
                 ->join ('instances', 'instances.client_id', 'clients.id')
                 ->where('instances.id', $this->instance->id)
-                ->where('downloads.status', Download::STATUS_INCOMPLETE)
-                ->orWhere('downloads.status', Download::STATUS_QUEUED)
+                ->where(function (Builder $query) {
+                    $query->orWhere('downloads.status', Download::STATUS_QUEUED)
+                          ->orWhere('downloads.status', Download::STATUS_INCOMPLETE);
+                })
                 ->get([
                     'downloads.id',
                     'downloads.status',
@@ -165,7 +169,7 @@ class DownloadProgressManager
     public function shouldAnnounce(): bool
     {
         $now = time();
-        
+
         if (null === $this->lastAnnounce) {
             $this->lastAnnounce = $now;
             return true;

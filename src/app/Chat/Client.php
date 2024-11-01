@@ -179,7 +179,7 @@ class Client
             ['status' => Instance::STATUS_UP, 'log_uri' => $logUri, 'pid' => $pid]
         );
 
-        $this->operationManager = new OperationManager($this->client, $this->instance);
+        $this->operationManager = new OperationManager($this->client, $this->instance, $this->console);
         $this->downloadProgressManager = new DownloadProgressManager($this->instance, $this->console);
     }
 
@@ -478,7 +478,15 @@ class Client
                 return;
             }
 
-            $this->console->warn("||||||||||||| ===> Unhandled PRIVMSG: $message");
+            $this->console->warn("||||||||||||| ===> Unhandled PRIVMSG from $userName: $message");
+
+            // Try to send a message back to the user.
+            // Don't be rude :-)
+            if ('' !== $userName && (null !== $target) && (trim($target) === $this->nick->nick)) {
+                $this->client->say($target, "Hello, $target. Sorry, I can't get back to you. This application doesn't actively monitor the chat. If I have done something wrong, please kindly raise an issue on my github: https://github.com/jesse-greathouse/mcol/issues");
+                $this->client->say($target, self::VERSION);
+            }
+
             return;
         });
     }
@@ -1095,8 +1103,8 @@ class Client
                 if (false !== $ip) {
                     $pinger = $ip;
                 }
-            } catch(TypeError $e) {
-                // Do nothing. TypeError will happen if pinger is a string.
+            } catch(TypeError) {
+                // Do nothing. TypeError will happen if pinger cant be converted.
             }
 
             // The response actually happens in the Message object: Jerodev\PhpIrcClient\Messages\PingMessage
