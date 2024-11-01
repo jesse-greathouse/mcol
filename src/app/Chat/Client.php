@@ -34,9 +34,12 @@ use App\Chat\LogDiverter,
 use Illuminate\Database\Eloquent\Collection;
 
 use \DateTime;
+use \TypeError;
 
 class Client
 {
+    const VERSION = 'Mcol-[alpha-build] -- The Media Collector (https://github.com/jesse-greathouse/mcol)';
+
     const LINE_COLUMN_SPACES = 50;
     const QUEUED_MASK = '/^Queued \d+h\d+m for \"(.+)\", in position (\d+) of (\d+)\. .+$/';
     const QUEUED_RESPONSE_MASK = '/pack ([0-9]+) \(\"(.+)\"\) in position ([0-9]+)\./';
@@ -123,7 +126,7 @@ class Client
         $this->logDiverter = new LogDiverter($this->getInstanceLogUri());
 
         $options = new ClientOptions($nick->nick);
-        $this->client = new IrcClient("{$network->firstServer->host}:6667", $options);
+        $this->client = new IrcClient("{$network->firstServer->host}:6667", $options, self::VERSION);
         $this->assignHandlers();
     }
 
@@ -134,15 +137,29 @@ class Client
      */
     protected function assignHandlers(): void
     {
+        $this->versionHandler();
         $this->noticeHandler();
         $this->joinHandler();
         $this->registeredHandler();
         $this->disconnectHandler();
         $this->pingHandler();
-        $this->namesHandler();
+        $this->nickHandler();
         $this->messageHandler();
+        $this->modeHandler();
+        $this->motdHandler();
         $this->privMessageHandler();
+        $this->ctcpHandler();
+        $this->dccHandler();
         $this->kickHandler();
+        $this->quitHandler();
+        $this->topicHandler();
+        $this->partHandler();
+        $this->consoleHandler();
+        $this->inviteHandler();
+
+        // At this time there is no use-case for handing names events.
+        // It's worthwhile to skip handling this for now.
+        #$this->namesHandler();
     }
 
     /**
@@ -242,11 +259,149 @@ class Client
     }
 
     /**
+     * Handles a nick change event.
+     *
+     * @return void
+     */
+    public function nickHandler(): void
+    {
+        $this->client->on('nick', function(string $nick, string $newNick) {
+            $this->console->warn("$nick sets nick: $newNick");
+        });
+    }
+
+    /**
+     * Handles a quit event.
+     *
+     * @return void
+     */
+    public function quitHandler(): void
+    {
+        $this->client->on('quit', function(string $user, string $reason) {
+            $quit = 'Quit: ';
+
+            if (false !== strpos($reason, $quit)) {
+                $quit = '';
+            }
+
+            $this->console->warn("$user $quit$reason");
+        });
+    }
+
+    /**
+     * Handles a part event.
+     *
+     * @return void
+    */
+   public function partHandler(): void
+   {
+       $this->client->on('part', function(string $user, $channel, string $reason) {
+            $updateChannel = false;
+
+            if (is_a($channel, IrcChannel::class)) {
+                $channelName = $channel->getName();
+                $updateChannel = true;
+            } else {
+                $channelName = $channel;
+            }
+
+            $this->console->warn("$user parted $channelName: $reason");
+
+            if ($updateChannel) {
+                # Update the Channel Metadata
+                $this->channelUpdater->update($channel);
+            }
+       });
+   }
+
+    /**
+     * Handles a mode change event.
+     *
+     * @return void
+    */
+    public function modeHandler(): void
+    {
+        $this->client->on('mode', function($channel, string $user, string $mode) {
+             $updateChannel = false;
+
+             if (is_a($channel, IrcChannel::class)) {
+                 $channelName = $channel->getName();
+                 $updateChannel = true;
+             } else {
+                 $channelName = $channel;
+             }
+
+             $this->console->warn(trim("$channelName set $user mode: $mode"));
+
+             if ($updateChannel) {
+                 # Update the Channel Metadata
+                 $this->channelUpdater->update($channel);
+             }
+        });
+    }
+
+    /**
+     * Handles an invite event.
+     *
+     * @return void
+    */
+    public function inviteHandler(): void
+    {
+        $this->client->on('invite', function($channel, string $user) {
+             $updateChannel = false;
+
+             if (is_a($channel, IrcChannel::class)) {
+                 $channelName = $channel->getName();
+                 $updateChannel = true;
+             } else {
+                 $channelName = $channel;
+             }
+
+             $this->console->warn("========[ $user has invited {$this->nick->nick} to join channel: $channelName");
+
+             if ($updateChannel) {
+                 # Update the Channel Metadata
+                 $this->channelUpdater->update($channel);
+             }
+        });
+    }
+
+    /**
+     * Handles a topic change event.
+     *
+     * @return void
+    */
+    public function topicHandler(): void
+    {
+        $this->client->on('topic', function($channel, string $topic) {
+             $updateChannel = false;
+
+             if (is_a($channel, IrcChannel::class)) {
+                 $channelName = $channel->getName();
+                 $updateChannel = true;
+             } else {
+                 $channelName = $channel;
+             }
+
+             $this->console->info("");
+             $this->console->info("                ================[  $channelName Topic ]================");
+             $this->console->info("$topic");
+             $this->console->info("");
+
+
+             if ($updateChannel) {
+                 # Update the Channel Metadata
+                 $this->channelUpdater->update($channel);
+             }
+        });
+    }
+
+    /**
      * Handles a dcc event.
      *
      * @return voids
      */
-    public function DccHandler(): void
+    public function dccHandler(): void
     {
         $this->client->on('dcc', function($action, $fileName, $ip, $port, $fileSize) {
             $this->console->warn("A DCC event has been sent, with the following information:\n\n");
@@ -296,6 +451,32 @@ class Client
      *
      * @return void
      */
+    public function versionHandler(): void
+    {
+        $this->client->on('version', function () {
+            $this->console->warn("VERSION ". $this->client->getVersion());
+        });
+    }
+
+    /**
+     * Handles Private Messages
+     *
+     * @return void
+     */
+    public function ctcpHandler(): void
+    {
+        $this->client->on('ctcp', function (string $action, array $args, string $command) {
+            $this->console->warn("CTCP command issued: $action");
+            $this->console->warn("CTCP: $command");
+            $this->console->warn(print_r($args));
+        });
+    }
+
+    /**
+     * Handles Private Messages
+     *
+     * @return void
+     */
     public function privMessageHandler(): void
     {
         $this->client->on('privmsg', function (string $userName, $target, string $message) {
@@ -309,7 +490,13 @@ class Client
             # Divert message to the log for this instance.
             $this->logDiverter->log("$userName to: $target: $message");
             $this->console->warn("$userName to $target says: $message");
-            $downloadDir = env('DOWNLOAD_DIR', '/var/download');
+
+            # VERSION
+            if (false !== strpos($message, 'VERSION')) {
+                $this->client->say($userName, self::VERSION);
+                $this->console->warn("$message " . self::VERSION);
+                return;
+            }
 
             # DCC SEND PROTOCOL
             if (false !== strpos($message, 'DCC SEND')) {
@@ -318,7 +505,7 @@ class Client
                 $fileSizeCln = $this->clnNumericStr($fileSize);
                 $ipCln = $this->clnNumericStr($ip);
                 $portCln = $this->clnNumericStr($port);
-                $uri = "$downloadDir/$fileName";
+                $uri = env('DOWNLOAD_DIR', '/var/download') . "/$fileName";
 
                 if (file_exists($uri)) {
                     $position = filesize($uri);
@@ -342,12 +529,33 @@ class Client
                 $positionCln = $this->clnNumericStr($position);
                 $ipCln = $this->clnNumericStr($ip);
                 $portCln = $this->clnNumericStr($port);
-                $uri = "$downloadDir/$fileName";
+                $uri = env('DOWNLOAD_DIR', '/var/download') . "/$fileName";
                 $this->console->warn($message);
                 DccDownload::dispatch($ipCln, $portCln, $fileName, $positionCln, $userName, $positionCln)->onQueue('download');
                 $this->console->warn("Queued to resume DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $positionCln bot: '$userName' resume: $positionCln");
                 return;
             }
+
+            if (false !== strpos($message, 'DCC')) {
+                $this->console->warn("||||||||||||| ===> Unhandled DCC Action: $message");
+                return;
+            }
+
+            $this->console->warn("||||||||||||| ===> Unhandled PRIVMSG: $message");
+            return;
+        });
+    }
+
+    /**
+     * Handles standard messages in channel.
+     *
+     * @return void
+     */
+    public function motdHandler(): void
+    {
+        $this->client->on('motd', function (string $message) {
+            $clean = Parse::cleanMessage($message);
+            $this->console->warn("[ {$this->network->name} ]: $clean");
         });
     }
 
@@ -400,6 +608,21 @@ class Client
     }
 
     /**
+     * Handles console messages.
+     *
+     * @return void
+     */
+    public function consoleHandler(): void
+    {
+        $this->client->on('console', function (string $user, string $message) {
+            $clean = Parse::cleanMessage($message);
+            if ($user === $this->nick->nick) {
+                $this->console->warn("[ {$this->network->name} ]: $clean");
+            }
+        });
+    }
+
+    /**
      * Handles notices.
      *
      * @return void
@@ -418,12 +641,12 @@ class Client
 
             if ($this->isQueuedNotification($txt)) {
                 $this->doQueuedStateChange($txt);
-                $this->console->warn(" ========[  $txt ");
+                $this->console->warn("========[  $txt ");
                 return;
             } else if ($this->isQueuedResponse($txt)) {
                 $packet = $this->markAsQeueued($txt);
                 if ($packet) {
-                    $this->console->warn(" ========[  Queued for #{$packet->number} {$packet->file_name} - {$packet->size}");
+                    $this->console->warn("========[  Queued for #{$packet->number} {$packet->file_name} - {$packet->size}");
                 }
                 return;
             }
@@ -432,7 +655,7 @@ class Client
             $packetSearchResult = $this->extractPacketSearchResult($txt);
             if ($this->isPacketSearchResult($packetSearchResult)) {
                 [, $fileSize, $fileName, $botName, $packetNumber] = $packetSearchResult;
-                $this->console->warn(" ==[  > $botName   $packetNumber - $fileSize $fileName");
+                $this->console->warn("==[  > $botName   $packetNumber - $fileSize $fileName");
                 $this->searchResultHandler($fileName, $fileSize, $botName, $packetNumber);
                 return;
             }
@@ -441,7 +664,7 @@ class Client
             $searchSummary = $this->extractSearchSummary($txt);
             if ($this->isSearchSummary($searchSummary)) {
                 [, $channelName, $numberResults] = $searchSummary;
-                $this->console->warn(" ========[  Found $numberResults results in $channelName");
+                $this->console->warn("========[  Found $numberResults results in $channelName");
                 $this->searchSummaryHandler($channelName);
                 return;
             }
@@ -455,9 +678,9 @@ class Client
                  if ($hotReportRank2 !== null && $hotReportFileName2 !== null) {
                     $this->hotReportLineHandler($hotReportRank2, $hotReportFileName2);
                     $spacer = $this->dynamicWordSpacing($hotReportFileName1, self::LINE_COLUMN_SPACES);
-                    $this->console->warn(" ==[    [$hotReportRank1] $hotReportFileName1 $spacer [$hotReportRank2] $hotReportFileName2");
+                    $this->console->warn("==[    [$hotReportRank1] $hotReportFileName1 $spacer [$hotReportRank2] $hotReportFileName2");
                  } else {
-                    $this->console->warn(" ==[    [$hotReportRank1] $hotReportFileName1");
+                    $this->console->warn("==[    [$hotReportRank1] $hotReportFileName1");
                  }
 
                  return;
@@ -468,12 +691,12 @@ class Client
             if ($this->isHotReportSummary($hotReportSummary)) {
                 [, $channelName, $hotReportSummaryStr] = $hotReportSummary;
                 $channelNameSanitized = strtolower($channelName);
-                $this->console->warn(" ========[  $channelNameSanitized $hotReportSummaryStr");
+                $this->console->warn("========[  $channelNameSanitized $hotReportSummaryStr");
                 $this->hotReportSummaryHandler($channelNameSanitized, $hotReportSummaryStr);
                 return;
             }
 
-            $this->console->warn(" ========[  $txt ");
+            $this->console->warn("========[  $txt ");
         });
     }
 
@@ -927,8 +1150,22 @@ class Client
      */
     public function pingHandler(): void
     {
-        $this->client->on('ping', function() {
-            $this->console->info('ping');
+        $this->client->on('ping', function(string $pinger) {
+
+            // Checks if the pinger string is a masked IP.
+            try {
+                $ip = long2ip($pinger);
+                if (false !== $ip) {
+                    $pinger = $ip;
+                }
+            } catch(TypeError $e) {
+                // Do nothing. TypeError will happen if pinger is a string.
+            }
+
+            // The response actually happens in the Message object: Jerodev\PhpIrcClient\Messages\PingMessage
+            // This is just showing that something happened in the log.
+            $this->console->info($pinger . ' PING -> ' . $this->nick->nick);
+            $this->console->info($this->nick->nick . ' PONG -> ' . $pinger);
         });
     }
 
@@ -939,17 +1176,34 @@ class Client
      */
     public function namesHandler(): void
     {
-        $this->client->on("names", function (IrcChannel $channel) {
-            $userList = $channel->getUsers();
-            if (count($userList) > 0) {
+        $this->client->on('names', function (IrcChannel $channel, array $names) {
+            $channelName = $channel->getName();
+            if (count($names) > 0) {
                 $rows = [];
-                foreach($userList as $user) {
-                    $rows[] = [$user];
+                foreach($names as $nick) {
+                    $rows[] = [$nick];
                 }
 
+                $this->console->info("========[ Chatters in $channelName ]========");
                 $this->console->table(['Nick'], $rows);
             }
         });
+
+        foreach($this->client->getChannels() as $channel) {
+            $channelName = $channel->getName();
+
+            $this->client->on("names$channelName", function (array $names) use ($channelName) {
+                if (count($names) > 0) {
+                    $rows = [];
+                    foreach($names as $nick) {
+                        $rows[] = [$nick];
+                    }
+
+                    $this->console->info("========[ Chatters in $channelName ]========");
+                    $this->console->table(['Nick'], $rows);
+                }
+            });
+        }
     }
 
     /**
@@ -994,6 +1248,7 @@ class Client
     {
         return Channel::where('channel_id', null)
             ->where('network_id', $network->id)
+            ->where('enabled', true)
             ->get();
     }
 

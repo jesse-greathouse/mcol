@@ -1891,12 +1891,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/jesse-greathouse/php-irc-client.git",
-                "reference": "264b13e18bbde1b4c18426e7c559265d7cf8516d"
+                "reference": "261d6f27f125b5b21182a1422f545c30e1363334"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jesse-greathouse/php-irc-client/zipball/264b13e18bbde1b4c18426e7c559265d7cf8516d",
-                "reference": "264b13e18bbde1b4c18426e7c559265d7cf8516d",
+                "url": "https://api.github.com/repos/jesse-greathouse/php-irc-client/zipball/261d6f27f125b5b21182a1422f545c30e1363334",
+                "reference": "261d6f27f125b5b21182a1422f545c30e1363334",
                 "shasum": ""
             },
             "require": {
@@ -1957,7 +1957,7 @@
             "support": {
                 "source": "https://github.com/jesse-greathouse/php-irc-client/tree/main"
             },
-            "time": "2024-09-20T00:59:20+00:00"
+            "time": "2024-11-01T06:21:43+00:00"
         },
         {
             "name": "laravel/dusk",
