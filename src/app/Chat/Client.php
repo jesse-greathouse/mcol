@@ -2,7 +2,8 @@
 
 namespace App\Chat;
 
-use Illuminate\Console\Command;
+use Illuminate\Console\Command,
+    Illuminate\Support\Facades\Log;
 
 use Jerodev\PhpIrcClient\IrcClient,
     Jerodev\PhpIrcClient\IrcChannel,
@@ -35,6 +36,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 use \DateTime;
 use \TypeError;
+use \Exception;
 
 class Client
 {
@@ -240,21 +242,8 @@ class Client
     public function kickHandler(): void
     {
         $this->client->on('kick', function($channel, string $user, string $kicker, $message) {
-            $updateChannel = false;
-
-            if (is_a($channel, IrcChannel::class)) {
-                $channelName = $channel->getName();
-                $updateChannel = true;
-            } else {
-                $channelName = $channel;
-            }
-
+            $channelName = $this->updateChannel($channel);
             $this->console->error("$user has been kicked from $channelName by $kicker. Reason:$message");
-
-            if ($updateChannel) {
-                # Update the Channel Metadata
-                $this->channelUpdater->update($channel);
-            }
         });
     }
 
@@ -280,7 +269,7 @@ class Client
         $this->client->on('quit', function(string $user, string $reason) {
             $quit = 'Quit: ';
 
-            if (false !== strpos($reason, $quit)) {
+            if (false !== strpos($reason, trim($quit))) {
                 $quit = '';
             }
 
@@ -296,21 +285,8 @@ class Client
    public function partHandler(): void
    {
        $this->client->on('part', function(string $user, $channel, string $reason) {
-            $updateChannel = false;
-
-            if (is_a($channel, IrcChannel::class)) {
-                $channelName = $channel->getName();
-                $updateChannel = true;
-            } else {
-                $channelName = $channel;
-            }
-
+            $channelName = $this->updateChannel($channel);
             $this->console->warn("$user parted $channelName: $reason");
-
-            if ($updateChannel) {
-                # Update the Channel Metadata
-                $this->channelUpdater->update($channel);
-            }
        });
    }
 
@@ -322,21 +298,8 @@ class Client
     public function modeHandler(): void
     {
         $this->client->on('mode', function($channel, string $user, string $mode) {
-             $updateChannel = false;
-
-             if (is_a($channel, IrcChannel::class)) {
-                 $channelName = $channel->getName();
-                 $updateChannel = true;
-             } else {
-                 $channelName = $channel;
-             }
-
-             $this->console->warn(trim("$channelName set $user mode: $mode"));
-
-             if ($updateChannel) {
-                 # Update the Channel Metadata
-                 $this->channelUpdater->update($channel);
-             }
+            $channelName = $this->updateChannel($channel);
+            $this->console->warn(trim("$channelName set $user mode: $mode"));
         });
     }
 
@@ -348,21 +311,8 @@ class Client
     public function inviteHandler(): void
     {
         $this->client->on('invite', function($channel, string $user) {
-             $updateChannel = false;
-
-             if (is_a($channel, IrcChannel::class)) {
-                 $channelName = $channel->getName();
-                 $updateChannel = true;
-             } else {
-                 $channelName = $channel;
-             }
-
-             $this->console->warn("========[ $user has invited {$this->nick->nick} to join channel: $channelName");
-
-             if ($updateChannel) {
-                 # Update the Channel Metadata
-                 $this->channelUpdater->update($channel);
-             }
+            $channelName = $this->updateChannel($channel);
+            $this->console->warn("========[ $user has invited {$this->nick->nick} to join channel: $channelName");
         });
     }
 
@@ -374,25 +324,12 @@ class Client
     public function topicHandler(): void
     {
         $this->client->on('topic', function($channel, string $topic) {
-             $updateChannel = false;
+            $channelName = $this->updateChannel($channel);
 
-             if (is_a($channel, IrcChannel::class)) {
-                 $channelName = $channel->getName();
-                 $updateChannel = true;
-             } else {
-                 $channelName = $channel;
-             }
-
-             $this->console->info("");
-             $this->console->info("                ================[  $channelName Topic ]================");
-             $this->console->info("$topic");
-             $this->console->info("");
-
-
-             if ($updateChannel) {
-                 # Update the Channel Metadata
-                 $this->channelUpdater->update($channel);
-             }
+            $this->console->info("");
+            $this->console->info("                ================[  $channelName Topic ]================");
+            $this->console->info("$topic");
+            $this->console->info("");
         });
     }
 
@@ -1252,7 +1189,7 @@ class Client
             ->get();
     }
 
-    private function dynamicWordSpacing($word, $totalSpaces)
+    protected function dynamicWordSpacing($word, $totalSpaces)
     {
         $spacer = '';
         $wordLength = strlen($word);
@@ -1270,7 +1207,7 @@ class Client
      *
      * @return boolean
      */
-    private function isFileDownloadLocked(string $fileName): bool
+    protected function isFileDownloadLocked(string $fileName): bool
     {
         $lock = FileDownloadLock::where('file_name', $fileName)->first();
 
@@ -1286,10 +1223,43 @@ class Client
      *
      * @return boolean
      */
-    private function lockFile(string $file): void
+    protected function lockFile(string $file): void
     {
         // Lock the file for Downloading to prevent further downloads of the same file.
         FileDownloadLock::create(['file_name' => $file]);
+    }
+
+
+    /**
+     * Updates a mixed channel variable.
+     * Could be null, could be string, could be IrcChannel
+     * Fun, Fun, Fun...
+     *
+     * @param mixed $channel
+     * @return string
+     */
+    protected function updateChannel(mixed $channel): string
+    {
+        $channelName = '';
+
+        if (is_a($channel, IrcChannel::class)) {
+            $channelName = $channel->getName();
+            $this->channelUpdater->update($channel);
+        } else {
+            if (null !== $channel) {
+                $channelName = $channel;
+
+                try {
+                    $channel = new IrcChannel($channelName);
+                    $this->channelUpdater->update($channel);
+                } catch(Exception $e) {
+                    $this->console->warn("could not instantiate channel: $channelName");
+                    Log::error($e->getMessage());
+                }
+            }
+        }
+
+        return $channelName;
     }
 
 }
