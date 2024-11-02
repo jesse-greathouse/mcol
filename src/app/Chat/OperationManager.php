@@ -13,7 +13,7 @@ use App\Models\Instance,
 class OperationManager
 {
     // https://www.phpliveregex.com/p/MDc
-    const COMMAND_PRIVMSG_MASK = '/PRIVMSG (\S+) (.*)$/i';
+    const COMMAND_PRIVMSG_MASK = '/PRIVMSG (\S+) (.*)$/is';
 
     /**
      * Client of chat client
