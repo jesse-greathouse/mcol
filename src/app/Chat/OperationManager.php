@@ -12,6 +12,8 @@ use App\Models\Instance,
 
 class OperationManager
 {
+    // https://www.phpliveregex.com/p/MDc
+    const COMMAND_PRIVMSG_MASK = '/PRIVMSG (\S+) (.*)$/i';
 
     /**
      * Client of chat client
@@ -50,12 +52,7 @@ class OperationManager
             $status = Operation::STATUS_COMPLETED;
 
             try {
-                $this->console->info(sprintf("[%s]: %s > %s",
-                    $this->instance->client->network->name,
-                    $this->instance->client->nick->nick,
-                    $operation->command
-                ));
-                $this->client->send($operation->command);
+                $this->execute($operation->command);
             } catch (\Exception $e) {
                 $status = Operation::STATUS_FAILED;
                 $this->console->error($e->getMessage());
@@ -65,5 +62,56 @@ class OperationManager
             $operation->status = $status;
             $operation->save();
         }
+    }
+
+    /**
+     * Execute a command.
+     *
+     * @param string $command
+     * @return void
+     */
+    protected function execute(string $command): void
+    {
+        $privMsgMatch = [];
+        preg_match(self::COMMAND_PRIVMSG_MASK, $command, $privMsgMatch);
+
+        // If the command is a PRIVMSG, use the say command in the client.
+        // say sas predefined guardrails for sending messages.
+        if (2 < count($privMsgMatch))  {
+            [, $target, $command] = $privMsgMatch;
+            $this->say($target, $command);
+            return;
+        }
+
+        $this->console->info(sprintf("[%s]: %s > %s",
+            $this->instance->client->network->name,
+            $this->instance->client->nick->nick,
+            $command
+        ));
+
+        $this->client->send($command);
+
+        return;
+    }
+
+    /**
+     * Does a command via the Client::say() method.
+     * Has predefined guardrails for sending messages.
+     *
+     * @param string $target
+     * @param string $command
+     * @return void
+     */
+    protected function say(string $target, string $command): void
+    {
+        $this->console->info(sprintf("[%s]: %s > %s",
+            $this->instance->client->network->name,
+            $this->instance->client->nick->nick,
+            "/msg $target $command"
+        ));
+
+        $this->client->say($target, $command);
+
+        return;
     }
 }
