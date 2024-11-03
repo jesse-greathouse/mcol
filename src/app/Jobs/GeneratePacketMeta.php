@@ -15,6 +15,7 @@ use App\Media\Application,
     App\Media\MediaType,
     App\Media\Movie,
     App\Media\Music,
+    App\Media\Porn,
     App\Media\TvEpisode,
     App\Media\TvSeason,
     App\Models\Packet;
@@ -31,6 +32,7 @@ class GeneratePacketMeta implements ShouldQueue
         MediaType::GAME         => Game::class,
         MediaType::MOVIE        => Movie::class,
         MediaType::MUSIC        => Music::class,
+        MediaType::PORN         => Porn::class,
         MediaType::TV_EPISODE   => TvEpisode::class,
         MediaType::TV_SEASON    => TvSeason::class,
     ];

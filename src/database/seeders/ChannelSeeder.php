@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 use App\Models\Channel,
@@ -10,94 +9,88 @@ use App\Models\Channel,
 
 class ChannelSeeder extends Seeder
 {
-    protected Array $channels = [
+    protected Array $networks = [
         'Abjects' => [
             '#moviegods' => [
-                'topic' => '!donate or !donate_de - BoxOwners/Rooters/Donations Needed  #MOVIEGODS - Only channel supporting SSL XDCC -//- If you are new to this type !help -//- Join #MG-Lounge for requests/questions/tv-subs/spam free chat -//- Join #mg-chat', 
-                'users' => 1395,
+                'topic' => '',
+                'users' => 0,
+                'children' => [
+                    '#mg-chat' => [
+                        'topic' => '',
+                        'users' => 0,
+                    ],
+                ]
             ],
-            '#beast-xdcc' => [
-                'topic' => ' .:||:. BEAST-XDCC \\\\ FAST speeds, SCENE releases //// NEVER throttled \\\\  join #BEAST-CHAT   ::: http://ixirc.com/?cid=218 NO THROTTLES | NO LOGGING | NO HOMO  :::  BEAST-XDCC ',
-                'users' => 336
-            ]
+        ],
+        'Rizon' => [
+            '#ELITEWAREZ' => [
+                'topic' => '',
+                'users' => 0,
+                'children' => [
+                    '#elite-chat' => [
+                        'topic' => '',
+                        'users' => 0,
+                    ],
+                ]
+            ],
         ],
     ];
 
-    protected Array $children = [
-        '#moviegods' => [
-            '#mg-chat' => [
-                'topic' => '!donate or !donate_de - BoxOwners/Rooters/Donations Needed  #MOVIEGODS - Only channel supporting SSL XDCC --//- If you are new to this type !help -//- Join #MG-Lounge for requests/questions/comments/tv-subs/spam free chat -//- Join #MG-Help for help', 
-                'users' => 1369,
-            ],
-        ],
-        '#beast-xdcc' => [
-            '#BEAST-CHAT' => [
-                'topic' => '', 
-                'users' => 335,
-            ],
-        ],
-    ];
-    
-    
+
     /**
      * Run the database seeds.
+     *
+     * Parent Channels are primary channels that theoretically have bots that are offering file sharing.
+     * Channel operators sometimes require users to join associated channels, so we call these the "child" channels.
+     *
      */
     public function run(): void
     {
-        foreach ($this->getChannels() as $networkName => $channels) {
-            $network = $this->getNetworkByName($networkName);
+        foreach ($this->networks as $name => $parents) {
+            $network = $this->getNetworkOrGenerate($name);
 
-            if (NULL === $network) continue;
-
-            foreach ($channels as $name => $c) {
-
-                $channel = $this->getChannelByName($name);
-
-                if (NULL !== $channel) continue;
-            
-                $c['network_id'] = $network->id;
-                $c['name'] = $name;
-                $channel = Channel::factory()->create($c);
-
-                if (isset($this->children[$name])) {
-                    foreach ($this->children[$name] as $childName => $child) {
-
-                        $childChannel = $this->getChannelByName($childName);
-
-                        if (NULL !== $childChannel) continue;
-
-                        $child['network_id'] = $channel->network_id;
-                        $child['name'] = $childName;
-                        $child['channel_id'] = $channel->id;
-                        Channel::factory()->create($child);
-                    }
+            foreach($parents as $parentName => $parentData) {
+                $parent = $this->getChannelForNetworkOrGenerate($network, $parentName, $parentData);
+                foreach($parentData['children'] as $childName => $childData) {
+                    $this->getChannelForNetworkOrGenerate($network, $childName, $childData, $parent->id);
                 }
             }
-            
         }
     }
 
     /**
-     * Get the value of networks
-     */ 
-    public function getChannels(): array
+     * With a Network object, find a channel by the channel name.
+     * Create it if it does not exist.
+     *
+     * @param Network $network
+     * @param string $channelName
+     * @param array $channelData
+     * @param int|null $parentId
+     * @return Channel
+     */
+    public function getChannelForNetworkOrGenerate(Network $network, string $channelName, array $channelData, int $parentId = null): Channel
     {
-        return $this->channels;
+        $channel = Channel::where('network_id', $network->id)->where('name', $channelName)->first();
+        if (null !== $channel) return $channel;
+
+        return Channel::factory()->create([
+            'network_id'    => $network->id,
+            'name'          => $channelName,
+            'topic'         => $channelData['topic'],
+            'users'         => $channelData['users'],
+            'channel_id'    => $parentId,
+        ]);
     }
 
     /**
-     * Get an instance of Network by name.
-     */ 
-    public function getNetworkByName(string $name): Network|null
+     * With a Network name string, retrieve the network or generate it.
+     * Create one if one does not exist.
+     *
+     * @param string $networkName
+     * @return Network
+     */
+    public function getNetWorkOrGenerate(string $name): Network
     {
-        return Network::where('name', $name)->first();
-    }
-
-    /**
-     * Get an instance of Channel by name.
-     */ 
-    public function getChannelByName(string $name): Channel|null
-    {
-        return Channel::where('name', $name)->first();
+        return Network::updateOrCreate(['name' => $name]);
     }
 }

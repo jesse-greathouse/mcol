@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 use App\Models\Network;
@@ -11,6 +10,7 @@ class NetworkSeeder extends Seeder
 {
     protected Array $networks = [
         'Abjects',
+        'Rizon',
     ];
 
     /**
@@ -18,22 +18,14 @@ class NetworkSeeder extends Seeder
      */
     public function run(): void
     {
-        foreach ($this->getNetworks() as $name) {
+        foreach ($this->networks as $name) {
             $network = Network::where('name', $name)->first();
 
-            if (NULL !== $network) continue;
+            if (null !== $network) continue;
 
             Network::factory()->create([
                 'name' => $name,
             ]);
         }
-    }
-
-    /**
-     * Get the value of networks
-     */ 
-    public function getNetworks()
-    {
-        return $this->networks;
     }
 }

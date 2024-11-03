@@ -56,6 +56,9 @@ final class Book extends Media implements MediaTypeInterface
 
         [, $title ] = $this->matches;
 
+        // sanity Check
+        $title = (null === $title) ? '' : trim($title);
+
         $this->title = $this->formatTitle($title);
         $this->year = $this->getYearFromTitle($title);
         $this->volume = $this->getVolumeFromTitle($title);

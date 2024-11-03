@@ -57,6 +57,8 @@ abstract class Media
      */
     public function formatTitle(string $title): string
     {
+        if ('' === $title) return $title;
+
         // Replace dots with spaces.
         $title = str_replace('.', ' ', $title);
 
@@ -80,6 +82,8 @@ abstract class Media
     {
         $matches = [];
         $tags = [];
+
+        if ('' === $tagStr) return $tags;
 
         $result = preg_match_all(self::TAG_MASK, $tagStr, $matches);
 

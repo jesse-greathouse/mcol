@@ -5,7 +5,10 @@ namespace App\Media;
 final class Movie extends Media implements MediaTypeInterface
 {
     // https://www.phpliveregex.com/p/Mxs
-    const MASK = '/^[\d{2}]*(.*)(\d{4}).*(480[p]?|720[p]?|1080[p]?|2160[p]?)(.*)$/i';
+    const MASK = '/^[\d{2}]*(.*)(\d{4}).*(480[p]?|720[p]?|1080[p]?|2160[p]?)(.*)$/is';
+
+    // https://www.phpliveregex.com/p/MDt
+    const NO_RESOLUTION_MASK = '/^[\d{2}]*(.*)[\-|\.|\s|\(](\d{4})[\-|\.|\s|\)](.*)$/is';
 
     /**
      * Title of the movie.
@@ -42,9 +45,24 @@ final class Movie extends Media implements MediaTypeInterface
      */
     public function map(): void
     {
-        if (5 > count($this->matches)) return;
+        // Match including resolution.
+        if (4 < count($this->matches)) {
+            [, $title, $year, $resolution, $tags] = $this->matches;
+        } else {
+            // Try matching with no resolution.
+            preg_match(self::NO_RESOLUTION_MASK, $this->fileName, $this->matches, PREG_UNMATCHED_AS_NULL);
 
-        [, $title, $year, $resolution, $tags] = $this->matches;
+            if (4 > count($this->matches)) return;
+
+            [, $title, $year, $tags] = $this->matches;
+            $resolution = '';
+        }
+
+        // sanity Check
+        $title = (null === $title) ? '' : trim($title);
+        $year = (null === $year) ? '' : trim($year);
+        $resolution = (null === $resolution) ? '' : trim($resolution);
+        $tags = (null === $title) ? '' : trim($tags);
 
         $this->title = $this->formatTitle($title);
         $this->year = $year;

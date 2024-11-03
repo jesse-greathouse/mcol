@@ -9,6 +9,7 @@ final class MediaType
     const TV_SEASON = 'tv season';
     const BOOK = 'book';
     const MUSIC = 'music';
+    const PORN = 'porn';
     const GAME = 'game';
     const APPLICATION = 'application';
 
@@ -25,6 +26,7 @@ final class MediaType
             self::TV_SEASON,
             self::BOOK,
             self::MUSIC,
+            self::PORN,
             self::GAME,
             self::APPLICATION,
         ];

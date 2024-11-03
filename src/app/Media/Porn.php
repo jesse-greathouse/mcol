@@ -2,24 +2,20 @@
 
 namespace App\Media;
 
-final class TvSeason extends Media implements MediaTypeInterface
+final class Porn extends Media implements MediaTypeInterface
 {
-    // https://www.phpliveregex.com/p/MxK
-    const MASK = '/^[\d{2}]*(.*)[\.|\-|\s]S(\d{2})[\.|\-|\s](480[p]?|720[p]?|1080[p]?|2160[p]?)?(.+)$/i';
+    // https://www.phpliveregex.com/p/MDr
+    const MASK = '/^[\d{2}]*(.*)[\-|\.|\s]XXX[\-|\.|\s](480[p]?|720[p]?|1080[p]?|2160[p]?)[\-|\.|\s](.*)\.(.*)$/i';
+
+    // https://www.phpliveregex.com/p/MDq
+    const NO_RESOLUTION_MASK = '/^[\d{2}]*(.*)[\-|\.|\s]XXX[\-|\.|\s](.*)\.(.*)$/is';
 
     /**
-     * Title of the series.
+     * Title of the movie.
      *
      * @var string
      */
     private $title;
-
-    /**
-     * Season number
-     *
-     * @var int
-     */
-    private $season;
 
     /**
      * Video Resolution
@@ -42,12 +38,18 @@ final class TvSeason extends Media implements MediaTypeInterface
      */
     public function map(): void
     {
-        if (5 > count($this->matches)) return;
+        // Match including resolution.
+        if (4 < count($this->matches)) {
+            [, $title, $resolution, $tags] = $this->matches;
+        } else {
+            // Try matching with no resolution.
+            preg_match(self::NO_RESOLUTION_MASK, $this->fileName, $this->matches, PREG_UNMATCHED_AS_NULL);
 
-        [, $title, $season, $resolution, $tags] = $this->matches;
-        if (null === $title) $title = '';
-        if (null === $tags) $tags = '';
-        if (null === $resolution) $resolution = '';
+            if (3 > count($this->matches)) return;
+
+            [, $title, $tags] = $this->matches;
+            $resolution = '';
+        }
 
         // sanity Check
         $title = (null === $title) ? '' : trim($title);
@@ -55,7 +57,6 @@ final class TvSeason extends Media implements MediaTypeInterface
         $tags = (null === $title) ? '' : trim($tags);
 
         $this->title = $this->formatTitle($title);
-        $this->season = intval($season);
         $this->resolution = $resolution;
         $this->tags = $this->formatTags($tags);
     }
@@ -79,7 +80,6 @@ final class TvSeason extends Media implements MediaTypeInterface
     {
         return [
             'title'         => $this->title,
-            'season'        => $this->season,
             'resolution'    => $this->resolution,
             'tags'          => $this->tags,
         ];

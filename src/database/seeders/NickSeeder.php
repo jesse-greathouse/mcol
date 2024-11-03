@@ -2,34 +2,39 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 use App\Models\Nick,
     App\Models\Network;
 
+use Faker,
+    Faker\Generator as FakerGenerator;
+
 class NickSeeder extends Seeder
 {
-
     /**
-     * List of names for nicks
+     * Instance of Faker
      *
-     * @var Array
+     * @property FakerGenerator $faker
      */
-    protected Array $nicks = [
-        'Abjects' => 'SweattyPickle_458'
-    ];
+    protected $faker;
 
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        foreach ($this->getNicks() as $networkName => $name) {
-            $nick = Nick::where('nick', $name)->first();
-            $network = Network::where('name', $networkName)->first();
+        $networks = Network::all();
 
-            if (NULL !== $nick ) continue;
+        foreach ($networks as $network) {
+            $nick = Nick::where('network_id', $network->id)->first();
+
+            if (null !== $nick ) continue;
+
+            // Creates a random nickname by combining two random words.
+            // Glued together with a _ (underscore).
+            $words = $this->getFaker()->words(2);
+            $name = implode('_', $words);
 
             Nick::factory()->create([
                 'nick' => $name,
@@ -39,12 +44,17 @@ class NickSeeder extends Seeder
     }
 
     /**
-     * Get list of names for nicks
+     * Provides the class instance of faker.
+     * Creates a new faker instance if it has not been created yet.
      *
-     * @return  Array
-     */ 
-    public function getNicks(): array
+     * @return FakerGenerator
+     */
+    public function getFaker(): FakerGenerator
     {
-        return $this->nicks;
+        if (null === $this->faker) {
+            $this->faker = Faker\Factory::create();
+        }
+
+        return $this->faker;
     }
 }

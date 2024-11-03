@@ -60,8 +60,9 @@ final class Application extends Media implements MediaTypeInterface
         $titleWords = [];
         $release = '';
         [, $applicationStr ] = $this->matches;
-        $cleaned = $applicationStr;
+        $applicationStr = (null === $applicationStr) ? '' : trim($applicationStr);
 
+        $cleaned = $applicationStr;
         // Find the version string and chop it from $applicationStr
         $version = $this->getVersionFromApplicationStr($applicationStr);
         if ('' !== $version && null !== $version) {
@@ -86,7 +87,9 @@ final class Application extends Media implements MediaTypeInterface
             }
         }
 
-        $this->title = $this->formatTitle(implode(' ', $titleWords));
+        $title = (0 < count($titleWords)) ? implode(' ', $titleWords) : '';
+
+        $this->title = $this->formatTitle($title);
         $this->version = $version;
         $this->release = $release;
         $this->tags = $this->formatTags($applicationStr);

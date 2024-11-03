@@ -2,10 +2,18 @@
 
 namespace App\Media;
 
+use App\Exceptions\MediaMetadataUnableToMatchException;
+
 final class TvEpisode extends Media implements MediaTypeInterface
 {
-    // https://www.phpliveregex.com/p/MxL
-    const MASK = '/^[\d{2}]*(.*)[\.|\-]S(\d{2})E(\d{2})[\.|\-]?(.*)?[\.|\-](480[p]?|720[p]?|1080[p]?|2160[p]?)[\.|\-]?(.*)?$/i';
+    // https://www.phpliveregex.com/p/MDf
+    const MASK = '/^[\d{2}]*(.*)[\.|\-|\s]S(\d{2})E(\d{2})[\.|\-|\s]?(.*)?[\.|\-\s](480[p]?|720[p]?|1080[p]?|2160[p]?)[\.|\-|\s]?(.*)?$/is';
+
+    // https://www.phpliveregex.com/p/MDl
+    const NO_RESOLUTION_MASK = '/^[\d{2}]*(.*)[\.|\-|\s]S(\d{2})E(\d{2})[\.|\-|\s]?(.*)?[\.|\-|\s]?$/is';
+
+    // https://www.phpliveregex.com/p/MDg
+    const BY_DATE_MASK = '/^[\d{2}]*(.*)[\.|\-|\s](\d{2,4})[\.|\-|\s](\d{2})[\.|\-|\s](\d{2})[\.|\-|\s]?(.*)?[\.|\-\s](480[p]?|720[p]?|1080[p]?|2160[p]?)[\.|\-|\s]?(.*)?$/is';
 
     /**
      * Title of the series.
@@ -49,6 +57,21 @@ final class TvEpisode extends Media implements MediaTypeInterface
      */
     private array $tags = [];
 
+    public function __construct(string $fileName)
+    {
+        $this->fileName = $fileName;
+
+        // Some TV episodes use a date format like: 2024.11.01 instead of the standard: S01E02
+        preg_match(self::BY_DATE_MASK, $this->fileName, $this->matches, PREG_UNMATCHED_AS_NULL);
+
+        if (8 == count($this->matches)) {
+            $this->mapDateFormat();
+        } else {
+            preg_match($this->getMask(), $this->fileName, $this->matches, PREG_UNMATCHED_AS_NULL);
+            $this->map();
+        }
+    }
+
     /**
      * Maps the result of match to properties.
      *
@@ -56,9 +79,24 @@ final class TvEpisode extends Media implements MediaTypeInterface
      */
     public function map(): void
     {
-        if (7 > count($this->matches)) return;
+        // Match including resolution.
+        if (6 < count($this->matches)) {
+            [, $title, $season, $episode, $episodeTitle, $resolution, $tags] = $this->matches;
+        } else {
+            // Try matching with no resolution.
+            preg_match(self::NO_RESOLUTION_MASK, $this->fileName, $this->matches, PREG_UNMATCHED_AS_NULL);
 
-        [, $title, $season, $episode, $episodeTitle, $resolution, $tags] = $this->matches;
+            if (5 > count($this->matches)) return;
+
+            [, $title, $season, $episode, $tags] = $this->matches;
+            $resolution = '';
+            $episodeTitle = '';
+        }
+
+        // sanity Check
+        $title = (null === $title) ? '' : trim($title);
+        $resolution = (null === $resolution) ? '' : trim($resolution);
+        $tags = (null === $title) ? '' : trim($tags);
 
         $this->title = $this->formatTitle($title);
         $this->season = intval($season);
@@ -66,6 +104,22 @@ final class TvEpisode extends Media implements MediaTypeInterface
         $this->episode_title = $this->formatTitle($episodeTitle);
         $this->resolution = $resolution;
         $this->tags = $this->formatTags($tags);
+    }
+
+    /**
+     * Maps the result of match to properties.
+     *
+     * @return void
+     */
+    public function mapDateFormat(): void
+    {
+        // consolidate the episode number as month+day and then map.
+        [$month, $day] = array_slice($this->matches, 3, 2);
+        $episode = $month.$day;
+
+        // Replace the month, day elements with episode.
+        array_splice($this->matches, 3, 2, [$episode]);
+        $this->map();
     }
 
     /**

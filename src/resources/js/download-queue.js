@@ -7,6 +7,7 @@ const mediaTypeToStoreMap = {
     'tv season': 'tv',
     book: 'books',
     music: 'music',
+    porn: 'porn',
     game: 'games',
     application: 'applications',
 }

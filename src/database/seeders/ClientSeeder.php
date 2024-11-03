@@ -2,86 +2,100 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 use App\Models\Client,
-    App\Models\Channel,
     App\Models\Network,
     App\Models\Nick;
+
+use Faker,
+    Faker\Generator as FakerGenerator;
 
 class ClientSeeder extends Seeder
 {
     /**
-     * @var Array $networks
+     * Instance of Faker
+     *
+     * @property FakerGenerator $faker
      */
-    protected Array $networks = [
-        'Abjects',
-    ];
+    protected $faker;
 
-    /**
-     * @var Array $networks
-     */
-    protected Array $clients = [
-        'Abjects' => ['SweattyPickle_458'],
-    ];
-
-
+    // List of networks to be populated.
+    protected array $networks = ['Abjects', 'Rizon'];
 
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        foreach ($this->getNetworks() as $networkName) {
-            $network = $this->getNetworkByName($networkName);
+        foreach ($this->networks as $name) {
+            $network = $this->getNetworkOrGenerate($name);
+            $nick = $this->getNickForNetworkOrGenerate($network);
 
-            if (isset($this->clients[$network->name])) {
-                foreach($this->clients[$network->name] as $name) {
+            $client = Client::where('network_id', $network->id)
+                ->where('nick_id', $nick->id)
+                ->first();
 
-                    $nick = $this->getNickByName($name);
-                    if (null === $nick) continue;
+            if (null !== $client) continue;
 
-                    Client::updateOrCreate(
-                        ['network_id' => $network->id, 'nick_id' => $nick->id],
-                        ['enabled' => true]
-                    );
-                }
-            }
+            Client::factory()->create([
+                'nick'      => $nick,
+                'network'   => $network,
+                'enabled'   => true,
+            ]);
         }
     }
 
     /**
-     * Get $networks
+     * With a Network instance, get the associated Nick.
+     * Create one if one does not exist.
      *
-     * @return  Array
-     */ 
-    public function getNetworks(): array
+     * @param Network $network
+     * @return Nick
+     */
+    public function getNickForNetworkOrGenerate(Network $network): Nick
     {
-        return $this->networks;
+        $nick = Nick::where('network_id', $network->id)->first();
+
+        if (null !== $nick ) return $nick;
+
+        // Creates a random nickname by combining two random words.
+        // Glued together with a _ (underscore).
+        $words = $this->getFaker()->words(2);
+        $name = implode('_', $words);
+
+        $nick = Nick::factory()->create([
+            'nick' => $name,
+            'network_id' => $network->id,
+        ]);
+
+        return $nick;
     }
 
     /**
-     * Get an instance of Network by name.
-     */ 
-    public function getNetworkByName(string $name): Network|null
+     * With a Network name string, retrieve the network or generate it.
+     * Create one if one does not exist.
+     *
+     * @param string $networkName
+     * @return Network
+     */
+    public function getNetWorkOrGenerate(string $name): Network
     {
-        return Network::where('name', $name)->first();
+        return Network::updateOrCreate(['name' => $name]);
     }
 
     /**
-     * Get an instance of Nick by name.
-     */ 
-    public function getNickByName(string $name): Nick|null
+     * Provides the class instance of faker.
+     * Creates a new faker instance if it has not been created yet.
+     *
+     * @return FakerGenerator
+     */
+    public function getFaker(): FakerGenerator
     {
-        return Nick::where('nick', $name)->first();
-    }
+        if (null === $this->faker) {
+            $this->faker = Faker\Factory::create();
+        }
 
-    /**
-     * Get an instance of Channel by name.
-     */ 
-    public function getChannelByName(string $name): Channel|null
-    {
-        return Channel::where('name', $name)->first();
+        return $this->faker;
     }
 }

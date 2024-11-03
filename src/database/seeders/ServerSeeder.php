@@ -8,13 +8,13 @@ use App\Models\Network,
     App\Models\Server;
 
 class ServerSeeder extends Seeder
-{    
-    
+{
     /**
     * @var Array $servers
     */
    protected Array $servers = [
        'Abjects' => 'irc.abjects.net',
+       'Rizon' => 'irc.rizon.net',
    ];
 
     /**
@@ -42,7 +42,7 @@ class ServerSeeder extends Seeder
     * Get $servers
     *
     * @return  Array
-    */ 
+    */
    public function getServers(): array
    {
       return $this->servers;
@@ -50,7 +50,7 @@ class ServerSeeder extends Seeder
 
    /**
      * Get an instance of Network by name.
-     */ 
+     */
     public function getNetworkByName(string $name): Network|null
     {
         return Network::where('name', $name)->first();

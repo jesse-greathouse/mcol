@@ -50,6 +50,8 @@ final class Music extends Media implements MediaTypeInterface
         if (4 > count($this->matches)) return;
 
         [, $artist, $title, $tags] = $this->matches;
+        if (null === $title) $title = '';
+        if (null === $tags) $tags = '';
 
         $this->title = $this->formatTitle($title);
         $this->artist = $this->formatTitle($artist);

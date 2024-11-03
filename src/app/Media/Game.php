@@ -59,8 +59,9 @@ final class Game extends Media implements MediaTypeInterface
         $titleWords = [];
         $release = '';
         [, $gameStr ] = $this->matches;
-        $cleaned = $gameStr;
+        $gameStr = (null === $gameStr) ? '' : trim($gameStr);
 
+        $cleaned = $gameStr;
         // Find the version string and chop it from $gameStr
         $version = $this->getVersionFromGameStr($gameStr);
         if ('' !== $version && null !== $version) {
@@ -85,7 +86,9 @@ final class Game extends Media implements MediaTypeInterface
             }
         }
 
-        $this->title = $this->formatTitle(implode(' ', $titleWords));
+        $title = (0 < count($titleWords)) ? implode(' ', $titleWords) : '';
+
+        $this->title = $this->formatTitle($title);
         $this->version = $version;
         $this->release = $release;
         $this->tags = $this->formatTags($gameStr);

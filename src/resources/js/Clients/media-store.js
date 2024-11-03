@@ -13,6 +13,7 @@ const mediaStores = [
     'games',
     'movies',
     'music',
+    'porn',
     'tv'
 ]
 
