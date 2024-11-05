@@ -4,6 +4,8 @@ namespace App\Media;
 
 final class Movie extends Media implements MediaTypeInterface
 {
+    use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
+
     // https://www.phpliveregex.com/p/Mxs
     const MASK = '/^[\d{2}]*(.*)(\d{4}).*(480[p]?|720[p]?|1080[p]?|2160[p]?)(.*)$/is';
 
@@ -39,6 +41,34 @@ final class Movie extends Media implements MediaTypeInterface
     private array $tags = [];
 
     /**
+     * File extension.
+     *
+     * @var string
+     */
+    private $extension;
+
+    /**
+     * Language.
+     *
+     * @var string
+     */
+    private $language;
+
+    /**
+     * Dynamic Range HDR.
+     *
+     * @var bool
+     */
+    private $isHdr;
+
+    /**
+     * Dynamic Range Dolby Vision.
+     *
+     * @var bool
+     */
+    private $isDolbyVision;
+
+    /**
      * Maps the result of match to properties.
      *
      * @return void
@@ -55,19 +85,22 @@ final class Movie extends Media implements MediaTypeInterface
             if (4 > count($this->matches)) return;
 
             [, $title, $year, $tags] = $this->matches;
-            $resolution = '';
+            $resolution = null;
         }
 
         // sanity Check
         $title = (null === $title) ? '' : trim($title);
         $year = (null === $year) ? '' : trim($year);
-        $resolution = (null === $resolution) ? '' : trim($resolution);
         $tags = (null === $title) ? '' : trim($tags);
 
         $this->title = $this->formatTitle($title);
         $this->year = $year;
         $this->resolution = $resolution;
         $this->tags = $this->formatTags($tags);
+        $this->extension = $this->getExtension($this->fileName);
+        $this->language = $this->getLanguage($this->fileName);
+        $this->isHdr = $this->isHdr($this->fileName);
+        $this->isDolbyVision = $this->isDolbyVision($this->fileName);
     }
 
     /**
@@ -88,10 +121,14 @@ final class Movie extends Media implements MediaTypeInterface
     public function toArray(): array
     {
         return [
-            'title'         => $this->title,
-            'year'          => $this->year,
-            'resolution'    => $this->resolution,
-            'tags'          => $this->tags,
+            'title'             => $this->title,
+            'year'              => $this->year,
+            'resolution'        => $this->resolution,
+            'tags'              => $this->tags,
+            'extension'         => $this->extension,
+            'language'          => $this->language,
+            'is_hdr'            => $this->isHdr,
+            'is_dolby_vision'   => $this->isDolbyVision,
         ];
     }
 }

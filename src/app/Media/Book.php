@@ -6,6 +6,8 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
 
 final class Book extends Media implements MediaTypeInterface
 {
+    use ExtensionMetaData, LanguageMetaData;
+
     // https://www.phpliveregex.com/p/Mxt
     // It's incredibly difficult to find a common pattern among ebook file names.
     // Very little can be done to get more metadata out of the file name.
@@ -46,6 +48,20 @@ final class Book extends Media implements MediaTypeInterface
     private array $tags = [];
 
     /**
+     * File extension.
+     *
+     * @var string
+     */
+    private $extension;
+
+    /**
+     * Language.
+     *
+     * @var string
+     */
+    private $language;
+
+    /**
      * Maps the result of match to properties.
      *
      * @return void
@@ -63,6 +79,8 @@ final class Book extends Media implements MediaTypeInterface
         $this->year = $this->getYearFromTitle($title);
         $this->volume = $this->getVolumeFromTitle($title);
         $this->tags = $this->formatTags($title);
+        $this->extension = $this->getExtension($this->fileName);
+        $this->language = $this->getLanguage($this->fileName);
     }
 
     /**
@@ -87,6 +105,8 @@ final class Book extends Media implements MediaTypeInterface
             'year'      => $this->year,
             'volume'    => $this->volume,
             'tags'      => $this->tags,
+            'extension' => $this->extension,
+            'language'  => $this->language,
         ];
     }
 

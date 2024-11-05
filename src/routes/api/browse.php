@@ -11,8 +11,6 @@ use App\Http\Resources\BrowseCollection,
 
 // GET /api/browse
 Route::middleware('auth:sanctum')->get('/browse', function (Request $request) {
-    browseApiOverrides($request);
-
     $browseHandler = new Handler($request);
     return new BrowseCollection($browseHandler->paginate([
         'path' => Paginator::resolveCurrentPath(),
@@ -22,8 +20,6 @@ Route::middleware('auth:sanctum')->get('/browse', function (Request $request) {
 
 // GET /api/browse/locks
 Route::middleware('auth:sanctum')->get('/browse/locks', function (Request $request) {
-    browseApiOverrides($request);
-
     $packetList = [];
 
     if ($request->has('packet_list')) {
@@ -37,14 +33,3 @@ Route::middleware('auth:sanctum')->get('/browse/locks', function (Request $reque
         'completed'     => DownloadQueue::getCompletedDownloads($packetList),
     ];
 });
-
-/**
- * Manual request parameters for the application to override the user.
- *
- * @param Request $request
- * @return void
- */
-function browseApiOverrides(Request $request) {
-    // Don't include Beast chat bots, a lot of them never work.
-    $request->merge([Handler::OUT_NICK_KEY => ['Beast-']]);
-}

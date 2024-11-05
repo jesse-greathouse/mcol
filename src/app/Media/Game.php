@@ -6,6 +6,8 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
 
 final class Game extends Media implements MediaTypeInterface
 {
+    use ExtensionMetaData, LanguageMetaData;
+
     // https://www.phpliveregex.com/p/MxA
     const MASK = '/^[\d{2,3}]*(.*)[\.|\-](.*)\..*$/i';
 
@@ -46,6 +48,20 @@ final class Game extends Media implements MediaTypeInterface
      * @var array<string>
      */
     private array $tags = [];
+
+    /**
+     * File extension.
+     *
+     * @var string
+     */
+    private $extension;
+
+    /**
+     * Language.
+     *
+     * @var string
+     */
+    private $language;
 
     /**
      * Maps the result of match to properties.
@@ -92,6 +108,8 @@ final class Game extends Media implements MediaTypeInterface
         $this->version = $version;
         $this->release = $release;
         $this->tags = $this->formatTags($gameStr);
+        $this->extension = $this->getExtension($this->fileName);
+        $this->language = $this->getLanguage($this->fileName);
     }
 
     /**
@@ -116,6 +134,8 @@ final class Game extends Media implements MediaTypeInterface
             'version'   => $this->version,
             'release'   => $this->release,
             'tags'      => $this->tags,
+            'extension' => $this->extension,
+            'language'  => $this->language,
         ];
     }
 

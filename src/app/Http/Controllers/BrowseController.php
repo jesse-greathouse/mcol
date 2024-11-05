@@ -19,7 +19,6 @@ class BrowseController
 {
     public function index(Request $request)
     {
-        browseOverrides($request);
         $browseHandler = new Handler($request);
 
         $filters = $browseHandler->getFilters();
@@ -79,15 +78,4 @@ class BrowseController
 
         return $list;
     }
-}
-
-/**
- * Manual request parameters for the application to override the user.
- *
- * @param Request $request
- * @return void
- */
-function browseOverrides(Request $request) {
-    // Don't include Beast chat bots, a lot of them never work.
-    $request->merge([Handler::OUT_NICK_KEY => ['Beast-']]);
 }

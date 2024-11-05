@@ -6,6 +6,8 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
 
 final class Music extends Media implements MediaTypeInterface
 {
+    use ExtensionMetaData, LanguageMetaData;
+
     // https://www.phpliveregex.com/p/MxT
     const MASK = '/^[\d{2}]*([A-Za-z0-9_\.]+)+\-([A-Za-z0-9_\.]+|Discography)?\-?(.*)\..*$/i';
 
@@ -34,6 +36,20 @@ final class Music extends Media implements MediaTypeInterface
     private $year;
 
     /**
+     * File extension.
+     *
+     * @var string
+     */
+    private $extension;
+
+    /**
+     * Language.
+     *
+     * @var string
+     */
+    private $language;
+
+    /**
      * List of strings that describe various features of the media.
      *
      * @var array<string>
@@ -57,6 +73,8 @@ final class Music extends Media implements MediaTypeInterface
         $this->artist = $this->formatTitle($artist);
         $this->year = $this->getYearFromTags($tags);
         $this->tags = $this->formatTags($tags);
+        $this->extension = $this->getExtension($this->fileName);
+        $this->language = $this->getLanguage($this->fileName);
     }
 
     /**
@@ -81,6 +99,8 @@ final class Music extends Media implements MediaTypeInterface
             'artist'    => $this->artist,
             'year'      => $this->year,
             'tags'      => $this->tags,
+            'extension' => $this->extension,
+            'language'  => $this->language,
         ];
     }
 

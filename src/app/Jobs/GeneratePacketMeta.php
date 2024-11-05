@@ -2,12 +2,12 @@
 
 namespace App\Jobs;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\Queue\ShouldQueue,
+    Illuminate\Foundation\Bus\Dispatchable,
+    Illuminate\Foundation\Queue\Queueable,
+    Illuminate\Queue\InteractsWithQueue,
+    Illuminate\Queue\SerializesModels,
+    Illuminate\Support\Facades\Log;
 
 use App\Media\Application,
     App\Media\Book,
@@ -25,6 +25,14 @@ use \Exception;
 class GeneratePacketMeta implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    const PACKET_OPTIMIZATION_PROPERTIES = [
+        'resolution',
+        'extension',
+        'language',
+        'is_hdr',
+        'is_dolby_vision',
+    ];
 
     const MEDIA_MAP = [
         MediaType::APPLICATION  => Application::class,
@@ -99,6 +107,24 @@ class GeneratePacketMeta implements ShouldQueue
         }
 
         $packet->meta = $meta;
+        $packet = $this->optimizePacketWithMetadata($packet, $meta);
+
         $packet->save();
+    }
+
+    /**
+     * Takes an array of metadata and adds optimization to some properties of Packet.
+     *
+     * @param Packet $packet
+     * @param array $meta
+     * @return Packet
+     */
+    private function optimizePacketWithMetadata(Packet $packet, array $meta): Packet
+    {
+        foreach(self::PACKET_OPTIMIZATION_PROPERTIES as $property) {
+            if (isset($meta[$property])) $packet->$property = $meta[$property];
+        }
+
+        return $packet;
     }
 }
