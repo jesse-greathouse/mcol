@@ -6,12 +6,14 @@ use Illuminate\Support\Facades\Log;
 
 use App\Exceptions\IllegalPacketException,
     App\Jobs\DccDownload,
+    App\Jobs\CheckFileDownloadCompleted,
     App\Models\Bot,
     App\Models\Download,
     App\Models\FileDownloadLock,
     App\Models\Packet,
     App\Models\Network;
 
+use \DateTime;
 use \Exception;
 
 class Client
@@ -68,6 +70,10 @@ class Client
             // Sometimes the bot mutates the file name.
             // This keeps the file name consistent with what's in our records.
             $fileName = $packet->file_name;
+
+            if (!$this->isFileDownloadLocked($fileName)) {
+                $this->lockFile($fileName);
+            }
 
             $uri = "$downloadDir/$fileName";
 
@@ -287,5 +293,39 @@ class Client
         }
 
         return $packet;
+    }
+
+    /**
+     * Checks to see if there is a download lock on the file name.
+     * Download locks prevents a file from being simultanously downloaded from multiple sources.
+     *
+     * @param string $fileName
+     * @return boolean
+     */
+    protected function isFileDownloadLocked(string $fileName): bool
+    {
+        $lock = FileDownloadLock::where('file_name', $fileName)->first();
+
+        if (null !== $lock) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Locks a file.
+     *
+     * @param string $fileName
+     * @return boolean
+     */
+    protected function lockFile(string $fileName): void
+    {
+        // Lock the file for Downloading to prevent further downloads of the same file.
+        FileDownloadLock::create(['file_name' => $fileName]);
+        //Queue the job that checks if the file is finished downloading.
+        $timeStamp = new DateTime('now');
+        CheckFileDownloadCompleted::dispatch($fileName, $timeStamp)
+            ->delay(now()->addMinutes(CheckFileDownloadCompleted::SCHEDULE_INTERVAL));
     }
 }

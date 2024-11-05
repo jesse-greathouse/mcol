@@ -13,12 +13,8 @@ use Illuminate\Support\Facades\Log;
 use Exception,
     App\Dcc\Client,
     App\Exceptions\UnknownBotException,
-    App\Exceptions\FileDownloadLockedException,
-    App\Jobs\CheckFileDownloadCompleted,
     App\Models\Bot,
     App\Models\FileDownloadLock;
-
-use \DateTime;
 
 class DccDownload implements ShouldQueue, ShouldBeUnique
 {
@@ -114,14 +110,6 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
      */
     public function handle(): void
     {
-        if (!$this->isFileDownloadLocked()) {
-            $this->lockFile();
-            //Queue the job that checks if the file is finished downloading.
-            $timeStamp = new DateTime('now');
-            CheckFileDownloadCompleted::dispatch($this->file, $timeStamp)
-                ->delay(now()->addMinutes(CheckFileDownloadCompleted::SCHEDULE_INTERVAL));
-        }
-
         $bot = $this->getBot();
         $dcc = new Client($this);
         $dcc->open(long2ip($this->host), $this->port, $this->file, $this->fileSize, $bot->id, $this->resume);
@@ -165,33 +153,5 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
     public function failed(Exception $exception)
     {
         Log::warning("DccDownload job failed on file: {$this->file}\n bot: {$this->botName}\n host: {$this->host}\n message: \n{$exception->getMessage()}");
-    }
-
-    /**
-     * Checks to see if there is a download lock on the file name.
-     * Download locks prevents a file from being simultanously downloaded from multiple sources.
-     *
-     * @return boolean
-     */
-    protected function isFileDownloadLocked(): bool
-    {
-        $lock = FileDownloadLock::where('file_name', $this->file)->first();
-
-        if (null !== $lock) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Locks a file.
-     *
-     * @return boolean
-     */
-    protected function lockFile(): void
-    {
-        // Lock the file for Downloading to prevent further downloads of the same file.
-        FileDownloadLock::create(['file_name' => $this->file]);
     }
 }
