@@ -39,6 +39,26 @@ class Browse
     const DEFAULT_RPP = 40;
     const DEFAULT_PAGE = 1;
 
+    const FILTER_END_DATE = 'endDate';
+    const FILTER_START_DATE = 'startDate';
+    const FILTER_SEARCH_STRING = 'searchString';
+    const FILTER_IN_BOTS = 'filterInBots';
+    const FILTER_OUT_BOTS = 'filterOutBots';
+    const FILTER_IN_NICKS = 'filterInNicks';
+    const FILTER_OUT_NICKS = 'filterOutNicks';
+    const FILTER_IN_NETWORKS = 'filterInNetworks';
+    const FILTER_OUT_NETWORKS = 'filterOutNetworks';
+    const FILTER_IN_LANGUAGES = 'filterInLanguages';
+    const FILTER_OUT_LANGUAGES = 'filterOutLanguages';
+    const FILTER_IN_MEDIA_TYPES = 'filterInMediaTypes';
+    const FILTER_OUT_MEDIA_TYPES = 'filterOutMediaTypes';
+    const FILTER_IN_RESOLUTIONS = 'filterInResolutions';
+    const FILTER_OUT_RESOLUTIONS = 'filterOutResolutions';
+    const FILTER_IN_DYNAMIC_RANGE = 'filterInDynamicRange';
+    const FILTER_OUT_DYNAMIC_RANGE = 'filterOutDynamicRange';
+    const FILTER_IN_FILE_EXTENSIONS = 'filterInFileExtensions';
+    const FILTER_OUT_FILE_EXTENSIONS = 'filterOutFileExtensions';
+
     // Lists of media types to filter in or out.
     /**
      * @var array
@@ -65,12 +85,12 @@ class Browse
     /**
      * @var array
      */
-    protected array $filterInNickMask = [];
+    protected array $filterInNicks = [];
 
     /**
      * @var array
      */
-    protected array $filterOutNickMask = [];
+    protected array $filterOutNicks = [];
 
     // Lists of languages to filter in or out.
     /**
@@ -216,6 +236,25 @@ class Browse
     }
 
     /**
+     * A shortcut function to make downstream logic a little bit more terse.
+     * There is a lot of this checking happening in a lot of these methods.
+     * This should enable it to be easier to read.
+     *
+     * @param string
+     * @return bool
+     */
+    public function isFiltering(string $filter): bool
+    {
+        if ('array' === gettype($this->$filter)) {
+            return (0 < count($this->$filter)) ? true : false;
+        }
+
+        if (null !== $this->$filter) return true;
+
+        return false;
+    }
+
+    /**
      * Run the Query and return the result.
      *
      * @return array
@@ -299,7 +338,7 @@ class Browse
         $query .= $this->filterFileExtensions();
         $query .= $this->filterBots();
         $query .= $this->filterNicks();
-        $query .= $this->filterEmptyBotNames();
+
         return $query;
     }
 
@@ -368,9 +407,9 @@ class Browse
     protected function filterSearchString(): string
     {
         $query = '';
-        $searchString = $this->getSearchString();
 
-        if (null !== $searchString) {
+        if ($this->isFiltering(self::FILTER_SEARCH_STRING)) {
+            $searchString = $this->getSearchString();
             $query = "AND MATCH (p.file_name) AGAINST ('$searchString' IN BOOLEAN MODE)\n";
         }
 
@@ -406,11 +445,11 @@ class Browse
         $start = null;
         $end = null;
 
-        if (null !== $this->startDate) {
+        if ($this->isFiltering(self::FILTER_START_DATE)) {
             $start = $this->startDate->format(self::MYSQL_TIMESTAMP_FORMAT);
         }
 
-        if (null !== $this->endDate) {
+        if ($this->isFiltering(self::FILTER_END_DATE)) {
             $end = $this->endDate->format(self::MYSQL_TIMESTAMP_FORMAT);
         }
 
@@ -442,18 +481,16 @@ class Browse
         $query = '';
         $state = 'IN';
         $selectedMediaTypes = MediaType::getMediaTypes();
-        $filterInMediaTypes = $this->getFilterInMediaTypes();
-        $filterOutMediaTypes = $this->getFilterOutMediaTypes();
 
-        if (0 < count($filterInMediaTypes)) {
-            $selectedMediaTypes = $filterInMediaTypes;
-        } else if (0 < count($filterOutMediaTypes)) {
+        if ($this->isFiltering(self::FILTER_IN_MEDIA_TYPES)) {
+            $selectedMediaTypes = $this->getFilterInMediaTypes();
+        } else if ($this->isFiltering(self::FILTER_OUT_MEDIA_TYPES)) {
             $state = 'NOT IN';
-            $selectedMediaTypes = array_diff($selectedMediaTypes, $filterOutMediaTypes);
+            $selectedMediaTypes = array_diff($selectedMediaTypes, $this->getFilterOutMediaTypes());
         }
 
         if (0 < count($selectedMediaTypes)) {
-            $listStr = '\'' . implode('\',\'', $selectedMediaTypes) . '\'';
+            $listStr = $this->makeListStr($selectedMediaTypes);
             $query = "AND p.media_type $state ($listStr)\n";
         }
 
@@ -468,14 +505,12 @@ class Browse
     protected function filterLanguages(): string
     {
         $query = '';
-        $filterInLanguages = $this->getFilterInLanguages();
-        $filterOutLanguages = $this->getFilterOutLanguages();
 
-        if (0 < count($filterInLanguages)) {
-            $listStr = '\'' . implode('\',\'', $filterInLanguages) . '\'';
+        if ($this->isFiltering(self::FILTER_IN_LANGUAGES)) {
+            $listStr = $this->makeListStr($this->getFilterInLanguages());
             $query = "AND p.language IN ($listStr)\n";
-        } else if (0 < count($filterOutLanguages)) {
-            $listStr = '\'' . implode('\',\'', $filterOutLanguages) . '\'';
+        } else if ($this->isFiltering(self::FILTER_OUT_LANGUAGES)) {
+            $listStr = $this->makeListStr($this->getFilterOutLanguages());
             $query = "AND p.language NOT IN ($listStr)\n";
         }
 
@@ -490,14 +525,12 @@ class Browse
     protected function filterNetworks(): string
     {
         $query = '';
-        $filterInNetworks = $this->getFilterInNetworks();
-        $filterOutNetworks = $this->getFilterOutNetworks();
 
-        if (0 < count($filterInNetworks)) {
-            $listStr = '\'' . implode('\',\'', $filterInNetworks) . '\'';
+        if ($this->isFiltering(self::FILTER_IN_NETWORKS)) {
+            $listStr = $this->makeListStr($this->getFilterInNetworks());
             $query = "AND n.name IN ($listStr)\n";
-        } else if (0 < count($filterOutNetworks)) {
-            $listStr = '\'' . implode('\',\'', $filterOutNetworks) . '\'';
+        } else if ($this->isFiltering(self::FILTER_OUT_NETWORKS)) {
+            $listStr = $this->makeListStr($this->getFilterOutNetworks());
             $query = "AND n.name NOT IN ($listStr)\n";
         }
 
@@ -512,14 +545,12 @@ class Browse
     protected function filterBots(): string
     {
         $query = '';
-        $filterInBots = $this->getFilterInBots();
-        $filterOutBots = $this->getFilterOutBots();
 
-        if (0 < count($filterInBots)) {
-            $listStr = '\'' . implode('\',\'', $filterInBots) . '\'';
+        if ($this->isFiltering(self::FILTER_IN_BOTS)) {
+            $listStr = $this->makeListStr($this->getFilterInBots());
             $query = "AND b.id IN ($listStr)\n";
-        } else if (0 < count($filterOutBots)) {
-            $listStr = '\'' . implode('\',\'', $filterOutBots) . '\'';
+        } else if ($this->isFiltering(self::FILTER_OUT_BOTS)) {
+            $listStr = $this->makeListStr($this->getFilterOutBots());
             $query = "AND b.id NOT IN ($listStr)\n";
         }
 
@@ -534,14 +565,12 @@ class Browse
     protected function filterNicks(): string
     {
         $query = '';
-        $filterInNickMask = $this->getFilterInNickMask();
-        $filterOutNickMask = $this->getFilterOutNickMask();
 
-        if (0 < count($filterInNickMask)) {
-            $listStr = '\'' . implode('\',\'', $filterInNickMask) . '\'';
+        if ($this->isFiltering(self::FILTER_IN_NICKS)) {
+            $listStr = $this->makeListStr($this->getFilterInNicks());
             $query = "AND b.nick IN ($listStr)\n";
-        } else if (0 < count($filterOutNickMask)) {
-            $listStr = '\'' . implode('\',\'', $filterOutNickMask) . '\'';
+        } else if ($this->isFiltering(self::FILTER_OUT_NICKS)) {
+            $listStr = $this->makeListStr($this->getFilterOutNicks());
             $query = "AND b.nick NOT IN ($listStr)\n";
         }
 
@@ -556,14 +585,12 @@ class Browse
     protected function filterResolutions(): string
     {
         $query = '';
-        $filterInResolutions = $this->getFilterInResolutions();
-        $filterOutResolutions = $this->getFilterOutResolutions();
 
-        if (0 < count($filterInResolutions)) {
-            $listStr = '\'' . implode('\',\'', $filterInResolutions) . '\'';
+        if ($this->isFiltering(self::FILTER_IN_RESOLUTIONS)) {
+            $listStr = $this->makeListStr($this->getFilterInResolutions());
             $query = "AND p.resolution IN ($listStr)\n";
-        } else if (0 < count($filterOutResolutions)) {
-            $listStr = '\'' . implode('\',\'', $filterOutResolutions) . '\'';
+        } else if ($this->isFiltering(self::FILTER_OUT_RESOLUTIONS)) {
+            $listStr = $this->makeListStr($this->getFilterOutResolutions());
             $query = "AND p.resolution NOT IN ($listStr)\n";
 
         }
@@ -579,10 +606,9 @@ class Browse
     protected function filterDynamicRange(): string
     {
         $query = '';
-        $filterInDynamicRange = $this->getFilterInDynamicRange();
-        $filterOutDynamicRange = $this->getFilterOutDynamicRange();
 
-        if (0 < count($filterInDynamicRange)) {
+        if ($this->isFiltering(self::FILTER_IN_DYNAMIC_RANGE)) {
+            $filterInDynamicRange = $this->getFilterInDynamicRange();
             if (in_array(MediaDynamicRange::HDR, $filterInDynamicRange)) {
                 $query .= "AND p.is_hdr = 1\n";
             }
@@ -590,7 +616,8 @@ class Browse
             if (in_array(MediaDynamicRange::DOLBY_VISION, $filterInDynamicRange)) {
                 $query .= "AND p.is_dolby_vision = 1\n";
             }
-        } else if (0 < count($filterOutDynamicRange)) {
+        } else if ($this->isFiltering(self::FILTER_OUT_DYNAMIC_RANGE)) {
+            $filterOutDynamicRange = $this->getFilterOutDynamicRange();
             if (in_array(MediaDynamicRange::HDR, $filterOutDynamicRange)) {
                 $query .= "AND p.is_hdr = 0\n";
             }
@@ -613,32 +640,20 @@ class Browse
         $query = '';
         $state = 'IN';
         $selectedFileExtensions = FileExtension::getFileExtensions();
-        $filterInFileExtensions = $this->getFilterInFileExtensions();
-        $filterOutFileExtensions = $this->getFilterOutFileExtensions();
 
-        if (0 < count($filterInFileExtensions)) {
-            $selectedFileExtensions = $filterInFileExtensions;
-        } else if (0 < count($filterOutFileExtensions)) {
+        if ($this->isFiltering(self::FILTER_IN_FILE_EXTENSIONS)) {
+            $selectedFileExtensions = $this->getFilterInFileExtensions();
+        } else if ($this->isFiltering(self::FILTER_OUT_FILE_EXTENSIONS)) {
             $state = 'NOT IN';
-            $selectedFileExtensions = array_diff($selectedFileExtensions, $filterOutFileExtensions);
+            $selectedFileExtensions = array_diff($selectedFileExtensions, $this->getFilterOutFileExtensions());
         }
 
         if (0 < count($selectedFileExtensions)) {
-            $listStr = '\'' . implode('\',\'', $selectedFileExtensions) . '\'';
+            $listStr = $this->makeListStr($selectedFileExtensions);
             $query = "AND p.extension $state ($listStr)\n";
         }
 
         return $query;
-    }
-
-    /**
-     * Returns a string that disables results where bot names are empty.
-     *
-     * @return string
-     */
-    protected function filterEmptyBotNames(): string
-    {
-        return "AND b.nick <> '' \n";
     }
 
     /**
@@ -649,10 +664,13 @@ class Browse
     protected function getQueryFrom(): string
     {
         $query = 'FROM mcol.packets p' . "\n";
-        $query .= 'JOIN mcol.networks n on p.network_id = n.id' . "\n";
         $query .= 'JOIN mcol.bots b on p.bot_id = b.id' . "\n";
-        $query .= 'JOIN mcol.`channels` c on p.channel_id = c.id' . "\n";
-        $query .= 'INNER JOIN mcol.file_first_appearances f on p.file_name = f.file_name' . "\n";
+        $query .= 'JOIN mcol.networks n on p.network_id = n.id' . "\n";
+
+        if ($this->isFiltering(self::FILTER_START_DATE) || $this->isFiltering(self::FILTER_START_DATE)) {
+            $query .= 'INNER JOIN mcol.file_first_appearances f on p.file_name = f.file_name' . "\n";
+        }
+
         $query .= 'WHERE 1' . "\n";
 
         return $query;
@@ -677,12 +695,16 @@ class Browse
         $query .= ', p.resolution';
         $query .= ', p.is_hdr';
         $query .= ', p.is_dolby_vision';
-        $query .= ', n.name as network';
+        $query .= ', p.number';
+        $query .= ', p.meta';
         $query .= ', b.id as bot_id';
         $query .= ', b.nick';
-        $query .= ', p.number';
-        $query .= ', f.created_at as first_appearance';
-        $query .= ', p.meta';
+        $query .= ', n.name as network';
+
+        if ($this->isFiltering(self::FILTER_START_DATE) || $this->isFiltering(self::FILTER_START_DATE)) {
+            $query .= ', f.created_at as first_appearance';
+        }
+
         $query .= "\n";
 
         return $query;
@@ -873,6 +895,17 @@ class Browse
     {
         $intersection = array_intersect($mediaTypeList, MediaType::getMediaTypes());
         return $intersection;
+    }
+
+    /**
+     * Turns an array list into a string that is useable in a SQL: "WHERE IN" clause.
+     *
+     * @param array $list
+     * @return string
+     */
+    protected function makeListStr(array $list): string
+    {
+        return '\'' . implode('\',\'', $list) . '\'';
     }
 
     /**
@@ -1361,46 +1394,46 @@ class Browse
     }
 
     /**
-     * Get the value of filterInNickMask
+     * Get the value of filterInNicks
      *
      * @return  array
      */
-    public function getFilterInNickMask(): array
+    public function getFilterInNicks(): array
     {
-        return $this->filterInNickMask;
+        return $this->filterInNicks;
     }
 
     /**
-     * Set the value of filterInNickMask
+     * Set the value of filterInNicks
      *
-     * @param  array  $filterInNickMask
+     * @param  array  $filterInNicks
      *
      * @return  self
      */
-    public function setFilterInNickMask(array $filterInNickMask): void
+    public function setFilterInNicks(array $filterInNicks): void
     {
-        $this->filterInNickMask = $filterInNickMask;
+        $this->filterInNicks = $filterInNicks;
     }
 
     /**
-     * Get the value of filterOutNickMask
+     * Get the value of filterOutNicks
      *
      * @return  array
      */
-    public function getFilterOutNickMask(): array
+    public function getFilterOutNicks(): array
     {
-        return $this->filterOutNickMask;
+        return $this->filterOutNicks;
     }
 
     /**
-     * Set the value of filterOutNickMask
+     * Set the value of filterOutNicks
      *
-     * @param  array  $filterOutNickMask
+     * @param  array  $filterOutNicks
      *
      * @return  self
      */
-    public function setFilterOutNickMask(array $filterOutNickMask): void
+    public function setFilterOutNicks(array $filterOutNicks): void
     {
-        $this->filterOutNickMask = $filterOutNickMask;
+        $this->filterOutNicks = $filterOutNicks;
     }
 }

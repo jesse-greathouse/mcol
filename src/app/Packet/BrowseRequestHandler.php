@@ -19,6 +19,8 @@ class BrowseRequestHandler
     const OUT_BOTS_KEY = 'out_bots';
     const IN_NICK_KEY = 'in_nick';
     const OUT_NICK_KEY = 'out_nick';
+    const IN_NETWORK_KEY = 'in_network';
+    const OUT_NETWORK_KEY = 'out_network';
     const IN_LANGUAGE_KEY = 'in_language';
     const OUT_LANGUAGE_KEY = 'out_language';
     const SEARCH_STRING_KEY = 'search_string';
@@ -72,8 +74,10 @@ class BrowseRequestHandler
             self::END_DATE_KEY => $this->browse->getEndDate(),
             self::IN_BOTS_KEY => $this->browse->getFilterInBots(),
             self::OUT_BOTS_KEY => $this->browse->getFilterOutBots(),
-            self::IN_NICK_KEY => $this->browse->getFilterInNickMask(),
-            self::OUT_BOTS_KEY => $this->browse->getFilterOutNickMask(),
+            self::IN_NICK_KEY => $this->browse->getFilterInNicks(),
+            self::OUT_NICK_KEY => $this->browse->getFilterOutNicks(),
+            self::IN_NETWORK_KEY => $this->browse->getFilterInNetworks(),
+            self::OUT_NETWORK_KEY => $this->browse->getFilterOutNetworks(),
             self::IN_LANGUAGE_KEY => $this->browse->getFilterInLanguages(),
             self::OUT_LANGUAGE_KEY => $this->browse->getFilterOutLanguages(),
             self::SEARCH_STRING_KEY => $this->browse->getSearchString(),
@@ -104,6 +108,7 @@ class BrowseRequestHandler
         $this->endDate();
         $this->bots();
         $this->nicks();
+        $this->networks();
         $this->mediaTypes();
         $this->languages();
         $this->fileExtensions();
@@ -199,7 +204,7 @@ class BrowseRequestHandler
 
     /**
      * DateTime to start the chronology of the results
-     * 
+     *
      * @return void
      */
     protected function startDate(): void
@@ -213,7 +218,7 @@ class BrowseRequestHandler
 
     /**
      * DateTime to end the chronology of the results
-     * 
+     *
      * @return void
      */
     protected function endDate(): void
@@ -254,9 +259,23 @@ class BrowseRequestHandler
     protected function nicks(): void
     {
         if ($this->request->has(self::IN_NICK_KEY)) {
-            $this->browse->setFilterInNickMask($this->request->input(self::IN_NICK_KEY));
+            $this->browse->setFilterInNicks($this->request->input(self::IN_NICK_KEY));
         } else if ($this->request->has(self::OUT_NICK_KEY)) {
-            $this->browse->setFilterOutNickMask($this->request->input(self::OUT_NICK_KEY));
+            $this->browse->setFilterOutNicks($this->request->input(self::OUT_NICK_KEY));
+        }
+    }
+
+    /**
+     * Handle Bots input.
+     *
+     * @return void
+     */
+    protected function networks(): void
+    {
+        if ($this->request->has(self::IN_NETWORK_KEY)) {
+            $this->browse->setFilterInNetworks($this->request->input(self::IN_NETWORK_KEY));
+        } else if ($this->request->has(self::OUT_NETWORK_KEY)) {
+            $this->browse->setFilterOutNetworks($this->request->input(self::OUT_NETWORK_KEY));
         }
     }
 
