@@ -178,6 +178,7 @@ final class TvEpisode extends Media implements MediaTypeInterface
             'resolution'        => $this->resolution,
             'tags'              => $this->tags,
             'extension'         => $this->extension,
+            'language'          => $this->language,
             'is_hdr'            => $this->isHdr,
             'is_dolby_vision'   => $this->isDolbyVision,
         ];

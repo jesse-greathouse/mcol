@@ -12,6 +12,8 @@ use App\Exceptions\IllegalPacketException,
     App\Models\Packet,
     App\Models\Network;
 
+use \Exception;
+
 class Client
 {
     const CHUNK_BYTES = 2048;
@@ -58,10 +60,15 @@ class Client
             }
         } else {
             $downloadDir = env('DOWNLOAD_DIR', '/var/mcol/download');
-            $packet = Packet::where('file_name', $fileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
-            if (!$packet) {
-                throw new IllegalPacketException("Packet with bot id: $botId and file: $fileName were expected but not found");
+            $packet = $this->getPacketByFileNameAndBotId($fileName, $botId);
+            if (null === $packet) {
+                throw new IllegalPacketException("Packet with bot id: $botId and file: $fileName was expected but not found");
             }
+
+            // Sometimes the bot mutates the file name.
+            // This keeps the file name consistent with what's in our records.
+            $fileName = $packet->file_name;
+
             $uri = "$downloadDir/$fileName";
 
             // Register or update the file download status data.
@@ -252,5 +259,33 @@ class Client
         preg_match(self::PACKET_LIST_MASK, $fileName, $matches);
 
         return (0 < count($matches));
+    }
+
+    /**
+     * From a given file name, retrieve a packet object.
+     *
+     * @param string $fileName
+     * @param int $botId
+     * @return Packet|null
+     */
+    protected function getPacketByFileNameAndBotId(string $fileName, int $botId): Packet | null
+    {
+        $packet = null;
+
+        try {
+            $packet = Packet::where('file_name', $fileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
+
+            if (null === $packet) {
+                // Sometimes the Bot advertize a file having whitespace delimiter, but then sends the file with _ (underscore) delimiter.
+                // It makes me very happy that some bot operators do this :-D because now I get to write this extra line of code.
+                $underscoreFileName = str_replace('_', ' ', $fileName);
+                $packet = Packet::where('file_name', $underscoreFileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
+            }
+        } catch(Exception $e) {
+            Log::error("Failed to Query packet by file: $fileName and botId: $botId");
+            Log::error("$e");
+        }
+
+        return $packet;
     }
 }

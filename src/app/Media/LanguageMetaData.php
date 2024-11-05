@@ -2,6 +2,8 @@
 
 namespace App\Media;
 
+use Illuminate\Support\Facades\Log;
+
 use App\Exceptions\MediaMetadataUnableToMatchException;
 
 trait LanguageMetaData
