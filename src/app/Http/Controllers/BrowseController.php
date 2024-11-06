@@ -27,7 +27,7 @@ class BrowseController
             'pageName' => 'page',
         ])->withQueryString()->toArray();
 
-        $packetList = $this->getPacketList($resp['data']);
+        $packetList = array_map(fn ($packet) => $packet->id, $resp['data']);
 
         return Inertia::render('Browse', [
             'packet_list'       => $packetList,
@@ -57,21 +57,5 @@ class BrowseController
             'prev_page_url'     => $resp['prev_page_url'],
             'next_page_url'     => $resp['next_page_url'],
         ]);
-    }
-
-    /**
-     * With an array of packets, convert it into a list of packet IDs.
-     *
-     * @param array $packets
-     * @return array
-     */
-    protected function getPacketList(array $packets): array
-    {
-        $list = [];
-        foreach($packets as $packet) {
-            $list[] = $packet->id;
-        }
-
-        return $list;
     }
 }

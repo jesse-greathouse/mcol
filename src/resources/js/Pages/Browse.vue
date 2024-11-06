@@ -437,6 +437,8 @@
         // datePicker prefers empty dates to be strings.
         this.form.end_date = ''
         this.form.start_date = ''
+        this.updateExcludeLanguages(false)
+        this.updateExcludeDynamicRanges(false)
       },
       resetSearchString() {
         this.form.search_string = null
@@ -453,10 +455,10 @@
       },
       updateMediaType(mediaTypes) {
         // Check to see if mediaTypes has any video formats.
-        const intersection = _.intersection(mediaTypes, ['movie', 'tv episode', 'tv season'])
+        const videoFormats = _.intersection(mediaTypes, ['movie', 'tv episode', 'tv season'])
 
         // If there are no video formats, the other form elements should let go of resolution and DR values.
-        if (0 >= intersection.length) {
+        if (0 >= videoFormats.length) {
             this.updateResolution([])
             this.updateDynamicRanges('hdr', false)
             this.updateDynamicRanges('dovi', false)
