@@ -332,12 +332,12 @@ class Browse
         $query .= $this->filterDateRange();
         $query .= $this->filterDynamicRange();
         $query .= $this->filterMediaTypes();
-        $query .= $this->filterResolutions();
-        $query .= $this->filterNetworks();
-        $query .= $this->filterLanguages();
+        $query .= $this->filterColumn('p.resolution', self::FILTER_IN_RESOLUTIONS, self::FILTER_OUT_RESOLUTIONS);
+        $query .= $this->filterColumn('n.name', self::FILTER_IN_NETWORKS, self::FILTER_OUT_NETWORKS);
+        $query .= $this->filterColumn('p.language', self::FILTER_IN_LANGUAGES, self::FILTER_OUT_LANGUAGES);
         $query .= $this->filterFileExtensions();
-        $query .= $this->filterBots();
-        $query .= $this->filterNicks();
+        $query .= $this->filterColumn('b.id', self::FILTER_IN_BOTS, self::FILTER_OUT_BOTS);
+        $query .= $this->filterColumn('b.nick', self::FILTER_IN_NICKS, self::FILTER_OUT_NICKS);
 
         return $query;
     }
@@ -397,6 +397,37 @@ class Browse
             default:
                 return self::ORDER_DESCENDING;
         }
+    }
+
+    /**
+     * Generic column filtering method.
+     * Use this only when the column query fits the common pattern.
+     * e.g.: "AND p.language IN ('german,','korean','spanish')";
+     *
+     * @param string $column
+     * @param string $filter
+     * @param string $negativeFilter
+     * @param array|null $baseList
+     * @return string
+     */
+    protected function filterColumn(string $column, string $filter, string $negativeFilter = null): string
+    {
+        $query = '';
+        $state = 'IN';
+        $func  = null;
+
+        if ($this->isFiltering($filter)) {
+            $func = 'get' . ucfirst($filter);
+        } else if (null !== $negativeFilter &&  $this->isFiltering($negativeFilter)) {
+            $func = 'get' . ucfirst($negativeFilter);
+            $state = 'NOT IN';
+        }
+
+        if (null !== $func) {
+            $query = "AND $column $state ({$this->makeListStr($this->$func())})\n";
+        }
+
+        return $query;
     }
 
     /**
@@ -498,107 +529,6 @@ class Browse
     }
 
     /**
-     * Returns a string to only include certain languages.
-     *
-     * @return string
-     */
-    protected function filterLanguages(): string
-    {
-        $query = '';
-
-        if ($this->isFiltering(self::FILTER_IN_LANGUAGES)) {
-            $listStr = $this->makeListStr($this->getFilterInLanguages());
-            $query = "AND p.language IN ($listStr)\n";
-        } else if ($this->isFiltering(self::FILTER_OUT_LANGUAGES)) {
-            $listStr = $this->makeListStr($this->getFilterOutLanguages());
-            $query = "AND p.language NOT IN ($listStr)\n";
-        }
-
-        return $query;
-    }
-
-    /**
-     * Returns a string to only include certain Networks.
-     *
-     * @return string
-     */
-    protected function filterNetworks(): string
-    {
-        $query = '';
-
-        if ($this->isFiltering(self::FILTER_IN_NETWORKS)) {
-            $listStr = $this->makeListStr($this->getFilterInNetworks());
-            $query = "AND n.name IN ($listStr)\n";
-        } else if ($this->isFiltering(self::FILTER_OUT_NETWORKS)) {
-            $listStr = $this->makeListStr($this->getFilterOutNetworks());
-            $query = "AND n.name NOT IN ($listStr)\n";
-        }
-
-        return $query;
-    }
-
-    /**
-     * Returns a string to only include certain Bots.
-     *
-     * @return string
-     */
-    protected function filterBots(): string
-    {
-        $query = '';
-
-        if ($this->isFiltering(self::FILTER_IN_BOTS)) {
-            $listStr = $this->makeListStr($this->getFilterInBots());
-            $query = "AND b.id IN ($listStr)\n";
-        } else if ($this->isFiltering(self::FILTER_OUT_BOTS)) {
-            $listStr = $this->makeListStr($this->getFilterOutBots());
-            $query = "AND b.id NOT IN ($listStr)\n";
-        }
-
-        return $query;
-    }
-
-    /**
-     * Returns a string to only include bots by nicknamn masks.
-     *
-     * @return string
-     */
-    protected function filterNicks(): string
-    {
-        $query = '';
-
-        if ($this->isFiltering(self::FILTER_IN_NICKS)) {
-            $listStr = $this->makeListStr($this->getFilterInNicks());
-            $query = "AND b.nick IN ($listStr)\n";
-        } else if ($this->isFiltering(self::FILTER_OUT_NICKS)) {
-            $listStr = $this->makeListStr($this->getFilterOutNicks());
-            $query = "AND b.nick NOT IN ($listStr)\n";
-        }
-
-        return $query;
-    }
-
-    /**
-     * Returns a string to only include certain resolutions.
-     *
-     * @return string
-     */
-    protected function filterResolutions(): string
-    {
-        $query = '';
-
-        if ($this->isFiltering(self::FILTER_IN_RESOLUTIONS)) {
-            $listStr = $this->makeListStr($this->getFilterInResolutions());
-            $query = "AND p.resolution IN ($listStr)\n";
-        } else if ($this->isFiltering(self::FILTER_OUT_RESOLUTIONS)) {
-            $listStr = $this->makeListStr($this->getFilterOutResolutions());
-            $query = "AND p.resolution NOT IN ($listStr)\n";
-
-        }
-
-        return $query;
-    }
-
-    /**
      * Returns a string to only include certain dynamic range values.
      *
      * @return string
@@ -667,7 +597,7 @@ class Browse
         $query .= 'JOIN mcol.bots b on p.bot_id = b.id' . "\n";
         $query .= 'JOIN mcol.networks n on p.network_id = n.id' . "\n";
 
-        if ($this->isFiltering(self::FILTER_START_DATE) || $this->isFiltering(self::FILTER_START_DATE)) {
+        if ($this->isFiltering(self::FILTER_START_DATE) || $this->isFiltering(self::FILTER_END_DATE)) {
             $query .= 'INNER JOIN mcol.file_first_appearances f on p.file_name = f.file_name' . "\n";
         }
 
@@ -701,7 +631,7 @@ class Browse
         $query .= ', b.nick';
         $query .= ', n.name as network';
 
-        if ($this->isFiltering(self::FILTER_START_DATE) || $this->isFiltering(self::FILTER_START_DATE)) {
+        if ($this->isFiltering(self::FILTER_START_DATE) || $this->isFiltering(self::FILTER_END_DATE)) {
             $query .= ', f.created_at as first_appearance';
         }
 
