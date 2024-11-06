@@ -41,6 +41,15 @@
         </div>
 
         <div class="flex items-start justify-start mb-4">
+            <span class="mx-2 w-48 min-w-48">
+              <Multiselect placeholder="Networks" mode='multiple' @change="updateNetwork" class="p-1 hover:text-gray-700 focus:text-indigo-500 text-sm"
+                :multipleLabel="networkLabel"
+                v-model="form.in_networks"
+                :options="networks"
+                ref="networks"
+              />
+            </span>
+
           <language-filter ref="languages" class="w-full max-w-md" @update:languages="updateLanguages"  @update:excludeLanguage="updateExcludeLanguages"
             :exclude="exclude_languages"
             :in_language="form.in_language"
@@ -219,6 +228,7 @@
       pagination_nav: Object,
       dynamic_ranges: Array,
       media_types: Array,
+      networks: Array,
       resolutions: Array,
       languages: Array,
       packet_list: Array,
@@ -265,11 +275,8 @@
           in_resolution: this.filters.in_resolution,
           in_dynamic_range: this.filters.in_dynamic_range,
           out_dynamic_range: this.filters.out_dynamic_range,
+          in_network: this.filters.in_network,
         },
-        media_types: this.media_types,
-        dynamic_ranges: this.dynamic_ranges,
-        resolutions: this.resolutions,
-        languages: this.languages,
         exclude_languages: exclude_languages,
         exclude_dynamic_ranges: exclude_dynamic_ranges,
         packet_list: this.packet_list,
@@ -447,6 +454,9 @@
       updateMediaType(mediaTypes) {
         this.form.in_media_type = mediaTypes
       },
+      updateNetwork(networks) {
+        this.form.in_network = networks
+      },
       mediaLabel(values) {
         const tvStr = 'tv '
         const cleanedValues = []
@@ -467,6 +477,10 @@
       },
       updateResolution(resolutions) {
         this.form.in_resolution = resolutions
+      },
+      networkLabel(values) {
+        const label = dynamicLabel(values, 6)
+        return `${label} ...`
       },
       resolutionLabel(values) {
         const label = dynamicLabel(values, 6)

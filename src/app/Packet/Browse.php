@@ -407,7 +407,6 @@ class Browse
      * @param string $column
      * @param string $filter
      * @param string $negativeFilter
-     * @param array|null $baseList
      * @return string
      */
     protected function filterColumn(string $column, string $filter, string $negativeFilter = null): string
@@ -431,7 +430,7 @@ class Browse
     }
 
     /**
-     * Undocumented function
+     * Creates a SQL filter clause for a user provided search string.
      *
      * @return string
      */

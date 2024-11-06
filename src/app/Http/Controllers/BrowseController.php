@@ -12,6 +12,7 @@ use App\Packet\BrowseRequestHandler as Handler,
     App\Media\MediaDynamicRange,
     App\Media\MediaLanguage,
     App\Media\MediaType,
+    App\Models\Network,
     App\Models\FileDownloadLock,
     App\Settings;
 
@@ -20,12 +21,6 @@ class BrowseController
     public function index(Request $request)
     {
         $browseHandler = new Handler($request);
-
-        $filters = $browseHandler->getFilters();
-        $mediaTypes = MediaType::getMediaTypes();
-        $resolutions = MediaResolution::getMediaResolutions();
-        $languages = MediaLanguage::getMediaLanguages();
-        $dynamicRanges = MediaDynamicRange::getMediaDynamicRanges();
 
         $resp = $browseHandler->paginate([
             'path' => LengthAwarePaginator::resolveCurrentPath(),
@@ -42,11 +37,12 @@ class BrowseController
             'queued'            => fn () => DownloadQueue::getQueuedDownloads($packetList),
             'incomplete'        => fn () => DownloadQueue::getIncompleteDownloads($packetList),
             'completed'         => fn () => DownloadQueue::getCompletedDownloads($packetList),
-            'dynamic_ranges'    => $dynamicRanges,
-            'media_types'       => $mediaTypes,
-            'resolutions'       => $resolutions,
-            'languages'         => $languages,
-            'filters'           => $filters,
+            'networks'          => fn () => Network::all()->pluck('name')->toArray(),
+            'dynamic_ranges'    => fn () => MediaDynamicRange::getMediaDynamicRanges(),
+            'media_types'       => fn () => MediaType::getMediaTypes(),
+            'resolutions'       => fn () => MediaResolution::getMediaResolutions(),
+            'languages'         => fn () => MediaLanguage::getMediaLanguages(),
+            'filters'           => fn () => $browseHandler->getFilters(),
             'packets'           => $resp['data'],
             'path'              => $resp['path'],
             'current_page'      => $resp['current_page'],
