@@ -414,17 +414,17 @@ class Browse
     {
         $query = '';
         $state = 'IN';
-        $func  = null;
+        $list  = null;
 
         if ($this->isFiltering($filter)) {
-            $func = 'get' . ucfirst($filter);
+            $list = $this->makeListStr($this->$filter);
         } else if (null !== $negativeFilter &&  $this->isFiltering($negativeFilter)) {
-            $func = 'get' . ucfirst($negativeFilter);
+            $list = $this->makeListStr($this->$negativeFilter);
             $state = 'NOT IN';
         }
 
-        if (null !== $func) {
-            $query = "AND $column $state ({$this->makeListStr($this->$func())})\n";
+        if (null !== $list) {
+            $query = "AND $column $state ($list)\n";
         }
 
         return $query;
