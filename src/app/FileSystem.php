@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Media\Transfer;
+namespace App;
 
 use App\Exceptions\DirectoryDirectionSortIllegalOptionException,
     App\Exceptions\DirectorySortIllegalOptionException,

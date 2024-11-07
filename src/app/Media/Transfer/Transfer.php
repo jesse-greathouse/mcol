@@ -3,7 +3,7 @@
 namespace App\Media\Transfer;
 
 use App\Media\TransferManager,
-    App\Media\Transfer\FileSystem;
+    App\FileSystem;
 
 abstract class Transfer
 {

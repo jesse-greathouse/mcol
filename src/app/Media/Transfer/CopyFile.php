@@ -3,7 +3,7 @@
 namespace App\Media\Transfer;
 
 use App\Exceptions\TransferFileCopyException,
-    App\Media\Transfer\FileSystem;
+    App\FileSystem;
 
 final class CopyFile extends Transfer implements TransferInterface
 {

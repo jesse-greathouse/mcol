@@ -6,7 +6,7 @@ use App\Exceptions\TransferFileDestinationPathException,
     App\Exceptions\TransferFileInvalidTmpDirException,
     App\Exceptions\TransferFileUriNotFoundException,
     App\Exceptions\TransferIllegalArchiveException,
-    App\Media\Transfer\FileSystem,
+    App\FileSystem,
     App\Packet\File\FileExtension;
 
 class TransferManager

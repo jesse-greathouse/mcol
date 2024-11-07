@@ -10,7 +10,7 @@ use App\Exceptions\DirectoryAlreadyExistsException,
     App\Exceptions\MediaStoreDirectoryIndexOutOfBoundsException,
     App\Exceptions\SettingsIllegalStoreException,
     App\Exceptions\UriHasDotSlashException,
-    App\Media\Transfer\FileSystem,
+    App\FileSystem,
     App\Store\MediaStoreSettings;
 
 use \SplFileInfo;

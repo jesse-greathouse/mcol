@@ -9,7 +9,8 @@ use Jerodev\PhpIrcClient\IrcClient,
     Jerodev\PhpIrcClient\IrcChannel,
     Jerodev\PhpIrcClient\Options\ClientOptions;
 
-use App\Chat\LogDiverter,
+use App\Chat\Log\Diverter as LogDiverter,
+    App\Chat\Log\Mapper as LogMapper,
     App\Events\HotReportLine as HotReportLineEvent,
     App\Events\HotReportSummary as HotReportSummaryEvent,
     App\Events\PacketSearchResult as PacketSearchResultEvent,
@@ -56,6 +57,20 @@ class Client
      * @var Int
      */
     protected $clientId;
+
+    /**
+     * The server host name to which the client is connected.
+     *
+     * @var string
+     */
+    protected $connectedServer;
+
+    /**
+     * The masked hostname of the client on the network.
+     *
+     * @var string
+     */
+    protected $hostMask;
 
     /**
      * Nick selected for run
@@ -121,11 +136,12 @@ class Client
     protected $client;
 
     public function __construct(Nick $nick, Network $network, Command $console) {
+        $logRoot = env('LOG_DIR', '/var/log');
         $this->nick = $nick;
         $this->network = $network;
         $this->console = $console;
         $this->channelUpdater = new ChannelUpdater();
-        $this->logDiverter = new LogDiverter($this->getInstanceLogUri());
+        $this->logDiverter = new LogDiverter(new LogMapper($logRoot, $network->name, $nick->nick));
 
         $options = new ClientOptions($nick->nick);
         $this->client = new IrcClient("{$network->firstServer->host}:6667", $options, self::VERSION);
@@ -171,7 +187,7 @@ class Client
      */
     protected function registerInstance()
     {
-        $logUri = $this->getInstanceLogUri();
+        $logUri = $this->logDiverter->getInstanceUri();
         $pid = ($pid = getmypid()) ? $pid : null;
 
         $this->instance =  Instance::updateOrCreate(
@@ -181,20 +197,6 @@ class Client
 
         $this->operationManager = new OperationManager($this->client, $this->instance, $this->console);
         $this->downloadProgressManager = new DownloadProgressManager($this->instance, $this->console);
-    }
-
-    protected function getInstanceLogUri(): string
-    {
-        $logDir = env('LOG_DIR', '/var/log');
-
-        $instanceLogDir = "$logDir/instances/{$this->nick->nick}";
-        if (!file_exists($instanceLogDir)) {
-            mkdir($instanceLogDir, 0755, true);
-        }
-
-        $logfile = "$instanceLogDir/{$this->network->name}.log";
-        touch($logfile);
-        return $logfile;
     }
 
     /**
@@ -209,8 +211,8 @@ class Client
         // Save id to refrain future DBAL client calls in long-running processes.
         if (null === $this->clientId) {
             $client = ClientModel::where('enabled', true)
-                        ->where('network_id', $this->network->id)
-                        ->where('nick_id', $this->nick->id)->first();
+                ->where('network_id', $this->network->id)
+                ->where('nick_id', $this->nick->id)->first();
 
             if (null === $client) {
                 return null;
@@ -223,6 +225,37 @@ class Client
     }
 
     /**
+     * Handles Ping events.
+     *
+     * @return void
+     */
+    public function pingHandler(): void
+    {
+        $this->client->on('ping', function(string $pinger) {
+
+            // Checks if the pinger string is a masked IP.
+            try {
+                $ip = long2ip($pinger);
+                if (false !== $ip) {
+                    $pinger = $ip;
+                }
+            } catch(TypeError) {
+                // Do nothing. TypeError will happen if pinger cant be converted.
+            }
+
+            $pingMsg = $pinger . ' PING -> ' . $this->nick->nick;
+            $pongMsg = $this->nick->nick . ' PONG -> ' . $pinger;
+
+            // The response actually happens in the Message object: Jerodev\PhpIrcClient\Messages\PingMessage
+            // This is just showing that something happened in the log.
+            $this->console->info($pingMsg);
+            $this->console->info($pongMsg);
+            $this->logDiverter->log(LogMapper::EVENT_PING, $pingMsg);
+            $this->logDiverter->log(LogMapper::EVENT_PING, $pongMsg);
+        });
+    }
+
+    /**
      * Handles a join event.
      *
      * @return void
@@ -230,7 +263,9 @@ class Client
     public function joinHandler(): void
     {
         $this->client->on('joinInfo', function(string $user, string $channelName) {
-            $this->console->info("$user joined $channelName");
+            $message = "$user joined";
+            $this->console->info("$message $channelName");
+            $this->logDiverter->log(LogMapper::EVENT_JOIN, $message, $channelName);
         });
     }
 
@@ -243,7 +278,9 @@ class Client
     {
         $this->client->on('kick', function($channel, string $user, string $kicker, $message) {
             $channelName = $this->updateChannel($channel);
-            $this->console->error("$user has been kicked from $channelName by $kicker. Reason:$message");
+            $message = "$user was kicked from $channelName by $kicker. Reason:$message";
+            $this->console->error($message);
+            $this->logDiverter->log(LogMapper::EVENT_KICK, $message, $channelName);
         });
     }
 
@@ -255,7 +292,9 @@ class Client
     public function nickHandler(): void
     {
         $this->client->on('nick', function(string $nick, string $newNick) {
-            $this->console->warn("$nick sets nick: $newNick");
+            $message = "$nick sets nick: $newNick";
+            $this->console->warn($message);
+            $this->logDiverter->log(LogMapper::EVENT_NICK, $message);
         });
     }
 
@@ -273,7 +312,10 @@ class Client
                 $quit = '';
             }
 
-            $this->console->warn("$user $quit$reason");
+            $message = "$user $quit$reason";
+
+            $this->console->warn($message);
+            $this->logDiverter->log(LogMapper::EVENT_QUIT, $message);
         });
     }
 
@@ -286,7 +328,9 @@ class Client
    {
        $this->client->on('part', function(string $user, $channel, string $reason) {
             $channelName = $this->updateChannel($channel);
-            $this->console->warn("$user parted $channelName: $reason");
+            $message = "$user parted $channelName: $reason";
+            $this->console->warn($message);
+            $this->logDiverter->log(LogMapper::EVENT_PART, $message, $channelName);
        });
    }
 
@@ -299,7 +343,15 @@ class Client
     {
         $this->client->on('mode', function($channel, string $user, string $mode) {
             $channelName = $this->updateChannel($channel);
-            $this->console->warn(trim("$channelName set $user mode: $mode"));
+            $message = trim("$user mode: $mode");
+            $this->console->warn("$channelName set $message");
+
+            if ('' === $channelName) {
+                $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
+            } else {
+                $this->logDiverter->log(LogMapper::EVENT_MODE, $message, $channelName);
+            }
+
         });
     }
 
@@ -312,7 +364,9 @@ class Client
     {
         $this->client->on('invite', function($channel, string $user) {
             $channelName = $this->updateChannel($channel);
-            $this->console->warn("========[ $user has invited {$this->nick->nick} to join channel: $channelName");
+            $message = "$user has invited {$this->nick->nick} to join channel: $channelName";
+            $this->console->warn("========[ $message");
+            $this->logDiverter->log(LogMapper::EVENT_INVITE, $message, $channelName);
         });
     }
 
@@ -330,6 +384,8 @@ class Client
             $this->console->info("                ================[  $channelName Topic ]================");
             $this->console->info("$topic");
             $this->console->info("");
+
+            $this->logDiverter->log(LogMapper::EVENT_TOPIC, $topic, $channelName);
         });
     }
 
@@ -341,8 +397,11 @@ class Client
     public function dccHandler(): void
     {
         $this->client->on('dcc', function($action, $fileName, $ip, $port, $fileSize) {
-            $this->console->warn("A DCC event has been sent, with the following information:\n\n");
-            $this->console->warn("action $action, fileName: $fileName, ip: $ip, port: $port, fileSize: $fileSize\n");
+            $message = "A DCC event has been sent, with the following information";
+            $information = "action $action, fileName: $fileName, ip: $ip, port: $port, fileSize: $fileSize";
+            $this->console->warn("$message:");
+            $this->console->warn("$information");
+            $this->logDiverter->log(LogMapper::EVENT_DCC, "$message: $information");
         });
     }
 
@@ -353,16 +412,25 @@ class Client
      */
     public function registeredHandler(): void
     {
-        $this->client->on('registered', function() {
-            $this->console->info('connected');
+        $this->client->on('registered', function(string $server, string $user, string $message, string $hostMask) {
+            $this->connectedServer = $server;
+            $this->hostMask = $hostMask;
+            $notice = "$user connected to: $server";
+            $this->console->warn($notice);
+            $this->logDiverter->log(LogMapper::EVENT_REGISTERED, $notice);
+
+            $this->console->info($message);
+            $this->logDiverter->log(LogMapper::EVENT_REGISTERED, $message);
 
             $this->registerInstance();
 
             $channels = $this->getAllParentChannelsForNetwork($this->network);
 
             foreach($channels as $channel) {
+                $this->logDiverter->addChannel($channel->name);
                 $this->client->join($channel->name);
                 foreach($channel->children as $child) {
+                    $this->logDiverter->addChannel($child->name);
                     $this->client->join($child->name);
                 }
             }
@@ -377,9 +445,11 @@ class Client
     public function disconnectHandler(): void
     {
         $this->client->on('close', function() {
+            $message = "connection to: {$this->network->name} closed";
             $this->instance->status = Instance::STATUS_DOWN;
             $this->instance->save();
-            $this->console->error('disconnected');
+            $this->console->error($message);
+            $this->logDiverter->log(LogMapper::EVENT_CLOSE, $message);
         });
     }
 
@@ -391,7 +461,9 @@ class Client
     public function versionHandler(): void
     {
         $this->client->on('version', function () {
-            $this->console->warn("VERSION ". $this->client->getVersion());
+            $message = "VERSION ". $this->client->getVersion();
+            $this->console->warn($message);
+            $this->logDiverter->log(LogMapper::EVENT_VERSION, $message);
         });
     }
 
@@ -403,9 +475,9 @@ class Client
     public function ctcpHandler(): void
     {
         $this->client->on('ctcp', function (string $action, array $args, string $command) {
-            $this->console->warn("CTCP command issued: $action");
-            $this->console->warn("CTCP: $command");
-            $this->console->warn(print_r($args));
+            $message = "CTCP: $command | action: $action params: " . json_encode($args);
+            $this->console->warn($message);
+            $this->logDiverter->log(LogMapper::EVENT_CTCP, $message);
         });
     }
 
@@ -424,14 +496,15 @@ class Client
                 return;
             }
 
-            # Divert message to the log for this instance.
-            $this->logDiverter->log("$userName to: $target: $message");
+            $this->logDiverter->log(LogMapper::LOG_PRIVMSG, "$userName: $message");
             $this->console->warn("$userName to $target says: $message");
 
             # VERSION
             if (false !== strpos($message, 'VERSION')) {
+                $message .= ' ' . self::VERSION;
                 $this->client->say($userName, self::VERSION);
-                $this->console->warn("$message " . self::VERSION);
+                $this->console->warn($message);
+                $this->logDiverter->log(LogMapper::EVENT_VERSION, $message);
                 return;
             }
 
@@ -449,13 +522,17 @@ class Client
                     if (false !== $position) {
                         $positionCln = $this->clnNumericStr($position);
                         DccDownload::dispatch($ipCln, $portCln, $fileName, $positionCln, $userName, $positionCln)->onQueue('download');
-                        $this->console->warn("Queued to resume DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $positionCln bot: '$userName' resume: $positionCln");
+                        $notice = "Queued to resume DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $positionCln bot: '$userName' resume: $positionCln";
+                        $this->console->warn($notice);
+                        $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
                     } else {
                         unlink($uri);
                     }
                 } else {
                     DccDownload::dispatch($ipCln, $portCln, $fileName, $fileSizeCln, $userName)->onQueue('download');
-                    $this->console->warn("Queued DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $fileSizeCln bot: '$userName'");
+                    $notice = "Queued DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $fileSizeCln bot: '$userName'";
+                    $this->console->warn($notice);
+                    $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
                 }
 
                 return;
@@ -468,17 +545,24 @@ class Client
                 $portCln = $this->clnNumericStr($port);
                 $uri = env('DOWNLOAD_DIR', '/var/download') . "/$fileName";
                 $this->console->warn($message);
+                $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
+                $notice = "Queued to resume DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $positionCln bot: '$userName' resume: $positionCln";
                 DccDownload::dispatch($ipCln, $portCln, $fileName, $positionCln, $userName, $positionCln)->onQueue('download');
-                $this->console->warn("Queued to resume DCC Download Job: host: $ipCln port: $portCln file: $fileName file-size: $positionCln bot: '$userName' resume: $positionCln");
+                $this->console->warn($notice);
+                $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
                 return;
             }
 
             if (false !== strpos($message, 'DCC')) {
-                $this->console->warn("||||||||||||| ===> Unhandled DCC Action: $message");
+                $notice = "Unhandled DCC Action: $message";
+                $this->console->warn("||||||||||||| ===> $notice");
+                $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
                 return;
             }
 
-            $this->console->warn("||||||||||||| ===> Unhandled PRIVMSG from $userName: $message");
+            $notice = "Unhandled PRIVMSG from $userName: $message";
+            $this->console->warn("||||||||||||| ===> $notice");
+            $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
 
             // Try to send a message back to the user.
             // Don't be rude :-)
@@ -501,6 +585,7 @@ class Client
         $this->client->on('motd', function (string $message) {
             $clean = Parse::cleanMessage($message);
             $this->console->warn("[ {$this->network->name} ]: $clean");
+            $this->logDiverter->log(LogMapper::EVENT_PING, $clean);
         });
     }
 
@@ -524,8 +609,7 @@ class Client
 
             $line .= " @$from: $message";
 
-            # Divert message to the log for this instance.
-            $this->logDiverter->log($line);
+            $this->logDiverter->log(LogMapper::EVENT_MESSAGE, "$from: $message", $channel->getName());
 
             # Do any pending operations.
             $this->operationManager->doOperations();
@@ -547,8 +631,7 @@ class Client
 
             $this->console->warn($line);
 
-            # Divert message to the log for this instance.
-            $this->logDiverter->log($line);
+            $this->logDiverter->log(LogMapper::EVENT_MESSAGE, "{$this->nick->nick}: $message", $channel->getName());
         });
     }
 
@@ -564,6 +647,8 @@ class Client
             if ($user === $this->nick->nick) {
                 $this->console->warn("[ {$this->network->name} ]: $clean");
             }
+
+            $this->logDiverter->log(LogMapper::EVENT_CONSOLE, $clean);
         });
     }
 
@@ -587,11 +672,14 @@ class Client
             if ($this->isQueuedNotification($txt)) {
                 $this->doQueuedStateChange($txt);
                 $this->console->warn("========[  $txt ");
+                $this->logDiverter->log(LogMapper::EVENT_NOTICE, $txt);
                 return;
             } else if ($this->isQueuedResponse($txt)) {
                 $packet = $this->markAsQeueued($txt);
                 if ($packet) {
-                    $this->console->warn("========[  Queued for #{$packet->number} {$packet->file_name} - {$packet->size}");
+                    $message = "Queued for #{$packet->number} {$packet->file_name} - {$packet->size}";
+                    $this->console->warn("========[  $message");
+                    $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
                 }
                 return;
             }
@@ -600,7 +688,9 @@ class Client
             $packetSearchResult = $this->extractPacketSearchResult($txt);
             if ($this->isPacketSearchResult($packetSearchResult)) {
                 [, $fileSize, $fileName, $botName, $packetNumber] = $packetSearchResult;
-                $this->console->warn("==[  > $botName   $packetNumber - $fileSize $fileName");
+                $message = "$botName   $packetNumber - $fileSize $fileName";
+                $this->console->warn("==[  > $message");
+                $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
                 $this->searchResultHandler($fileName, $fileSize, $botName, $packetNumber);
                 return;
             }
@@ -609,7 +699,9 @@ class Client
             $searchSummary = $this->extractSearchSummary($txt);
             if ($this->isSearchSummary($searchSummary)) {
                 [, $channelName, $numberResults] = $searchSummary;
-                $this->console->warn("========[  Found $numberResults results in $channelName");
+                $message = "Found $numberResults results in $channelName";
+                $this->console->warn("========[  $message");
+                $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
                 $this->searchSummaryHandler($channelName);
                 return;
             }
@@ -623,9 +715,13 @@ class Client
                  if ($hotReportRank2 !== null && $hotReportFileName2 !== null) {
                     $this->hotReportLineHandler($hotReportRank2, $hotReportFileName2);
                     $spacer = $this->dynamicWordSpacing($hotReportFileName1, self::LINE_COLUMN_SPACES);
-                    $this->console->warn("==[    [$hotReportRank1] $hotReportFileName1 $spacer [$hotReportRank2] $hotReportFileName2");
+                    $message =  "[$hotReportRank1] $hotReportFileName1 $spacer [$hotReportRank2] $hotReportFileName2";
+                    $this->console->warn("==[   $message");
+                    $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
                  } else {
-                    $this->console->warn("==[    [$hotReportRank1] $hotReportFileName1");
+                    $message =  "[$hotReportRank1] $hotReportFileName1";
+                    $this->console->warn("==[   $message");
+                    $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
                  }
 
                  return;
@@ -636,12 +732,15 @@ class Client
             if ($this->isHotReportSummary($hotReportSummary)) {
                 [, $channelName, $hotReportSummaryStr] = $hotReportSummary;
                 $channelNameSanitized = strtolower($channelName);
-                $this->console->warn("========[  $channelNameSanitized $hotReportSummaryStr");
+                $message =  "$channelNameSanitized $hotReportSummaryStr";
+                $this->console->warn("========[  $message");
+                $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
                 $this->hotReportSummaryHandler($channelNameSanitized, $hotReportSummaryStr);
                 return;
             }
 
             $this->console->warn("========[  $txt ");
+            $this->logDiverter->log(LogMapper::EVENT_NOTICE,$txt);
         });
     }
 
@@ -1085,33 +1184,6 @@ class Client
         };
 
         return [$packetNum, $file, $position];
-    }
-
-
-    /**
-     * Handles Ping events.
-     *
-     * @return void
-     */
-    public function pingHandler(): void
-    {
-        $this->client->on('ping', function(string $pinger) {
-
-            // Checks if the pinger string is a masked IP.
-            try {
-                $ip = long2ip($pinger);
-                if (false !== $ip) {
-                    $pinger = $ip;
-                }
-            } catch(TypeError) {
-                // Do nothing. TypeError will happen if pinger cant be converted.
-            }
-
-            // The response actually happens in the Message object: Jerodev\PhpIrcClient\Messages\PingMessage
-            // This is just showing that something happened in the log.
-            $this->console->info($pinger . ' PING -> ' . $this->nick->nick);
-            $this->console->info($this->nick->nick . ' PONG -> ' . $pinger);
-        });
     }
 
     /**
