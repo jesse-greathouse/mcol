@@ -11,6 +11,6 @@
 
 require_once __DIR__ . '/stream/console.php';
 require_once __DIR__ . '/stream/notice.php';
-require_once __DIR__ . '/stream/channel.php';
+require_once __DIR__ . '/stream/message.php';
 require_once __DIR__ . '/stream/privmsg.php';
 require_once __DIR__ . '/stream/event.php';

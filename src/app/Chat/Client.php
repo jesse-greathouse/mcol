@@ -328,8 +328,8 @@ class Client
    {
        $this->client->on('part', function(string $user, $channel, string $reason) {
             $channelName = $this->updateChannel($channel);
-            $message = "$user parted $channelName: $reason";
-            $this->console->warn($message);
+            $message = "$user parted: $reason";
+            $this->console->warn("$user parted $channelName: $reason");
             $this->logDiverter->log(LogMapper::EVENT_PART, $message, $channelName);
        });
    }

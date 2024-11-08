@@ -290,4 +290,14 @@ class Mapper
     {
         $this->instanceUri = $instanceUri;
     }
+
+    /**
+     * Get name of the network for this log mapping instance.
+     *
+     * @return  string
+     */
+    public function getNetworkName(): string
+    {
+        return $this->networkName;
+    }
 }
