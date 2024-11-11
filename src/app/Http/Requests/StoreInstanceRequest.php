@@ -29,7 +29,6 @@ class StoreInstanceRequest extends FormRequest
             'log_uri'           => 'required',
             'pid'               => 'nullable|numeric',
             'enabled'           => 'nullable|in:0,1',
-            'status'            => 'nullable|max:255',
             'desired_status'    => 'nullable|max:255',
             'client'            => 'required|numeric',
         ];
@@ -48,19 +47,6 @@ class StoreInstanceRequest extends FormRequest
                     $validator->errors()->add(
                         'client',
                         "Client with id: $id was not found."
-                    );
-                }
-            },
-            function (Validator $validator) {
-                if (!$this->isValidStatus($validator)) {
-                    $validated = $validator->validated();
-                    $status = $validated['status'];
-                    $up = Instance::STATUS_UP;
-                    $down = Instance::STATUS_DOWN;
-                    $validStatuses = "$up and $down";
-                    $validator->errors()->add(
-                        'status',
-                        "Status: $status is not valid. (Valid statuses are: $validStatuses)"
                     );
                 }
             },
@@ -85,18 +71,6 @@ class StoreInstanceRequest extends FormRequest
         $validated = $validator->validated();
         $client = Client::find($validated['client']);
         return (null !== $client);
-    }
-
-    public function isValidStatus(Validator $validator): bool
-    {
-        $validated = $validator->validated();
-
-        if (!isset($validated['status']) || null === $validated['status']) return true;
-
-        return in_array(strtoupper($validated['status']), [
-            Instance::STATUS_UP,
-            Instance::STATUS_DOWN,
-        ]);
     }
 
     public function isValidDesiredStatus(Validator $validator): bool

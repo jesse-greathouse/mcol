@@ -21,6 +21,7 @@ class ClientResource extends JsonResource
             'enabled' => $this->enabled,
             'nick' => $this->nick,
             'network' => $this->network,
+            'meta' => $this->meta,
         ];
     }
 }

@@ -13,6 +13,10 @@ class Channel extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'meta' => 'array'
+    ];
+
     public function children(): HasMany
     {
         return $this->hasMany(Channel::class, 'channel_id');

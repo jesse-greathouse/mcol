@@ -2,8 +2,7 @@
 
 namespace App\Chat;
 
-use Illuminate\Console\Command,
-    Illuminate\Support\Facades\Log;
+use Illuminate\Console\Command;
 
 use Jerodev\PhpIrcClient\IrcClient,
     Jerodev\PhpIrcClient\IrcChannel,
@@ -37,7 +36,6 @@ use Illuminate\Database\Eloquent\Collection;
 
 use \DateTime;
 use \TypeError;
-use \Exception;
 
 class Client
 {
@@ -52,11 +50,19 @@ class Client
     const HOT_REPORT_SUMMARY_MASK = '/\d\d(\#[A-Za-z0-9]+)\s+(.*)$/';
 
     /**
-     * Client Id
+     * Client representation in database.
      *
-     * @var Int
+     * @var ClientModel
      */
-    protected $clientId;
+    protected $clientModel;
+
+    /**
+     * An lookup table of instantiated Channel Models associated with this client.
+     * Keeps instantiated channels in memory so we don't have to keep hitting the DB.
+     *
+     * @var array<string, Channel>
+     */
+    protected array $channels = [];
 
     /**
      * The server host name to which the client is connected.
@@ -101,13 +107,6 @@ class Client
     protected $instance;
 
     /**
-     * ChannelUpdater instance for this client.
-     *
-     * @var ChannelUpdater
-     */
-    protected $channelUpdater;
-
-    /**
      * DownloadProgressManager instance for this client.
      *
      * @var DownloadProgressManager
@@ -140,11 +139,16 @@ class Client
         $this->nick = $nick;
         $this->network = $network;
         $this->console = $console;
-        $this->channelUpdater = new ChannelUpdater();
         $this->logDiverter = new LogDiverter(new LogMapper($logRoot, $network->name, $nick->nick));
 
         $options = new ClientOptions($nick->nick);
         $this->client = new IrcClient("{$network->firstServer->host}:6667", $options, self::VERSION);
+
+        $this->clientModel = ClientModel::updateOrCreate(
+            [ 'network_id' => $this->network->id, 'nick_id' => $this->nick->id ],
+            [ 'enabled' => true, 'meta' => $this->client->toJson() ],
+        );
+
         $this->assignHandlers();
     }
 
@@ -159,7 +163,6 @@ class Client
         $this->noticeHandler();
         $this->joinHandler();
         $this->registeredHandler();
-        $this->disconnectHandler();
         $this->pingHandler();
         $this->nickHandler();
         $this->messageHandler();
@@ -174,10 +177,12 @@ class Client
         $this->partHandler();
         $this->consoleHandler();
         $this->inviteHandler();
+        $this->namesHandler();
 
-        // At this time there is no use-case for handing names events.
-        // It's worthwhile to skip handling this for now.
-        #$this->namesHandler();
+        // disconnectHandler is moved to register instance.
+        // The TCP connection will not be established until it's opened.
+        // The TCP connection context is necessary for the disconnect handler.
+        // $this->disconnectHandler();
     }
 
     /**
@@ -189,39 +194,21 @@ class Client
     {
         $logUri = $this->logDiverter->getInstanceUri();
         $pid = ($pid = getmypid()) ? $pid : null;
+        $meta = $this->client->toArray();
+        $isConnected = false;
+        if (isset($meta['connection']) && isset($meta['connection']['is_connected'])) {
+            $isConnected = $meta['connection']['is_connected'];
+        }
 
         $this->instance =  Instance::updateOrCreate(
-            ['client_id' => $this->getClientId()],
-            ['status' => Instance::STATUS_UP, 'log_uri' => $logUri, 'pid' => $pid]
+            ['client_id' => $this->clientModel->id],
+            ['is_connected' => $isConnected, 'log_uri' => $logUri, 'pid' => $pid]
         );
 
         $this->operationManager = new OperationManager($this->client, $this->instance, $this->console);
         $this->downloadProgressManager = new DownloadProgressManager($this->instance, $this->console);
-    }
 
-    /**
-     * Returns the client id of the currently running client.
-     * Null if the client has not been instantiated.
-     *
-     * @return integer|null
-     */
-    protected function getClientId(): int|null
-    {
-        // Returns the id of a Client Model.
-        // Save id to refrain future DBAL client calls in long-running processes.
-        if (null === $this->clientId) {
-            $client = ClientModel::where('enabled', true)
-                ->where('network_id', $this->network->id)
-                ->where('nick_id', $this->nick->id)->first();
-
-            if (null === $client) {
-                return null;
-            } else {
-                $this->clientId = $client->id;
-            }
-        }
-
-        return $this->clientId;
+        $this->disconnectHandler();
     }
 
     /**
@@ -277,7 +264,8 @@ class Client
     public function kickHandler(): void
     {
         $this->client->on('kick', function($channel, string $user, string $kicker, $message) {
-            $channelName = $this->updateChannel($channel);
+            $channel = $this->updateChannel($channel);
+            $channelName = $channel->getName();
             $message = "$user was kicked from $channelName by $kicker. Reason:$message";
             $this->console->error($message);
             $this->logDiverter->log(LogMapper::EVENT_KICK, $message, $channelName);
@@ -327,7 +315,8 @@ class Client
    public function partHandler(): void
    {
        $this->client->on('part', function(string $user, $channel, string $reason) {
-            $channelName = $this->updateChannel($channel);
+            $channel = $this->updateChannel($channel);
+            $channelName = $channel->getName();
             $message = "$user parted: $reason";
             $this->console->warn("$user parted $channelName: $reason");
             $this->logDiverter->log(LogMapper::EVENT_PART, $message, $channelName);
@@ -342,7 +331,12 @@ class Client
     public function modeHandler(): void
     {
         $this->client->on('mode', function($channel, string $user, string $mode) {
-            $channelName = $this->updateChannel($channel);
+            $channelName = '';
+            if (null !== $channel && '' !== $channel) {
+                $channel = $this->updateChannel($channel);
+                $channelName = $channel->getName();
+            }
+
             $message = trim("$user mode: $mode");
             $this->console->warn("$channelName set $message");
 
@@ -363,7 +357,7 @@ class Client
     public function inviteHandler(): void
     {
         $this->client->on('invite', function($channel, string $user) {
-            $channelName = $this->updateChannel($channel);
+            $channelName = $channel->getName();
             $message = "$user has invited {$this->nick->nick} to join channel: $channelName";
             $this->console->warn("========[ $message");
             $this->logDiverter->log(LogMapper::EVENT_INVITE, $message, $channelName);
@@ -374,11 +368,12 @@ class Client
      * Handles a topic change event.
      *
      * @return void
-    */
+     */
     public function topicHandler(): void
     {
         $this->client->on('topic', function($channel, string $topic) {
-            $channelName = $this->updateChannel($channel);
+            $channel = $this->updateChannel($channel);
+            $channelName = $channel->getName();
 
             $this->console->info("");
             $this->console->info("                ================[  $channelName Topic ]================");
@@ -429,11 +424,15 @@ class Client
             foreach($channels as $channel) {
                 $this->logDiverter->addChannel($channel->name);
                 $this->client->join($channel->name);
+                $this->updateChannel($channel->name, false);
                 foreach($channel->children as $child) {
                     $this->logDiverter->addChannel($child->name);
                     $this->client->join($child->name);
+                    $this->updateChannel($child->name, false);
                 }
             }
+
+            $this->updateClient();
         });
     }
 
@@ -444,12 +443,23 @@ class Client
      */
     public function disconnectHandler(): void
     {
+        $clientConnection = $this->client->getConnection();
+        $tcpConnection = $clientConnection->getConnection();
+
+        // Handles intentional close of the connection
         $this->client->on('close', function() {
-            $message = "connection to: {$this->network->name} closed";
-            $this->instance->status = Instance::STATUS_DOWN;
-            $this->instance->save();
-            $this->console->error($message);
-            $this->logDiverter->log(LogMapper::EVENT_CLOSE, $message);
+           $this->terminateInstance();
+        });
+
+        // Handles disconnect not itiated by client.
+        $tcpConnection->on('close', function () use ($clientConnection) {
+            $clientConnection->setConnected(false);
+            $this->terminateInstance();
+        });
+
+        $tcpConnection->on('end', function () use ($clientConnection) {
+            $clientConnection->setConnected(false);
+            $this->terminateInstance();
         });
     }
 
@@ -600,8 +610,8 @@ class Client
             $line = '';
 
             if (null !== $channel) {
-                # Update the Channel Metadata.
-                $this->channelUpdater->update($channel);
+                // Update the Channel Metadata.
+                $channel = $this->getChannelFromClient($channel);
                 $line .= $channel->getName();
             } else {
                 return;
@@ -622,9 +632,9 @@ class Client
             $line = '';
 
             if (null !== $channel) {
-                # Update the Channel Metadata.
-                $this->channelUpdater->update($channel);
-                $line .= $channel->getName();
+               // Update the Channel Metadata.
+               $channel = $this->getChannelFromClient($channel);
+               $line .= $channel->getName();
             }
 
             $line .= " @$from: $message";
@@ -1195,30 +1205,14 @@ class Client
     {
         $this->client->on('names', function (IrcChannel $channel, array $names) {
             $channelName = $channel->getName();
-            if (count($names) > 0) {
-                $rows = [];
-                foreach($names as $nick) {
-                    $rows[] = [$nick];
-                }
-
-                $this->console->info("========[ Chatters in $channelName ]========");
-                $this->console->table(['Nick'], $rows);
-            }
+            $this->updateChannel($channelName);
         });
 
         foreach($this->client->getChannels() as $channel) {
             $channelName = $channel->getName();
 
             $this->client->on("names$channelName", function (array $names) use ($channelName) {
-                if (count($names) > 0) {
-                    $rows = [];
-                    foreach($names as $nick) {
-                        $rows[] = [$nick];
-                    }
-
-                    $this->console->info("========[ Chatters in $channelName ]========");
-                    $this->console->table(['Nick'], $rows);
-                }
+                $this->updateChannel($channelName);
             });
         }
     }
@@ -1245,6 +1239,22 @@ class Client
     }
 
     /**
+     * Procedure for when the connection to a network has terminated.
+     *
+     * @return void
+     */
+    protected function terminateInstance(): void
+    {
+        $message = "connection to: {$this->network->name} terminated.";
+        $this->instance->is_connected = false;
+        $this->instance->save();
+        $this->logDiverter->log(LogMapper::EVENT_CLOSE, $message);
+        $this->console->error("****************************************************************************************");
+        $this->console->error("           ================[  $message  ]================");
+        $this->console->error("****************************************************************************************");
+    }
+
+    /**
      * Returns a channel model object with the parameter of the channel name.
      *
      * @param string $name
@@ -1252,7 +1262,13 @@ class Client
      */
     protected function getChannelFromName(string $name): Channel|null
     {
-        return Channel::where('name', $name)->first();
+        if (!isset($this->channels[$name])) {
+            $channel = Channel::where('name', $name)->first();
+            if (null === $channel) return null;
+            $this->channels[$name] = $channel;
+        }
+
+        return $this->channels[$name];
     }
 
     /**
@@ -1311,35 +1327,65 @@ class Client
 
 
     /**
-     * Updates a mixed channel variable.
+     * Updates a IrcChannel|string channel variable.
      * Could be null, could be string, could be IrcChannel
      * Fun, Fun, Fun...
      *
-     * @param mixed $channel
-     * @return string
+     * @param IrcChannel|string $channel
+     * @param bool $updateClient
+     * @return IrcChannel
      */
-    protected function updateChannel(mixed $channel): string
+    protected function updateChannel(IrcChannel|string $channelName, $updateClient = true): IrcChannel
     {
-        $channelName = '';
+        $ircChannel = $this->getChannelFromClient($channelName);
+        $meta = $ircChannel->toArray();
+        $userCount = count($meta['users']);
+        $topic = $meta['topic'];
+        $name = $meta['name'];
 
-        if (is_a($channel, IrcChannel::class)) {
-            $channelName = $channel->getName();
-            $this->channelUpdater->update($channel);
-        } else {
-            if (null !== $channel) {
-                $channelName = $channel;
-
-                try {
-                    $channel = new IrcChannel($channelName);
-                    $this->channelUpdater->update($channel);
-                } catch(Exception $e) {
-                    $this->console->warn("could not instantiate channel: $channelName");
-                    Log::error($e->getMessage());
-                }
-            }
+        if (null !== $topic && (0 < $userCount)) {
+            $this->channels[$name] = Channel::updateOrCreate(
+                ['name' => $name],
+                ['topic' => $topic, 'users' => $userCount, 'meta' => $meta]
+            );
         }
 
-        return $channelName;
+        if ($updateClient) {
+            $this->updateClient();
+        }
+
+        return $ircChannel;
+    }
+
+    /**
+     * Updates the data representation of the IRC client.
+     *
+     * @return void
+     */
+    protected function updateClient(): void
+    {
+        $meta = $this->client->toArray();
+        $isConnected = false;
+        if (isset($meta['connection']) && isset($meta['connection']['is_connected'])) {
+            $isConnected = $meta['connection']['is_connected'];
+        }
+
+        $this->clientModel->meta = $meta;
+        $this->clientModel->instance->is_connected = $isConnected;
+        $this->clientModel->save();
+    }
+
+    /**
+     * An IrcChannel instance provided by a handler is not the same instance the client is holding.
+     * This takes an IrcInstance or channel name string and gets the instance from the client.
+     */
+    protected function getChannelFromClient(IrcChannel|string $channelName): IrcChannel
+    {
+        if ('string' !== gettype($channelName)) {
+            $channelName = $channelName->getName();
+        }
+
+        return $this->client->getChannel($channelName);
     }
 
 }

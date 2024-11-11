@@ -24,6 +24,14 @@ class PacketLocatorClient extends Client
     protected $nick;
 
     /**
+     * An lookup table of instantiated Bot Models associated with this client.
+     * Keeps instantiated bots in memory so we don't have to keep hitting the DB.
+     *
+     * @var array<string, Bot>
+     */
+    protected array $bots = [];
+
+    /**
      * network selected for run
      *
      * @var Network
@@ -39,14 +47,10 @@ class PacketLocatorClient extends Client
 
     /**
      * IRC client
-     * 
+     *
      * @var IrcClient
      */
     protected $client;
-
-    public function __construct(Nick $nick, Network $network, Command $console) {
-        parent::__construct($nick, $network, $console);
-    }
 
     /**
      * Handles standard messages in channel.
@@ -61,17 +65,30 @@ class PacketLocatorClient extends Client
                 $c = $this->getChannelFromName($channel->getName());
                 // Only record packet #'s if this is a parent channel.
                 if (null !== $c && null === $c->parent) {
-
-                    $bot = Bot::updateOrCreate(
-                        [ 'network_id' => $this->network->id, 'nick' => $from ]
-                    );
-
+                    $bot = $this->getBotFromNick($from);
                     Parse::packet($message, $bot, $c);
                 }
             }
         });
 
         parent::messageHandler();
+    }
+
+    /**
+     * Returns a Bot model object with the parameter of the bot nick.
+     *
+     * @param string $nick
+     * @return Bot
+     */
+    public function getBotFromNick(string $nick): Bot
+    {
+        if (!isset($this->bots[$nick])) {
+            $this->bots[$nick] = Bot::updateOrCreate(
+                [ 'network_id' => $this->network->id, 'nick' => $nick ]
+            );
+        }
+
+        return $this->bots[$nick];
     }
 
 }

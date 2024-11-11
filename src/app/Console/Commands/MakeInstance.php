@@ -49,10 +49,10 @@ class MakeInstance extends Command
 
         $nick = $this->getNick();
         if (!$nick) $this->error('A valid --nick is required.');
-        
+
         $network = $this->getNetwork();
         if (!$network) $this->error('A valid --network is required.');
-        
+
         if (!$nick || !$network) return;
 
         $liveInstance = $this->liveInstanceCheck($nick, $network);
@@ -83,7 +83,7 @@ class MakeInstance extends Command
             $pid = getmypid();
             $instance = Instance::updateOrCreate(
                 ['client_id' => $client->id],
-                ['status' => Instance::STATUS_UP, 'enabled' => true, 'pid' => $pid]
+                ['desired_status' => Instance::STATUS_UP, 'enabled' => true, 'pid' => $pid]
             );
 
             return $instance;

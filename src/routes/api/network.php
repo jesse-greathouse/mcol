@@ -2,10 +2,30 @@
 
 use Illuminate\Support\Facades\Route;
 
-use App\Models\Network,
+use App\Models\Client,
+    App\Models\Network,
     App\Http\Requests\ApiStoreNetworkRequest,
     App\Http\Resources\NetworkCollection,
     App\Http\Resources\NetworkResource;
+
+// Gets a collection of clients per network.
+// GET /api/network/clients
+Route::middleware('auth:sanctum')->get('/network/clients', function () {
+
+    $clients = [];
+    $networks = Network::all()->pluck('name');
+
+    foreach($networks as $network) {
+        $client = Client::join('networks', 'networks.id', '=', 'clients.network_id')
+            ->where('clients.enabled', true)
+            ->where('networks.name', $network)
+            ->first();
+
+        $clients[$network] = $client->meta;
+    }
+
+    return $clients;
+});
 
 // GET /api/network
 Route::middleware('auth:sanctum')->get('/network', function () {
@@ -19,7 +39,7 @@ Route::middleware('auth:sanctum')->post('/network', function (ApiStoreNetworkReq
     $network = Network::create([
         'name' => $validated['name'],
     ]);
- 
+
     return redirect("/api/network/{$network->id}");
 });
 
