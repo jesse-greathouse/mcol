@@ -177,24 +177,6 @@ export default {
             behavior: 'smooth',
         })
     },
-    async refreshMessages() {
-        const channelName = cleanChannelName(this.channel.name)
-        const {data, error} = await fetchMessage(this.network, channelName, this.messageOffset)
-
-        if (null !== error) return
-
-        const {lines, meta, parseError} = await parseChatLog(data)
-
-        if (null !== parseError) return
-
-        this.addLines(lines)
-
-        if (_.has(meta, 'offset')) {
-            this.messageOffset = meta.offset
-        }
-
-        this.resetIntervals()
-    },
     async streamMessages() {
         const channelName = cleanChannelName(this.channel.name)
 
