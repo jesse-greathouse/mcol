@@ -39,7 +39,7 @@
 
   // local imports
   import { fetchNetworkClients } from '@/Clients/network'
-  import { formatDate } from '@/format'
+  import { formatDate, cleanChannelName } from '@/format'
   import AppLayout from '@/Layouts/AppLayout.vue'
   import ChatClient from '@/Components/ChatClient.vue'
 
@@ -64,10 +64,11 @@
     props: {
       settings: Object,
       networks: Array,
-      clients: Object,
+      instances: Object,
     },
     data() {
         return {
+            clients: this.instances,
             tabs: null,
             activeTab: { id: null },
         }
@@ -78,19 +79,25 @@
         this.tabs = this.makeTabs()
     },
     methods: {
-      cleanChannel(channel) {
-        return channel.slice(1)
+      async refreshClients() {
+        const {data, error} = await fetchNetworkClients()
+        if (null === error) {
+          this.clients = data
+        } else {
+          console.log(error)
+        }
+        this.resetIntervals()
       },
       listChannels(network) {
         const channels = []
         Object.keys(network.channels).forEach((key) => {
-            channels.push(this.cleanChannel(key))
+            channels.push(cleanChannelName(key))
         })
         return channels
       },
       resetIntervals() {
         clearAllIntervals()
-        clientsTimeoutId = setTimeout(fetchNetworkClients, clientsInterval);
+        clientsTimeoutId = setTimeout(this.refreshClients, clientsInterval);
       },
       makeTabs() {
         const tabElements = []

@@ -115,8 +115,13 @@ class Streamer
 
             while (($buffer = fgets($fh, self::CHUNK_LENGTH)) !== false) {
                 $bytes = strlen($buffer);
-                yield [$buffer, $bytes];
+                $offset += $bytes;
+                yield $buffer;
             }
+
+            // Add meta/offset.
+            // Meta/Offset helps the client know where to start streaming on the next request.
+            yield '[meta]: ' . json_encode(['offset' => $offset]);
 
             fclose($fh);
             unset($fh);
@@ -134,10 +139,11 @@ class Streamer
      * @param int $offset
      * @return int
      */
-    public function sanitizeOffset(string $uri, int $max, int $offset = null)
+    public function sanitizeOffset(string $uri, int $max, int $offset = null): int
     {
         clearstatcache(true, $uri); // clears the caching of filesize
         $fileSize = fileSize($uri);
+        $delta = $fileSize - $max;
 
         // If offset is greater than the filesize, it probably means that the logs were reset.
         // Set the offset to zero.
@@ -145,10 +151,11 @@ class Streamer
             $offset = 0;
         }
 
-        $delta = $fileSize - $max;
+        if ($delta > $offset) {
+            return $delta;
+        }
 
-        // Pick whichever is the higher number, $delta or $offset.
-        return ($offset > $delta) ? $offset : $delta;
+        return $offset;
     }
 
 

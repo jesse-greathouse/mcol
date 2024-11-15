@@ -26,100 +26,8 @@
     <div class="relative flex flex-row content-end gap-4 grow">
 
         <!-- Start Chat Pane -->
-        <div class="flex flex-col content-end overflow-y-auto w-5/6 px-3" :style="{ maxHeight: chatPaneHeight }" >
-            <div class="p-3">
-                <div class="flex">
-                    <div class="relative w-12 h-12 shrink-0 undefined" >
-                        <img
-                            class="w-full h-full rounded-full overflow-hidden object-cover"
-                            width="48"
-                            height="48"
-                            alt="Avatar"
-                            src="https://plus.unsplash.com/premium_photo-1663076389306-44e78d5f2b82?ixlib=rb-4.0.3.&ix"
-                        />
-                    </div>
-                    <div class="pl-3">
-                        <div class="flex items-center mb-3">
-                            <span class="font-bold">Putri Tanjak</span>
-                            <span class="text-sm text-gray-400 shrink-0 ml-2">4:30 AM</span>
-                        </div>
-                        <div class="flex flex-col gap-3 items-start">
-                            <div class="max-w-md p4 rounded-2xl overflow-hidden rounded-tl-none bg-message">
-                                Look at this field! Beautiful!
-                            </div>
-                            <div class="max-w-md p0 rounded-2xl overflow-hidden false bg-message">
-                                <img
-                                    class="w-62 h-48"
-                                    width="300"
-                                    height="400"
-                                    alt="photo"
-                                    src="https://images.unsplash.com/photo-1566732500818-d76031ac0421?ixlib=rb-4.0.3&amp;"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="relative shrink-0 my-6 h-px bg-gray-200">
-                <span class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 uppercase block">Today</span>
-            </div>
-            <div class="py-3">
-                <div class="flex flex-row-reverse">
-                    <div class="relative w-12 h-12 shrink-0 undefined">
-                        <img
-                            class="w-full h-full rounded-full overflow-hidden object-cover"
-                            width="48"
-                            height="48"
-                            alt="Avatar"
-                            src="https://plus.unsplash.com/premium_photo-1663076389306-44e78d5f2b82?ixlib=rb-4.0.3.&ix"
-                        />
-                    </div>
-                    <div class="pr-3">
-                        <div class="flex items-center mb-3 flex-row-reverse">
-                            <span class="font-bold">Putri Tanjak</span>
-                            <span class="text-sm text-gray-400 shrink-0 mr-2">4:30 AM</span>
-                        </div>
-                        <div class="flex flex-col gap-3 items-end">
-                            <div class="max-w-md p-4 rounded-2xl overflow-hidden rounded-tr-none bg-nav text-white">
-                                This is Content! This is Content! This is Content! This is Content! This is Content!
-                            </div>
-                            <div class="max-w-md p-0 rounded-2xl overflow-hidden false bg-nav text-white">
-                                <img
-                                    class="w-48 h-62"
-                                    width="300"
-                                    height="300"
-                                    alt="photo"
-                                    src="https://images.unsplash.com/photo-1563450151580-e391a277d92b?ixlib=rb-4.0.3&amp;"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="py-3">
-                <div class="flex">
-                    <div class="relative w-12 h-12 shrink-9 undefined">
-                        <img
-                            class="w-full h-full rounded-full overflow-hidden object-cover"
-                            width="48"
-                            height="48"
-                            alt="Avatar"
-                            src="https://plus.unsplash.com/premium_photo-1663076389306-44e78d5f2b82?ixlib=rb-4.0.3.&ix"
-                        />
-                    </div>
-                    <div class="pl-3">
-                        <div class="flex items-center mb-3">
-                            <span class="font-bold">Putri Tanjak</span>
-                            <span class="text-sm text-gray-400 shrink-0 ml-2">4:30 AM</span>
-                        </div>
-                        <div class="flex flex-col gap-3 items-start">
-                            <div class="max-w-md p-4 rounded-2xl overflow-hidden rounded-tl-none bg-message">
-                                This is Content! This is Content! This is Content! This is Content!
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div ref="chatPane" class="flex flex-col content-end overflow-auto w-full mr-3" :style="{ maxHeight: chatPaneHeight }" >
+            <message-line v-for="(line, i) in lines" :key="`line-${i}`" :showDate="showDate" :line="line" />
         </div>
         <!-- End Chat Pane -->
 
@@ -170,24 +78,43 @@
 </template>
 
 <script>
+import _ from 'lodash'
 import throttle from 'lodash/throttle'
+import { fetchMessage, streamMessage } from '@/Clients/stream'
 import { scaleToViewportHeight } from '@/style'
+import { cleanChannelName, parseChatLog } from '@/format'
+import MessageLine from '@/Components/ChatMessageLine.vue'
 
+const maxMessageLineBuffer = 1000 // Maximum 1000 lines so we don't crash the browser.
 const chatPaneScale = .66
+const messageInterval = 1000 // Check chat messages every 1 seconds.
+let messageTimeoutId
+const clearMessageInterval = function () {
+    clearMessageInterval(messageTimeoutId)
+}
+
+const clearAllIntervals = function() {
+    clearMessageInterval()
+}
 
 export default {
   components: {
+    MessageLine,
   },
   props: {
     user: String,
+    network: String,
     channel: Object,
     connection: Object,
     isActive: Boolean,
   },
   data() {
     return {
+        chatPaneHeight: this.scaleToViewportHeight(chatPaneScale),
+        lines: [],
+        messageOffset: 0,
+        showDate: true,
         userList: [],
-        chatPaneHeight: this.scaleToViewportHeight(chatPaneScale)
     }
   },
   watch: {
@@ -201,6 +128,11 @@ export default {
   mounted() {
     window.addEventListener('resize', this.handleResize);
     this.userList = this.makeUserList()
+    this.streamMessages()
+  },
+  updated() {
+    this.scrollToBottom()
+    this.pruneLines()
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize);
@@ -221,6 +153,64 @@ export default {
     },
   },
   methods: {
+    addLines(lines) {
+        this.lines = [...this.lines, ...lines]
+    },
+    pruneLines() {
+        const linesTotal = this.lines.length
+        if (linesTotal > maxMessageLineBuffer) {
+            const overBuffer = maxMessageLineBuffer - linesTotal
+            this.lines = this.lines.slice(overBuffer)
+        }
+    },
+    resetIntervals() {
+        clearAllIntervals()
+        messageTimeoutId = setTimeout(this.streamMessages, messageInterval);
+    },
+    isScrolledToBottom() {
+        return true
+    },
+    scrollToBottom() {
+        const chatPane = this.$refs.chatPane
+        const lastChildElement = chatPane.lastElementChild
+        lastChildElement?.scrollIntoView({
+            behavior: 'smooth',
+        })
+    },
+    async refreshMessages() {
+        const channelName = cleanChannelName(this.channel.name)
+        const {data, error} = await fetchMessage(this.network, channelName, this.messageOffset)
+
+        if (null !== error) return
+
+        const {lines, meta, parseError} = await parseChatLog(data)
+
+        if (null !== parseError) return
+
+        this.addLines(lines)
+
+        if (_.has(meta, 'offset')) {
+            this.messageOffset = meta.offset
+        }
+
+        this.resetIntervals()
+    },
+    async streamMessages() {
+        const channelName = cleanChannelName(this.channel.name)
+
+        await streamMessage(this.network, channelName, this.messageOffset, async (chunk) => {
+            const {lines, meta, parseError} = await parseChatLog(chunk)
+            if (null !== parseError) return
+
+            this.addLines(lines)
+
+            if (_.has(meta, 'offset')) {
+                this.messageOffset = meta.offset
+            }
+        })
+
+        this.resetIntervals()
+    },
     scaleToViewportHeight,
     handleResize() {
         this.chatPaneHeight = this.scaleToViewportHeight(chatPaneScale)

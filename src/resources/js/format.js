@@ -1,4 +1,9 @@
+import _ from 'lodash'
 import { format } from "date-fns";
+
+const cleanChannelName = (channelName) => {
+    return channelName.slice(1)
+}
 
 const formatDate = (date, time = false) => {
     if (null === date) return ''
@@ -14,8 +19,38 @@ const formatDate = (date, time = false) => {
     }
 }
 
-const formatISODate = (date) => {
-    return format(new Date(date), "MM/dd/yyyy"); // '01/24/2024'
+const formatChatLine = (line) => {
+    const re = /^\[(\d{4}\-\d{2}\-\d{2}T\d{2}\:\d{2}\:\d{2}\+\d{2}\:\d{2})]\s(.*)$/s;
+    const [, date, message] = re.exec(line);
+    return [date, message]
+}
+
+async function parseChatLog(data) {
+    let meta = {}
+    let parseError = null
+    const lines = data.split(/\r?\n|\r|\n/g);
+    const lastIndex = lines.length - 1;
+
+    if (0 <= lastIndex) {
+        const lastLine = lines[lastIndex]
+        // Remove the last line
+        lines.splice(lastIndex, 1)
+
+        // process metadata
+        try {
+            meta = await parseMeta(lastLine);
+        } catch (parseError) {
+            console.log(parseError)
+        }
+    }
+
+    return new Promise((resolve) => {
+        resolve({lines, meta, parseError});
+    });
+}
+
+const formatISODate = (date, formatStr = 'MM/dd/yyyy') => {
+    return format(new Date(date), formatStr); // '01/24/2024'
 }
 
 const formatTruncate = (str, total, offset = null, display = '[...]') => {
@@ -41,4 +76,13 @@ const formatTruncate = (str, total, offset = null, display = '[...]') => {
     }
 }
 
-export { formatDate, formatISODate, formatTruncate };
+async function parseMeta(line) {
+    const data = line.split('[meta]: ')[1]
+    return new Promise((resolve) => {
+        if (!_.isUndefined(data)) {
+            resolve(JSON.parse(data));
+        }
+    });
+}
+
+export { cleanChannelName, formatDate, formatISODate, formatTruncate, formatChatLine, parseChatLog};

@@ -40,6 +40,7 @@ use \TypeError;
 class Client
 {
     const VERSION = 'Mcol-[alpha-build] -- The Media Collector (https://github.com/jesse-greathouse/mcol)';
+    const SUPPORTED_ENCODING = 'UTF-8';
 
     const LINE_COLUMN_SPACES = 50;
     const QUEUED_MASK = '/^Queued \d+h\d+m for \"(.+)\", in position (\d+) of (\d+)\. .+$/';
@@ -1340,7 +1341,7 @@ class Client
         $ircChannel = $this->getChannelFromClient($channelName);
         $meta = $ircChannel->toArray();
         $userCount = count($meta['users']);
-        $topic = $meta['topic'];
+        $topic = mb_convert_encoding($meta['topic'], self::SUPPORTED_ENCODING);
         $name = $meta['name'];
 
         if (null !== $topic && (0 < $userCount)) {

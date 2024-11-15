@@ -30,7 +30,7 @@ class ChatController
         return Inertia::render('Chat', [
             'settings'  => fn (Settings $settings) => $settings->toArray(),
             'networks'  => fn () => $this->getNetworkList(),
-            'clients'   => fn () => $this->getNetworkClients(),
+            'instances' => fn () => $this->getNetworkClients(),
         ]);
     }
 

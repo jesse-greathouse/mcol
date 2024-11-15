@@ -1,7 +1,5 @@
 const scaleToViewportHeight = (scale) => {
-    const viewportHeight = window.innerHeight;
-    const height = Math.min(viewportHeight * scale);
-    console.log( `${height}px`)
+    const height = Math.min(window.innerHeight * scale);
     return `${height}px`
 }
 

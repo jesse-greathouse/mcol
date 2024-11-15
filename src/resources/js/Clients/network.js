@@ -14,8 +14,8 @@ async function fetchNetworkClients() {
 
     try {
         const response = await axios.get(url, headers)
-        if (_.has(response.data, 'data')) {
-            data =  response.data.data
+        if (_.has(response, 'data')) {
+            data =  response.data
         }
     } catch (e) {
         error = e

@@ -20,7 +20,7 @@
         <!-- End Navigation Area -->
 
         <!-- Start Chat Area -->
-        <div ref="consoleTarget" role="tabpanel" aria-labelledby="console-tab" class="flex flex-col w-full h-full inset-0 border-x border-gray-100 overflow-x-hidden">
+        <div ref="consoleTarget" role="tabpanel" aria-labelledby="console-tab" class="flex flex-col w-full h-full inset-0 border-x border-gray-100">
             <chat-console
                 :user="client.user"
                 :network="network"
@@ -30,6 +30,7 @@
         <div v-for="channel in channels" :key="`${channel}`" :ref="`${channel}-target`" role="tabpanel" :aria-labelledby="`${channel}-tab`" class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden">
             <chat-channel
                 :user="client.user"
+                :network="network"
                 :connection="client.connection"
                 :channel="client.channels[`#${channel}`]"
                 :isActive="`${channel}-tab` === activeTab.id" />
