@@ -26,13 +26,13 @@
     <div class="relative flex flex-row content-end gap-4 grow">
 
         <!-- Start Chat Pane -->
-        <div ref="chatPane" class="flex flex-col content-end overflow-auto w-full mr-3" :style="{ maxHeight: chatPaneHeight }" >
+        <div ref="chatPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3" :style="{ maxHeight: chatPaneHeight }" >
             <message-line v-for="(line, i) in lines" :key="`line-${i}`" :showDate="showDate" :line="line" />
         </div>
         <!-- End Chat Pane -->
 
         <!-- Start User List-->
-        <div class="flex flex-col overflow-y-auto w-72 px-3" :style="{ maxHeight: chatPaneHeight }" >
+        <div class="flex flex-col overflow-y-auto overflow-x-hidden w-96 px-3" :style="{ maxHeight: chatPaneHeight }" >
             <ul class="flex flex-col items-center justify-start gap-1 w-full">
                 <li v-for="user in userList" class="w-full block">
                     <button type="button" aria-selected="false" class="block px-3 w-full text-left rounded-md border border-gray-400 hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" >
@@ -45,96 +45,115 @@
     </div>
 
     <!-- Start Chat Input -->
-    <div class="flex flex-row items-center p-4 grow-0">
-        <button class="shrink-0 text-gray-400" type="button" aria-label="Add media to message">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-        </button>
-        <div class="relative flex w-full max-h-24 overflow-hidden">
-            <div
-                class="w-full outline-0"
-                contenteditable="true"
-                tabindex="0"
-                dir="ltr"
-                spellcheck="false"
-                autocomplete="off"
-                autocorrect="off"
-                autocapitalize="off"
-            >
-                Type your message here...
-            </div>
-        </div>
-        <button
-            class="flex items-center justify-center shrink-0 w-12 h-12 bg-nav rounded-full overflow-hidden"
-            type="button"
-            aria-label="Submit" >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
-            </svg>
-        </button>
-    </div>
+    <chat-input :network="network" :target="channel.name" :default="COMMAND.PRIVMSG" />
     <!-- End Chat Input -->
 </template>
 
 <script>
 import _ from 'lodash'
 import throttle from 'lodash/throttle'
-import { fetchMessage, streamMessage } from '@/Clients/stream'
+import { streamMessage, streamEvent } from '@/Clients/stream'
 import { scaleToViewportHeight } from '@/style'
 import { cleanChannelName, parseChatLog } from '@/format'
+import { COMMAND } from '@/chat'
 import MessageLine from '@/Components/ChatMessageLine.vue'
+import ChatInput from '@/Components/ChatInput.vue'
 
 const maxMessageLineBuffer = 1000 // Maximum 1000 lines so we don't crash the browser.
-const chatPaneScale = .66
+const chatPaneScale = .62
+
 const messageInterval = 1000 // Check chat messages every 1 seconds.
 let messageTimeoutId
 const clearMessageInterval = function () {
-    clearMessageInterval(messageTimeoutId)
+    clearTimeout(messageTimeoutId)
+}
+
+const eventInterval = 1500 // Check channel events every 1.5 seconds.
+let eventTimeoutId
+const clearEventInterval = function () {
+    clearTimeout(eventTimeoutId)
 }
 
 const clearAllIntervals = function() {
     clearMessageInterval()
+    clearEventInterval()
 }
 
 export default {
   components: {
     MessageLine,
+    ChatInput,
   },
   props: {
     user: String,
     network: String,
+    notice: Array,
     channel: Object,
     connection: Object,
     isActive: Boolean,
   },
   data() {
     return {
+        COMMAND: COMMAND,
+        cleanChannelName: cleanChannelName(this.channel.name),
         chatPaneHeight: this.scaleToViewportHeight(chatPaneScale),
         lines: [],
         messageOffset: 0,
+        eventOffset: 0,
         showDate: true,
         userList: [],
+        shouldScrollToBottom: true,
+        noticeIndex: 0,
     }
   },
   watch: {
+    isActive: {
+        handler: function() {
+            if (this.isActive) {
+                this.scrollToBottom()
+            }
+        },
+    },
     channel: {
         deep: true,
         handler: throttle(function () {
             this.userList = this.makeUserList()
         }, 150),
     },
+    notice: {
+        deep:true,
+        handler: function() {
+            // Skip all the notices that came before.
+            if (0 < this.noticeIndex) {
+                // Break off any new notices and add them to lines
+                const diff = this.notice.length - this.noticeIndex
+                if (0 < diff) {
+                    const lines = this.notice.slice(this.noticeIndex)
+                    const objects = lines.map(str => ({ type: 'notice', line: str }));
+                    this.addLines(objects)
+                }
+            }
+            this.noticeIndex = this.notice.length
+        },
+    },
   },
   mounted() {
     window.addEventListener('resize', this.handleResize);
+    this.$refs.chatPane.addEventListener('scroll', this.handleScroll);
     this.userList = this.makeUserList()
+    this.scrollToBottom()
     this.streamMessages()
+    this.streamEvents()
   },
   updated() {
-    this.scrollToBottom()
+    if (this.shouldScrollToBottom) {
+        this.scrollToBottom()
+    }
+
     this.pruneLines()
   },
   beforeUnmount() {
+    this.$refs.chatPane.removeEventListener('scroll', this.handleScroll);
     window.removeEventListener('resize', this.handleResize);
   },
   computed: {
@@ -154,7 +173,9 @@ export default {
   },
   methods: {
     addLines(lines) {
-        this.lines = [...this.lines, ...lines]
+        lines.forEach((line) => {
+            this.lines.push(line)
+        })
     },
     pruneLines() {
         const linesTotal = this.lines.length
@@ -163,35 +184,73 @@ export default {
             this.lines = this.lines.slice(overBuffer)
         }
     },
-    resetIntervals() {
-        clearAllIntervals()
+    resetMessageInterval() {
         messageTimeoutId = setTimeout(this.streamMessages, messageInterval);
     },
+    resetEventInterval() {
+        eventTimeoutId = setTimeout(this.streamEvents, eventInterval);
+    },
     isScrolledToBottom() {
-        return true
+        const chatPane = this.$refs.chatPane
+        const scrollTop = chatPane.scrollTop
+        const clientHeight = chatPane.clientHeight
+        const scrollHeight = chatPane.scrollHeight
+
+        // Adjust for horizontal scrollbar width
+        const horizontalScrollbarWidth = chatPane.offsetWidth - chatPane.clientWidth
+
+        return scrollTop + clientHeight >= scrollHeight - horizontalScrollbarWidth
+    },
+    handleScroll() {
+        this.shouldScrollToBottom = this.isScrolledToBottom()
     },
     scrollToBottom() {
         const chatPane = this.$refs.chatPane
-        const lastChildElement = chatPane.lastElementChild
-        lastChildElement?.scrollIntoView({
-            behavior: 'smooth',
-        })
+        chatPane.scrollTop = chatPane.scrollHeight;
+
+        // Set it to scroll again to the bottom after 1 second.
+        // In case scrolling isn't complete after 1 second.
+        let timeoutId = setTimeout(() => {
+            const refreshPane = this.$refs.chatPane
+            refreshPane.scrollTop = refreshPane.scrollHeight;
+        }, 1000);
     },
     async streamMessages() {
-        const channelName = cleanChannelName(this.channel.name)
-
-        await streamMessage(this.network, channelName, this.messageOffset, async (chunk) => {
+        await streamMessage(this.network, this.cleanChannelName, this.messageOffset, async (chunk) => {
             const {lines, meta, parseError} = await parseChatLog(chunk)
             if (null !== parseError) return
 
-            this.addLines(lines)
+            const objects = lines.map(str => ({ type: 'message', line: str }));
+
+            this.addLines(objects)
 
             if (_.has(meta, 'offset')) {
                 this.messageOffset = meta.offset
             }
+
+            this.resetMessageInterval()
         })
 
-        this.resetIntervals()
+
+    },
+    async streamEvents() {
+        await streamEvent(this.network, this.cleanChannelName, this.eventOffset, async (chunk) => {
+            const {lines, meta, parseError} = await parseChatLog(chunk)
+            if (null !== parseError) return
+
+            const objects = lines.map(str => ({ type: 'event', line: str }));
+
+            // Skip adding old events.
+            if (0 < this.eventOffset) {
+                this.addLines(objects)
+            }
+
+            if (_.has(meta, 'offset')) {
+                this.eventOffset = meta.offset
+            }
+
+            this.resetEventInterval()
+        })
     },
     scaleToViewportHeight,
     handleResize() {

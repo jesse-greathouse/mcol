@@ -35,7 +35,7 @@ class PacketSearch implements ShouldQueue, ShouldBeUnique
 
     public function __construct(
         public Network $network,
-        public Channel $channel, 
+        public Channel $channel,
         public string $search,
     ){}
 
@@ -44,7 +44,7 @@ class PacketSearch implements ShouldQueue, ShouldBeUnique
      */
     public function handle(): void
     {
-        $command = "PRIVMSG {$this->channel->name} :!s {$this->search}";
+        $command = "PRIVMSG {$this->channel->name} !s {$this->search}";
         $client = $this->getClient();
 
         $instance = Instance::updateOrCreate(
@@ -55,7 +55,7 @@ class PacketSearch implements ShouldQueue, ShouldBeUnique
         $op = Operation::create(
             [
                 'instance_id' => $instance->id,
-                'status' => Operation::STATUS_PENDING, 
+                'status' => Operation::STATUS_PENDING,
                 'command' => $command,
             ]
         );

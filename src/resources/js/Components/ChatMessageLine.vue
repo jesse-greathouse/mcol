@@ -1,17 +1,27 @@
 <template>
- <div class="flex font-mono text-xs text-nowrap">
-    <div class="inline-flex grow-0 w-32 mr-6 text-nowrap" v-if="showDate"> {{ dateFormatted }} </div>
-    <div class="inline-flex grow"> {{ messageFormatted }} </div>
+ <div class="flex font-mono text-base max-w-full">
+    <line-date v-if="showDate" :date="dateFormatted" />
+    <line-message v-if="line.type === 'message'" :message="messageFormatted" />
+    <line-notice v-if="line.type === 'notice'" :message="messageFormatted" />
+    <line-event v-if="line.type === 'event'" :message="messageFormatted" />
  </div>
 </template>
 
 <script>
 import _ from 'lodash'
 import { formatChatLine, formatISODate } from '@/format'
-import throttle from 'lodash/throttle'
+import LineDate from '@/Components/ChatLineDate.vue'
+import LineMessage from '@/Components/ChatLineMessage.vue'
+import LineEvent from '@/Components/ChatLineEvent.vue'
+import LineNotice from '@/Components/ChatLineNotice.vue'
+
 
 export default {
   components: {
+    LineDate,
+    LineMessage,
+    LineNotice,
+    LineEvent,
   },
   props: {
     line: String,
@@ -33,7 +43,7 @@ export default {
         }
 
         try {
-            timestamp = formatISODate(this.date, 'MM/dd/yyyy H:mm:ss')
+            timestamp = formatISODate(this.date, 'MM/dd/yyyy HH:mm:ss')
         } catch(error) {
             console.log(`error formatting date: ${this.date} error: ${error}`)
         }
@@ -53,15 +63,17 @@ export default {
   methods: {
     parseLine() {
         try {
-            [this.date, this.message] = formatChatLine(this.line)
+            [this.date, this.message] = formatChatLine(this.line.line)
         } catch(error) {
             // Sometimes the lines get chunked in a way thats impossible to parse.
             // Just make due with whatever chunk is there.
             const date = new Date();
             this.date = date.toISOString()
-            this.message = this.line
+            this.message = this.line.line
+            console.log(`couldn't parse line: ${this.line.line}`)
+            console.log(error)
         }
-    }
+    },
   },
   emits: [],
 }

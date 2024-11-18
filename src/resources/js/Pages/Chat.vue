@@ -90,9 +90,11 @@
       },
       listChannels(network) {
         const channels = []
-        Object.keys(network.channels).forEach((key) => {
-            channels.push(cleanChannelName(key))
-        })
+        if (_.has(network, 'channels')) {
+            Object.keys(network.channels).forEach((key) => {
+                channels.push(cleanChannelName(key))
+            })
+        }
         return channels
       },
       resetIntervals() {

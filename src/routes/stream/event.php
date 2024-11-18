@@ -25,15 +25,11 @@ Route::middleware('auth:sanctum')->get('/network/{name}/channel/{channelName}/ev
     $offset = ($request->has('offset')) ? (int) $request->input('offset') : 0;
 
     return response()->stream(function () use ($streamer, $name, $offset, $channelName): void {
-        foreach ($streamer->event($name, "#$channelName", $offset) as [$line, $length]) {
-            $offset += $length;
+        foreach ($streamer->event($name, "#$channelName", $offset) as $line) {
             echo $line;
             ob_flush();
             flush();
         }
-
-        // meta data information about result.
-        echo '[meta]: ' . json_encode(['offset' => $offset]);
     }, 200, [
         'X-Accel-Buffering' => 'no',
         'Cache-Control' => 'no-cache',

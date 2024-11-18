@@ -43,7 +43,7 @@ class HotReport implements ShouldQueue, ShouldBeUnique
      */
     public function handle(): void
     {
-        $command = "PRIVMSG {$this->channel->name} :!hot";
+        $command = "PRIVMSG {$this->channel->name} !hot";
         $client = $this->getClient();
 
         $instance = Instance::updateOrCreate(
@@ -54,7 +54,7 @@ class HotReport implements ShouldQueue, ShouldBeUnique
         $op = Operation::create(
             [
                 'instance_id' => $instance->id,
-                'status' => Operation::STATUS_PENDING, 
+                'status' => Operation::STATUS_PENDING,
                 'command' => $command,
             ]
         );

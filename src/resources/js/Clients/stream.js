@@ -1,67 +1,51 @@
 import _ from 'lodash'
+import { get, streamGet } from '@/Clients/client'
 
 const endpoint = '/stream'
 const headers = {
     'Accept': 'text/plain',
 }
 
-// This is done with XMLHttpRequest
-// Axios apparently does not support client streaming
-async function streamMessage(network, channel, offset = 0, parse) {
-    let url = `${endpoint}/network/${network}/channel/${channel}/message?offset=${offset}`
-
-    var xhr = new XMLHttpRequest()
-    xhr.open('GET', url, true)
-    xhr.timeout = 10000
-
-    xhr.ontimeout = function() {
-      console.error('Request timed out!')
-    };
-
-    xhr.onprogress = function() {
-        var responseText = xhr.responseText
-        var chunk = responseText.slice(xhr.prevLen)
-        xhr.prevLen = responseText.length
-        parse(chunk)
-    }
-
-    xhr.send()
-}
-
 async function fetchMessage(network, channel, offset = 0) {
-    let data = null
-    let error = null
-    let url = `${endpoint}/network/${network}/channel/${channel}/message?offset=${offset}`
-
-    try {
-        const response = await axios.get(url, { headers: headers})
-        if (_.has(response, 'data')) {
-            data =  response.data
-        }
-    } catch (e) {
-        error = e
-    }
-
-    return {data, error}
+    const res = await get(`${endpoint}/network/${network}/channel/${channel}/message?offset=${offset}`, headers)
+    return res
 }
 
 async function fetchConsole(network, offset = 0) {
-    let data = null
-    let error = null
-    let url = `${endpoint}/network/${network}/console?offset=${offset}`
+    return await get(`${endpoint}/network/${network}/console?offset=${offset}`, headers)
+}
 
-    try {
-        const response = await axios.get(url, headers)
-        if (_.has(response, 'data')) {
-            data =  response.data
-        }
-    } catch (e) {
-        error = e
-    }
+async function streamConsole(network, offset = 0, parse) {
+    const url = `${endpoint}/network/${network}/console?offset=${offset}`
+    await streamGet(url, headers, parse)
+}
 
-    return {data, error}
+async function streamEvent(network, channel, offset = 0, parse) {
+    const url = `${endpoint}/network/${network}/channel/${channel}/event?offset=${offset}`
+    await streamGet(url, headers, parse)
+}
+
+async function streamMessage(network, channel, offset = 0, parse) {
+    const url = `${endpoint}/network/${network}/channel/${channel}/message?offset=${offset}`
+    await streamGet(url, headers, parse)
+}
+
+async function streamNotice(network, offset = 0, parse) {
+    const url = `${endpoint}/network/${network}/notice?offset=${offset}`
+    await streamGet(url, headers, parse)
+}
+
+async function streamPrivMsg(network, offset = 0, parse) {
+    const url = `${endpoint}/network/${network}/privmsg?offset=${offset}`
+    await streamGet(url, headers, parse)
 }
 
 export {
-    fetchConsole, fetchMessage, streamMessage
+    fetchConsole,
+    fetchMessage,
+    streamConsole,
+    streamEvent,
+    streamMessage,
+    streamNotice,
+    streamPrivMsg
 };

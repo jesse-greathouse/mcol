@@ -24,6 +24,7 @@
             <chat-console
                 :user="client.user"
                 :network="network"
+                :notice="notice"
                 :isActive="'console-tab' === activeTab.id" />
         </div>
 
@@ -31,6 +32,7 @@
             <chat-channel
                 :user="client.user"
                 :network="network"
+                :notice="notice"
                 :connection="client.connection"
                 :channel="client.channels[`#${channel}`]"
                 :isActive="`${channel}-tab` === activeTab.id" />
@@ -43,8 +45,21 @@
 <script>
 import _ from 'lodash'
 import { Tabs } from 'flowbite'
+import { streamNotice } from '@/Clients/stream'
+import { cleanChannelName, parseChatLog } from '@/format'
 import ChatChannel from '@/Components/ChatChannel.vue'
 import ChatConsole from '@/Components/ChatConsole.vue'
+
+const maxNoticeBuffer = 1000 // Maximum 1000 lines so we don't crash the browser.
+const noticeInterval = 1000 // Check chat messages every 1 seconds.
+let noticeTimeoutId
+const clearNoticeInterval = function () {
+    clearTimeout(noticeTimeoutId)
+}
+
+const clearAllIntervals = function() {
+    clearNoticeInterval()
+}
 
 export default {
   components: {
@@ -60,6 +75,8 @@ export default {
   data() {
     return {
         tabs: null,
+        notice: [],
+        noticeOffset: 0,
         activeTab: { id: null },
     }
   },
@@ -67,8 +84,36 @@ export default {
   },
   mounted() {
     this.tabs = this.makeTabs()
+    this.streamNotice()
   },
   methods: {
+    addNotice(notice) {
+        this.notice = [...this.notice, ...notice]
+    },
+    pruneNotice() {
+        const noticeTotal = this.notice.length
+        if (noticeTotal > maxNoticeBuffer) {
+            const overBuffer = maxNoticeBuffer - noticeTotal
+            this.notice = this.notice.slice(overBuffer)
+        }
+    },
+    reseNoticetInterval() {
+        noticeTimeoutId = setTimeout(this.streamNotice, noticeInterval);
+    },
+    async streamNotice() {
+        await streamNotice(this.network, this.noticeOffset, async (chunk) => {
+            const {lines, meta, parseError} = await parseChatLog(chunk)
+            if (null !== parseError) return
+
+            this.addNotice(lines)
+
+            if (_.has(meta, 'offset')) {
+                this.noticeOffset = meta.offset
+            }
+
+            this.reseNoticetInterval()
+        })
+    },
     makeTabs() {
         const tabElements = [{
             id: 'console-tab',

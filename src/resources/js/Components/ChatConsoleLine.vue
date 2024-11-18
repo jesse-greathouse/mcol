@@ -1,20 +1,26 @@
 <template>
  <div class="flex font-mono text-xs">
-    <div class="inline-flex grow-0 w-32 mr-6" v-if="showDate"> {{ dateFormatted }} </div>
-    <div class="inline-flex grow"> {{ messageFormatted }} </div>
+    <line-date v-if="showDate" :date="dateFormatted" />
+    <line-console v-if="line.type === 'console'" :message="messageFormatted" />
+    <line-notice v-if="line.type === 'notice'" :message="messageFormatted" />
  </div>
 </template>
 
 <script>
 import _ from 'lodash'
 import { formatChatLine, formatISODate } from '@/format'
-import throttle from 'lodash/throttle'
+import LineDate from '@/Components/ChatLineDate.vue'
+import LineConsole from '@/Components/ChatLineConsole.vue'
+import LineNotice from '@/Components/ChatLineNotice.vue'
 
 export default {
   components: {
+    LineDate,
+    LineConsole,
+    LineNotice,
   },
   props: {
-    line: String,
+    line: Object,
     showDate: Boolean
   },
   data() {
@@ -29,11 +35,11 @@ export default {
     dateFormatted() {
         let timestamp = ''
         if (null === this.date) {
-            [this.date, this.message] = formatChatLine(this.line)
+            this.parseLine()
         }
 
         try {
-            timestamp = formatISODate(this.date, 'MM/dd/yyyy H:mm:ss')
+            timestamp = formatISODate(this.date, 'MM/dd/yyyy HH:mm:ss')
         } catch(error) {
             console.log(`error formatting date: ${this.date} error: ${error}`)
         }
@@ -42,7 +48,7 @@ export default {
     },
     messageFormatted() {
         if (null === this.message) {
-            [this.date, this.message] = formatChatLine(this.line)
+            this.parseLine()
         }
 
         return this.message
@@ -51,6 +57,17 @@ export default {
   mounted() {
   },
   methods: {
+    parseLine() {
+        try {
+            [this.date, this.message] = formatChatLine(this.line.line)
+        } catch(error) {
+            // Sometimes the lines get chunked in a way thats impossible to parse.
+            // Just make due with whatever chunk is there.
+            const date = new Date();
+            this.date = date.toISOString()
+            this.message = this.line
+        }
+    },
   },
   emits: [],
 }
