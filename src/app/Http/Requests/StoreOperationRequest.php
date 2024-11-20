@@ -6,7 +6,8 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 use App\Models\Operation,
-    App\Models\Instance;
+    App\Models\Instance,
+    App\Models\Network;
 
 class StoreOperationRequest extends FormRequest
 {
@@ -27,9 +28,10 @@ class StoreOperationRequest extends FormRequest
     {
         return [
             'command'   => 'required',
+            'network'   => 'nullable|max:255',
             'status'    => 'nullable|max:255',
             'enabled'   => 'nullable|in:0,1',
-            'instance'  => 'required|numeric',
+            'instance'  => 'nullable|numeric',
         ];
     }
 
@@ -39,6 +41,14 @@ class StoreOperationRequest extends FormRequest
     public function after(): array
     {
         return [
+            function (Validator $validator) {
+                if ($this->networkExists($validator)) {
+                    $validated = $validator->validated();
+                    $networkName = $validated['network'];
+                    $instance = $this->getInstanceByNetworkName($networkName);
+                    $validator->setValue('instance', $instance->id);
+                }
+            },
             function (Validator $validator) {
                 if (!$this->instanceExists($validator)) {
                     $validated = $validator->validated();
@@ -64,6 +74,24 @@ class StoreOperationRequest extends FormRequest
                 }
             }
         ];
+    }
+
+    public function networkExists(Validator $validator): bool
+    {
+        $validated = $validator->validated();
+        $networkName = $validated['network'];
+        $network = Network::where('name', $networkName)->first();
+        return (null !== $network);
+    }
+
+    public function getInstanceByNetworkName(string $networkName): Instance
+    {
+        $network = Instance::join('clients', 'clients.id', '=', 'instances.client_id')
+            ->join ('networks', 'networks.id', 'clients.network_id')
+            ->where('networks.name', $networkName)
+            ->first();
+
+        return $network;
     }
 
     public function instanceExists(Validator $validator): bool

@@ -7,9 +7,11 @@
         <!-- End Console Pane -->
     </div>
 
-    <!-- Start Console Input -->
-    <chat-input :network="network" />
-    <!-- End Console Input -->
+        <!-- Start Chat Input -->
+        <chat-input
+            :network="network"
+            @call:handleOperation="handleOperation" />
+    <!-- End Chat Input -->
 </template>
 
 <script>

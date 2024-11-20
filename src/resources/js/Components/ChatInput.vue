@@ -1,6 +1,7 @@
 <template>
     <div class="relative flex flex-row width-full pr-4 py-2">
-        <button type="submit" class="!absolute right-5 top-3 z-10 select-none rounded text-white bg-blue-700 hover:bg-blue-800 focus:ring-none focus:outline-none font-medium text-center px-2 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+        <button type="submit" class="!absolute right-5 top-3 z-10 select-none rounded text-white bg-blue-700 hover:bg-blue-800 focus:ring-none focus:outline-none font-medium text-center px-2 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+            @click="sendMessage()" >
             <svg class="size-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
                 <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -9,13 +10,18 @@
                 </g>
             </svg>
         </button>
-        <input :v-model="message" type="text" ref="command" class="block w-full p-4 font-mono text-base text-gray-900 border border-gray-300 rounded bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" :placeholder="placeholder" required />
+        <input type="text" class="block w-full p-4 font-mono text-base text-gray-900 border border-gray-300 rounded bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            ref="command"
+            :placeholder="placeholder"
+            v-model="message"
+            @keyup.enter="sendMessage()" />
     </div>
 </template>
 
 <script>
 import _ from 'lodash'
-import { COMMAND, getCmdMask } from '@/chat'
+import { COMMAND, getCmdMask, makeIrcCommand } from '@/chat'
+import { saveOperation } from '@/Clients/operation'
 
 export default {
   components: {
@@ -53,7 +59,31 @@ export default {
     }
   },
   methods: {
+    async sendMessage() {
+        if (await this.saveOperation()) {
+            this.message = ''
+            this.command = this.default
+        }
+    },
+    async saveOperation() {
+        if ('' === this.message) return false
+        const network = this.network
+        const command = makeIrcCommand(this.message, this.target, this.command)
+
+        if (null === command) return false
+
+        const {data, error} = await saveOperation({command, network})
+
+        if (null === error) {
+            this.$emit('call:handleOperation', data, this.command, this.target)
+            return true
+        }
+
+        return false
+    }
   },
-  emits: [],
+  emits: [
+    'call:handleOperation',
+  ],
 }
 </script>

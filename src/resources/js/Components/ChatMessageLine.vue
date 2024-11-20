@@ -2,8 +2,9 @@
  <div class="flex font-mono text-base max-w-full">
     <line-date v-if="showDate" :date="dateFormatted" />
     <line-message v-if="line.type === 'message'" :message="messageFormatted" />
-    <line-notice v-if="line.type === 'notice'" :message="messageFormatted" />
     <line-event v-if="line.type === 'event'" :message="messageFormatted" />
+    <line-notice v-if="line.type === 'notice'" :message="messageFormatted" />
+    <line-user v-if="line.type === 'usermessage'" :message="messageFormatted" />
  </div>
 </template>
 
@@ -11,9 +12,10 @@
 import _ from 'lodash'
 import { formatChatLine, formatISODate } from '@/format'
 import LineDate from '@/Components/ChatLineDate.vue'
-import LineMessage from '@/Components/ChatLineMessage.vue'
 import LineEvent from '@/Components/ChatLineEvent.vue'
+import LineMessage from '@/Components/ChatLineMessage.vue'
 import LineNotice from '@/Components/ChatLineNotice.vue'
+import LineUser from '@/Components/ChatLineUserMessage.vue'
 
 
 export default {
@@ -22,6 +24,7 @@ export default {
     LineMessage,
     LineNotice,
     LineEvent,
+    LineUser,
   },
   props: {
     line: String,

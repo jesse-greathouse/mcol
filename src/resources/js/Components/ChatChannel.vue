@@ -24,7 +24,6 @@
     <!-- End Topic Pane-->
 
     <div class="relative flex flex-row content-end gap-4 grow">
-
         <!-- Start Chat Pane -->
         <div ref="chatPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3" :style="{ maxHeight: chatPaneHeight }" >
             <message-line v-for="(line, i) in lines" :key="`line-${i}`" :showDate="showDate" :line="line" />
@@ -45,7 +44,11 @@
     </div>
 
     <!-- Start Chat Input -->
-    <chat-input :network="network" :target="channel.name" :default="COMMAND.PRIVMSG" />
+    <chat-input
+        :network="network"
+        :target="channel.name"
+        :default="COMMAND.PRIVMSG"
+        @call:handleOperation="handleOperation" />
     <!-- End Chat Input -->
 </template>
 
@@ -54,7 +57,7 @@ import _ from 'lodash'
 import throttle from 'lodash/throttle'
 import { streamMessage, streamEvent } from '@/Clients/stream'
 import { scaleToViewportHeight } from '@/style'
-import { cleanChannelName, parseChatLog } from '@/format'
+import { cleanChannelName, parseChatLog, makeChatLogDate } from '@/format'
 import { COMMAND } from '@/chat'
 import MessageLine from '@/Components/ChatMessageLine.vue'
 import ChatInput from '@/Components/ChatInput.vue'
@@ -215,6 +218,25 @@ export default {
             refreshPane.scrollTop = refreshPane.scrollHeight;
         }, 1000);
     },
+    handleOperation(operation, command, target) {
+        // If its a PRIVMSG targeting this channel, add it to lines.
+        // IRC protocol does not add user input to the output feeds.
+        if (command === COMMAND.PRIVMSG && target === this.channel.name) {
+            const [, , ...parts] = operation.command.split(' ')
+            const msg = parts.join(' ')
+            const date = makeChatLogDate()
+
+            const line = {
+                type: 'usermessage',
+                line: `[${date}] ${this.user}: ${msg}`
+            }
+
+            this.addLines([line])
+        }
+
+        // Send the operation up to the client for further post-processing.
+        this.$emit('call:handleOperation', operation, command, target)
+    },
     async streamMessages() {
         await streamMessage(this.network, this.cleanChannelName, this.messageOffset, async (chunk) => {
             const {lines, meta, parseError} = await parseChatLog(chunk)
@@ -283,6 +305,8 @@ export default {
         return list.concat(op, voice, user)
     },
   },
-  emits: [],
+  emits: [
+    'call:handleOperation'
+  ],
 }
 </script>

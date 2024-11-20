@@ -58,5 +58,63 @@ function getCmdMask(command) {
     return null
 }
 
+function makeIrcCommand(message, ircTarget = null, ircCommand = null) {
+    let [command, error] = [null, null]
+    const target = (null !== ircTarget) ? ircTarget : ''
 
-export { COMMAND, COMMAND_MASK, getCmdMask}
+    // If command is null, parse the message for a command.
+    if (null === ircCommand) {
+        ({command, message, error} = parseMessage(message))
+    } else {
+        ({command, error} = validateCommand(ircCommand))
+    }
+
+    if (null !== error) return null
+
+    return `${command} ${target} ${message}`
+}
+
+function parseMessage(parseMessage) {
+    const [mask, ...parts] = parseMessage.split(' ')
+    const {command, error} = validateCommand(mask)
+    const message = parts.join(' ')
+
+    return {command, message, error}
+}
+
+function validateCommand(ircCommand) {
+    let [command, error] = [null, null]
+
+    // Make uppercase
+    let upperCommand = ircCommand.toUpperCase()
+
+    if (isIrcCommand(upperCommand)) {
+        command = upperCommand
+    } else {
+        command = getCommandFromMask(upperCommand)
+        if (!command) {
+            error = new Error(`Illegal command: "${command}" is not a recognized IRC command.`)
+            console.error(error)
+        }
+    }
+
+    return {command, error}
+}
+
+function getCommandFromMask(mask) {
+    let command = false
+    if (_.has(COMMAND_MASK, mask)) {
+        command = COMMAND_MASK[mask]
+    }
+
+    return command
+}
+
+function isIrcCommand(ircCommand) {
+    const keys = Object.keys(COMMAND)
+    if (-1 < keys.indexOf(ircCommand)) return true
+
+    return false
+}
+
+export { COMMAND, COMMAND_MASK, getCmdMask, makeIrcCommand}

@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import { get } from '@/Clients/client'
 
 const endpoint = '/api/network'
 const headers = {
@@ -6,22 +7,9 @@ const headers = {
     'Accept': 'application/json',
 }
 
-
 async function fetchNetworkClients() {
-    let data = null
-    let error = null
-    let url = `${endpoint}/clients`
-
-    try {
-        const response = await axios.get(url, headers)
-        if (_.has(response, 'data')) {
-            data =  response.data
-        }
-    } catch (e) {
-        error = e
-    }
-
-    return {data, error}
+    const res = await get(`${endpoint}/clients`, headers)
+    return res
 }
 
 export {
