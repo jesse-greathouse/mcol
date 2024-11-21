@@ -26,7 +26,11 @@
     <div class="relative flex flex-row content-end gap-4 grow">
         <!-- Start Chat Pane -->
         <div ref="chatPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3" :style="{ maxHeight: chatPaneHeight }" >
-            <message-line v-for="(line, i) in lines" :key="`line-${i}`" :showDate="showDate" :line="line" />
+            <message-line v-for="(line, i) in lines"
+                :key="`line-${i}`"
+                :showDate="showDate"
+                :line="line"
+                :channel="channel" />
         </div>
         <!-- End Chat Pane -->
 

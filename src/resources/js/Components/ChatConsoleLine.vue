@@ -8,7 +8,8 @@
 
 <script>
 import _ from 'lodash'
-import { formatChatLine, formatISODate } from '@/format'
+import { formatISODate } from '@/format'
+import { parseChatLine } from '@/chat'
 import LineDate from '@/Components/ChatLineDate.vue'
 import LineConsole from '@/Components/ChatLineConsole.vue'
 import LineNotice from '@/Components/ChatLineNotice.vue'
@@ -58,15 +59,19 @@ export default {
   },
   methods: {
     parseLine() {
-        try {
-            [this.date, this.message] = formatChatLine(this.line.line)
-        } catch(error) {
-            // Sometimes the lines get chunked in a way thats impossible to parse.
-            // Just make due with whatever chunk is there.
-            const date = new Date();
-            this.date = date.toISOString()
-            this.message = this.line
+        const {date, message, error} = parseChatLine(this.line.line)
+
+        if (null === error) {
+            this.date = date
+            this.message = message
+            return
         }
+
+        // Sometimes the lines get chunked in a way thats impossible to parse.
+        // Just make due with whatever chunk is there.
+        const dateNow = new Date();
+        this.date = dateNow.toISOString()
+        this.message = this.line.line
     },
   },
   emits: [],

@@ -117,4 +117,44 @@ function isIrcCommand(ircCommand) {
     return false
 }
 
-export { COMMAND, COMMAND_MASK, getCmdMask, makeIrcCommand}
+function parseChatLine(line) {
+    // https://regexr.com/890ra
+    const re = /^\[(\d{4}\-\d{2}\-\d{2}T\d{2}\:\d{2}\:\d{2}[\+|\-]\d{2}\:\d{2})]\s(.*)$/s;
+    let [date, message, error] = [null, null, null]
+
+    try {
+        ([, date, message] = re.exec(line));
+    } catch(error) {
+        // Sometimes the server chunks a line in a way thats impossible to parse.
+        console.log(`couldn't parse line: ${line}`)
+        console.error(error)
+    }
+
+    return {date, message, error}
+}
+
+function parseChatMessage(message) {
+    let [nick, content, error] = ['', '', null]
+
+    // https://regexr.com/890rs
+    const re = /(^([\S]+)\:\s)?(.*)/gs;
+
+    try {
+        ([, , nick, content] = re.exec(message));
+    } catch(error) {
+        //TODO: Fix any parsing errors if possible.
+        console.log(`couldn't parse message: ${message}`)
+        console.error(error)
+    }
+
+    return {nick, content, error}
+}
+
+export {
+    COMMAND,
+    COMMAND_MASK,
+    getCmdMask,
+    makeIrcCommand,
+    parseChatLine,
+    parseChatMessage,
+}

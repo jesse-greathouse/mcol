@@ -7,7 +7,10 @@ const cleanChannelName = (channelName) => {
 
 const formatDate = (date, time = false) => {
     if (null === date) return ''
+
+    // regexr.com/890rg
     const dateMask = /(\d{4}-\d{2}-\d{2})\s*(\d{2}\:\d{2}\:\d{2})*/
+
     const matches = date.date.match(dateMask)
     const dateStr = matches[1]
 
@@ -17,12 +20,6 @@ const formatDate = (date, time = false) => {
     } else {
         return `${dateStr}`
     }
-}
-
-const formatChatLine = (line) => {
-    const re = /^\[(\d{4}\-\d{2}\-\d{2}T\d{2}\:\d{2}\:\d{2}[\+|\-]\d{2}\:\d{2})]\s(.*)$/s;
-    const [, date, message] = re.exec(line);
-    return [date, message]
 }
 
 async function parseChatLog(data) {
@@ -95,7 +92,6 @@ export {
     formatDate,
     formatISODate,
     formatTruncate,
-    formatChatLine,
     parseChatLog,
     makeChatLogDate,
 }

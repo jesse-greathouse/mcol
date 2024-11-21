@@ -1,7 +1,7 @@
 <template>
  <div class="flex font-mono text-base max-w-full">
     <line-date v-if="showDate" :date="dateFormatted" />
-    <line-message v-if="line.type === 'message'" :message="messageFormatted" />
+    <line-message v-if="line.type === 'message'" :message="messageFormatted" :channel="channel" />
     <line-event v-if="line.type === 'event'" :message="messageFormatted" />
     <line-notice v-if="line.type === 'notice'" :message="messageFormatted" />
     <line-user v-if="line.type === 'usermessage'" :message="messageFormatted" />
@@ -10,13 +10,13 @@
 
 <script>
 import _ from 'lodash'
-import { formatChatLine, formatISODate } from '@/format'
+import { formatISODate } from '@/format'
+import { parseChatLine } from '@/chat'
 import LineDate from '@/Components/ChatLineDate.vue'
 import LineEvent from '@/Components/ChatLineEvent.vue'
 import LineMessage from '@/Components/ChatLineMessage.vue'
 import LineNotice from '@/Components/ChatLineNotice.vue'
 import LineUser from '@/Components/ChatLineUserMessage.vue'
-
 
 export default {
   components: {
@@ -28,7 +28,8 @@ export default {
   },
   props: {
     line: String,
-    showDate: Boolean
+    showDate: Boolean,
+    channel: Object,
   },
   data() {
     return {
@@ -65,17 +66,19 @@ export default {
   },
   methods: {
     parseLine() {
-        try {
-            [this.date, this.message] = formatChatLine(this.line.line)
-        } catch(error) {
-            // Sometimes the lines get chunked in a way thats impossible to parse.
-            // Just make due with whatever chunk is there.
-            const date = new Date();
-            this.date = date.toISOString()
-            this.message = this.line.line
-            console.log(`couldn't parse line: ${this.line.line}`)
-            console.log(error)
+        const {date, message, error} = parseChatLine(this.line.line)
+
+        if (null === error) {
+            this.date = date
+            this.message = message
+            return
         }
+
+        // Sometimes the lines get chunked in a way thats impossible to parse.
+        // Just make due with whatever chunk is there.
+        const dateNow = new Date();
+        this.date = dateNow.toISOString()
+        this.message = this.line.line
     },
   },
   emits: [],
