@@ -48,9 +48,10 @@ export default {
         return [
         `bg-${color}-100`,
         `text-${color}-800`,
-        `dark:bg--${color}-700`,
+        `border-${color}-400`,
+        `dark:bg-${color}-700`,
         `dark:text-${color}-400`,
-        `border-${color}-400`
+        `dark:border-${color}-400`,
       ]
     },
   }

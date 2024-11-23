@@ -1,3 +1,5 @@
+import _ from 'lodash'
+
 const COMMAND = {
     ADMIN: 'ADMIN',
     INFO: 'INFO',
@@ -133,6 +135,30 @@ function parseChatLine(line) {
     return {date, message, error}
 }
 
+async function parseChatLog(data) {
+    let meta = {}
+    let parseError = null
+    const lines = data.split(/\r?\n|\r|\n/g);
+    const lastIndex = lines.length - 1;
+
+    if (0 <= lastIndex) {
+        const lastLine = lines[lastIndex]
+        // Remove the last line
+        lines.splice(lastIndex, 1)
+
+        // process metadata
+        try {
+            meta = await parseMeta(lastLine);
+        } catch (parseError) {
+            console.log(parseError)
+        }
+    }
+
+    return new Promise((resolve) => {
+        resolve({lines, meta, parseError});
+    });
+}
+
 function parseChatMessage(message) {
     let [nick, content, error] = ['', '', null]
 
@@ -150,11 +176,21 @@ function parseChatMessage(message) {
     return {nick, content, error}
 }
 
+async function parseMeta(line) {
+    const data = line.split('[meta]: ')[1]
+    return new Promise((resolve) => {
+        if (!_.isUndefined(data)) {
+            resolve(JSON.parse(data));
+        }
+    });
+}
+
 export {
     COMMAND,
     COMMAND_MASK,
     getCmdMask,
     makeIrcCommand,
     parseChatLine,
+    parseChatLog,
     parseChatMessage,
 }

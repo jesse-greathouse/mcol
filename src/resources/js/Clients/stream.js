@@ -35,7 +35,7 @@ async function streamNotice(network, offset = 0, parse) {
     await streamGet(url, headers, parse)
 }
 
-async function streamPrivMsg(network, offset = 0, parse) {
+async function streamPrivmsg(network, offset = 0, parse) {
     const url = `${endpoint}/network/${network}/privmsg?offset=${offset}`
     await streamGet(url, headers, parse)
 }
@@ -47,5 +47,5 @@ export {
     streamEvent,
     streamMessage,
     streamNotice,
-    streamPrivMsg
+    streamPrivmsg
 };

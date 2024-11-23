@@ -16,10 +16,9 @@
 
 <script>
 import _ from 'lodash'
-import throttle from 'lodash/throttle'
 import { streamConsole } from '@/Clients/stream'
 import { scaleToViewportHeight } from '@/style'
-import { parseChatLog } from '@/format'
+import { parseChatLog } from '@/chat'
 import ConsoleLine from '@/Components/ChatConsoleLine.vue'
 import ChatInput from '@/Components/ChatInput.vue'
 

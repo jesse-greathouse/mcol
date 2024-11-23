@@ -61,7 +61,8 @@ import _ from 'lodash'
 import throttle from 'lodash/throttle'
 import { streamMessage, streamEvent } from '@/Clients/stream'
 import { scaleToViewportHeight } from '@/style'
-import { cleanChannelName, parseChatLog, makeChatLogDate } from '@/format'
+import { parseChatLog } from '@/chat'
+import { cleanChannelName, makeChatLogDate } from '@/format'
 import { COMMAND } from '@/chat'
 import MessageLine from '@/Components/ChatMessageLine.vue'
 import ChatInput from '@/Components/ChatInput.vue'
@@ -71,20 +72,10 @@ const chatPaneScale = .62
 
 const messageInterval = 1000 // Check chat messages every 1 seconds.
 let messageTimeoutId
-const clearMessageInterval = function () {
-    clearTimeout(messageTimeoutId)
-}
 
 const eventInterval = 1500 // Check channel events every 1.5 seconds.
 let eventTimeoutId
-const clearEventInterval = function () {
-    clearTimeout(eventTimeoutId)
-}
 
-const clearAllIntervals = function() {
-    clearMessageInterval()
-    clearEventInterval()
-}
 
 export default {
   components: {

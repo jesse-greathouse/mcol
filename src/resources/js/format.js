@@ -1,4 +1,3 @@
-import _ from 'lodash'
 import { format, formatRFC3339 } from "date-fns";
 
 const cleanChannelName = (channelName) => {
@@ -20,30 +19,6 @@ const formatDate = (date, time = false) => {
     } else {
         return `${dateStr}`
     }
-}
-
-async function parseChatLog(data) {
-    let meta = {}
-    let parseError = null
-    const lines = data.split(/\r?\n|\r|\n/g);
-    const lastIndex = lines.length - 1;
-
-    if (0 <= lastIndex) {
-        const lastLine = lines[lastIndex]
-        // Remove the last line
-        lines.splice(lastIndex, 1)
-
-        // process metadata
-        try {
-            meta = await parseMeta(lastLine);
-        } catch (parseError) {
-            console.log(parseError)
-        }
-    }
-
-    return new Promise((resolve) => {
-        resolve({lines, meta, parseError});
-    });
 }
 
 const formatISODate = (date, formatStr = 'MM/dd/yyyy') => {
@@ -78,20 +53,12 @@ const formatTruncate = (str, total, offset = null, display = '[...]') => {
     }
 }
 
-async function parseMeta(line) {
-    const data = line.split('[meta]: ')[1]
-    return new Promise((resolve) => {
-        if (!_.isUndefined(data)) {
-            resolve(JSON.parse(data));
-        }
-    });
-}
+
 
 export {
     cleanChannelName,
     formatDate,
     formatISODate,
     formatTruncate,
-    parseChatLog,
     makeChatLogDate,
 }

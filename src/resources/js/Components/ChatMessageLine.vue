@@ -1,5 +1,5 @@
 <template>
- <div class="flex font-mono text-base max-w-full">
+ <div class="flex font-mono text-base max-w-full mb-1">
     <line-date v-if="showDate" :date="dateFormatted" />
     <line-message v-if="line.type === 'message'" :message="messageFormatted" :channel="channel" />
     <line-event v-if="line.type === 'event'" :message="messageFormatted" />

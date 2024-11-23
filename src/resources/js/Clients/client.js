@@ -90,7 +90,7 @@ async function streamGet(url, headers, parse) {
 const setHeaders = (xhr, headers) => {
     Object.keys(headers).forEach(key => {
         xhr.setRequestHeader(key, headers[key]);
-    });
+    })
 }
 
 export { get, post, put, save, streamGet };

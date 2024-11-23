@@ -19,7 +19,7 @@
     "author": "Jesse Greathouse",
     "license": "ISC",
     "devDependencies": {
-        "@inertiajs/vue3": "^1.0.14",
+        "@inertiajs/vue3": "^1.2.0",
         "@popperjs/core": "^2.11.8",
         "@tailwindcss/forms": "^0.5.9",
         "@tailwindcss/typography": "^0.5.10",
