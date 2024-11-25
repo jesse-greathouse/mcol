@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import { has } from '@/funcs'
 import { mergeDataIntoQueryString, hrefToUrl } from '@inertiajs/core'
 
 const endpoint = '/api/media-store'
@@ -29,7 +29,7 @@ async function fetchStoreRoot(store, index = null) {
 
     try {
         const response = await axios.get(url, headers)
-        if (_.has(response.data, 'data')) {
+        if (has(response.data, 'data')) {
             data =  response.data.data
         }
     } catch (e) {
@@ -47,7 +47,7 @@ async function fetchUri(uri) {
 
     try {
         const response = await axios.get(url, headers)
-        if (_.has(response.data, 'data')) {
+        if (has(response.data, 'data')) {
             data =  response.data.data
         }
     } catch (e) {
@@ -65,7 +65,7 @@ async function mkDir(uri) {
 
     try {
         const response = await axios.post(url, body, headers)
-        if (_.has(response.data, 'data')) {
+        if (has(response.data, 'data')) {
             data =  response.data.data
         }
     } catch (e) {
@@ -83,7 +83,7 @@ async function rmDir(uri) {
 
     try {
         const response = await axios.delete(url, headers)
-        if (_.has(response.data, 'data')) {
+        if (has(response.data, 'data')) {
             data =  response.data.data
         }
     } catch (e) {

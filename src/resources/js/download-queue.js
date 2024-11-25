@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import { has } from '@/funcs'
 
 // maps a media type to a store
 const mediaTypeToStoreMap = {
@@ -42,14 +42,14 @@ function splitDestinationDir(uri, roots) {
 function shouldDisableFileSave(download, settings) {
     // To have the ability to save a file:
     // Must have the "media_store" section of settings
-    if (!_.has(settings, 'media_store')) return true
+    if (!has(settings, 'media_store')) return true
 
     // Must have media_type in mediaTypeToStoreMap
-    if (!_.has(mediaTypeToStoreMap, download.media_type)) return true
+    if (!has(mediaTypeToStoreMap, download.media_type)) return true
 
     // Must have the mapped media store in settings.media_store
     const mediaStore = mediaTypeToStoreMap[download.media_type]
-    if (!_.has(settings.media_store, mediaStore)) return true
+    if (!has(settings.media_store, mediaStore)) return true
 
     // settings.media_store[mediaStore][] cannot be emnpty
     if (0 >= settings.media_store[mediaStore].length) return true

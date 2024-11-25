@@ -19,8 +19,7 @@
 </template>
 
 <script>
-import _ from 'lodash'
-import { COMMAND, getCmdMask, makeIrcCommand } from '@/chat'
+import { getCmdMask, makeIrcCommand } from '@/chat'
 import { saveOperation } from '@/Clients/operation'
 
 export default {

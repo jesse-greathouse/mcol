@@ -38,7 +38,6 @@
 </template>
 
 <script>
-import _ from 'lodash'
 import { FwbProgress } from 'flowbite-vue'
 import { formatSize } from '@/file-size'
 import SaveDownloadButton from '@/Components/SaveDownloadButton.vue'

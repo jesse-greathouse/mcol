@@ -139,7 +139,6 @@
 </template>
 
 <script>
-import _ from 'lodash'
 import { Popover } from 'flowbite';
 import {
     fetchStoreRoot,

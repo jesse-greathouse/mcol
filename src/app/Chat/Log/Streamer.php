@@ -10,7 +10,7 @@ use \Generator;
 class Streamer
 {
     const CHUNK_LENGTH = 1024;
-    const DEFAULT_MAX_BUFFER = 1e+7; // 10 MB
+    const DEFAULT_MAX_BUFFER = 2e+6; // 2 MB
 
     const MAX_BUFFER = [
         Mapper::LOG_CONSOLE => self::DEFAULT_MAX_BUFFER,

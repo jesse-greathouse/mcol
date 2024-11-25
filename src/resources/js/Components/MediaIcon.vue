@@ -75,9 +75,6 @@ export default {
         'porn',
       ],
     },
-    data() {
-      console.log(this.media)
-    }
   }
 }
   </script>

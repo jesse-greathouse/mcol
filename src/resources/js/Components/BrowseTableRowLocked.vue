@@ -54,7 +54,7 @@
 </template>
 
 <script>
-import _ from 'lodash'
+import { has } from '@/funcs'
 import BrowseTableCellCompleted from '@/Components/BrowseTableCellCompleted.vue'
 import BrowseTableCellDownloading from '@/Components/BrowseTableCellDownloading.vue'
 import BrowseTableCellQueued from '@/Components/BrowseTableCellQueued.vue'
@@ -89,7 +89,7 @@ export default {
     nickClass() {
       let color = colorMap.default
       const status = this.getStatus()
-      if (_.has(colorMap, status)) {
+      if (has(colorMap, status)) {
         color = colorMap[status]
       }
 
@@ -104,18 +104,18 @@ export default {
   },
   methods: {
         getStatus() {
-            if (_.has(this.completed, this.packet.file_name)) {
+            if (has(this.completed, this.packet.file_name)) {
                 return 'completed'
-            } else if (_.has(this.incomplete, this.packet.file_name)) {
+            } else if (has(this.incomplete, this.packet.file_name)) {
                 return 'incomplete'
-            } else if (_.has(this.queued, this.packet.file_name)) {
+            } else if (has(this.queued, this.packet.file_name)) {
                 return 'queued'
             }
 
             return 'default'
         },
         isStatus(status) {
-            return _.has(this[status], this.packet.file_name)
+            return has(this[status], this.packet.file_name)
         },
         getDownload(status) {
             return this[status][this.packet.file_name]

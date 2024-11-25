@@ -5,7 +5,6 @@
       <div class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-red-200 dark:peer-focus:ring-red-300 dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-400"></div>
     </label>
   </div>
-
   <ul class="flex items-center text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-gray-700 dark:border-gray-600 dark:text-white">
       <li v-for="dynamic_range in dynamic_ranges" ref="items" class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
           <div class="flex flex-nowrap items-center ps-2">
@@ -15,10 +14,8 @@
       </li>
   </ul>
 </template>
-  
-<script>
-import _ from 'lodash'
 
+<script>
 export default {
   props: {
     exclude: Boolean,
@@ -52,11 +49,7 @@ export default {
         dovi: 'Dolby Vision'
       };
 
-      if (_.isSet(nameMap[dynamic_range])) {
-        return nameMap[dynamic_range]
-      } else {
-        return nameMap[dynamic_range]
-      }
+      return nameMap[dynamic_range]
     },
   },
   emits: ['update:dynamicRanges', 'update:excludeDynamicRange'],

@@ -75,7 +75,7 @@
 </template>
 
 <script>
-import _ from 'lodash'
+import { has } from '@/funcs'
 import { Popover, Modal } from 'flowbite';
 import {
     getMediaStoreFromUri,
@@ -199,7 +199,7 @@ export default {
     },
     setDownloadDestinationForm(fullUri = null, mediaStore = null) {
       // If a destination has already been saved, determine the values from the destination.
-      if (null === fullUri && _.has(this.destination, 'destination_dir')) {
+      if (null === fullUri && has(this.destination, 'destination_dir')) {
         fullUri =  this.destination.destination_dir
 
         if (null === mediaStore) {

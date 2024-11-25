@@ -1,4 +1,3 @@
-import _ from 'lodash'
 import { get } from '@/Clients/client'
 
 const endpoint = '/api/network'

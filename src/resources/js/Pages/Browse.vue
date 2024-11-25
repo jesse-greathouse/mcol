@@ -117,17 +117,14 @@
 
   <script>
   import axios from 'axios';
-  import _ from 'lodash'
   import { Head, Link } from '@inertiajs/vue3'
   import { initFlowbite } from 'flowbite'
   import { mergeDataIntoQueryString, hrefToUrl } from '@inertiajs/core'
   import Multiselect from '@vueform/multiselect'
-  import pickBy from 'lodash/pickBy'
-  import throttle from 'lodash/throttle'
-  import mapValues from 'lodash/mapValues'
   import VueTailwindDatepicker from "vue-tailwind-datepicker"
   // local imports
   import { formatDate } from '@/format'
+  import { has, intersection, mapValues, pickBy, throttle } from '@/funcs'
   import AppLayout from '@/Layouts/AppLayout.vue'
   import BrowseTableBody from '@/Components/BrowseTableBody.vue'
   import BrowseTableHead from '@/Components/BrowseTableHead.vue'
@@ -321,7 +318,7 @@
         deep: true,
         handler: throttle(function () {
           lastTotalPacketsCount = null
-          if (_.has(this.form, 'page')) delete this.form.page // if the search changes, reset page.
+          if (has(this.form, 'page')) delete this.form.page // if the search changes, reset page.
           this.$inertia.get('/browse', pickBy(this.form), { preserveState: true })
           this.resetIntervals()
         }, 150),
@@ -393,9 +390,9 @@
       },
       hasQueue() {
         return (
-          (_.has(this.downloadQueue, 'completed') && 0 < this.downloadQueue.completed.length) ||
-          (_.has(this.downloadQueue, 'incomplete') && 0 < this.downloadQueue.incomplete.length) ||
-          (_.has(this.downloadQueue, 'queued') && 0 < this.downloadQueue.queued.length)
+          (has(this.downloadQueue, 'completed') && 0 < this.downloadQueue.completed.length) ||
+          (has(this.downloadQueue, 'incomplete') && 0 < this.downloadQueue.incomplete.length) ||
+          (has(this.downloadQueue, 'queued') && 0 < this.downloadQueue.queued.length)
         )
       },
       toggleQueue() {
@@ -455,7 +452,7 @@
       },
       updateMediaType(mediaTypes) {
         // Check to see if mediaTypes has any video formats.
-        const videoFormats = _.intersection(mediaTypes, ['movie', 'tv episode', 'tv season'])
+        const videoFormats = intersection(mediaTypes, ['movie', 'tv episode', 'tv season'])
 
         // If there are no video formats, the other form elements should let go of resolution and DR values.
         if (0 >= videoFormats.length) {
@@ -501,7 +498,7 @@
       updateLanguages(language, checked) {
         const set = (this.exclude_languages) ? 'out_language' : 'in_language'
         let i = -1
-        if (_.has(this.form, set) && 0 < this.form[set].length) {
+        if (has(this.form, set) && 0 < this.form[set].length) {
           i = this.form[set].indexOf(language)
         }
 
@@ -519,7 +516,7 @@
       updateDynamicRanges(dynamic_range, checked) {
         const set = (this.exclude_dynamic_ranges) ? 'out_dynamic_range' : 'in_dynamic_range'
         let i = -1
-        if (_.has(this.form, set) && 0 < this.form[set].length) {
+        if (has(this.form, set) && 0 < this.form[set].length) {
           i = this.form[set].indexOf(dynamic_range)
         }
 
@@ -584,11 +581,11 @@
             delete this.locks[locksIndex]
           }
 
-          if (_.has(this.queued, fileName)) {
+          if (has(this.queued, fileName)) {
             delete this.queued[fileName];
           }
 
-          if (_.has(this.downloadQueue.queued, fileName)) {
+          if (has(this.downloadQueue.queued, fileName)) {
             delete this.downloadQueue.queued[fileName];
           }
         } catch (error) {

@@ -9,7 +9,6 @@
 </template>
 
 <script>
-import _ from 'lodash'
 import { formatISODate } from '@/format'
 import { parseChatLine } from '@/chat'
 import LineDate from '@/Components/ChatLineDate.vue'

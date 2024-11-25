@@ -43,7 +43,7 @@
                 :isActive="`${channel}-tab` === activeTab.id" />
         </div>
 
-        <div v-for="nick in privmsgTabs" :key="`${nick}`" :ref="`${nick}-target`" role="tabpanel" :aria-labelledby="`${nick}-tab`" class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden">
+        <div v-for="nick in privmsgTabs" :key="`${nick}`" :ref="`${nick}-target`" role="tabpanel" :aria-labelledby="`${nick}-tab`" class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden" :class="classTabHidden(`${nick}-tab`)">
             <chat-privmsg
                 :user="client.user"
                 :network="network"
@@ -57,12 +57,11 @@
 </template>
 
 <script>
-import _ from 'lodash'
-import throttle from 'lodash/throttle'
 import { Tabs } from 'flowbite'
 import { streamNotice, streamPrivmsg } from '@/Clients/stream'
 import { parseChatLog, parseChatLine, parseChatMessage } from '@/chat'
 import { formatISODate } from '@/format'
+import { has, throttle } from '@/funcs'
 import ChatChannel from '@/Components/ChatChannel.vue'
 import ChatConsole from '@/Components/ChatConsole.vue'
 import ChatPrivmsg from '@/Components/ChatPrivmsg.vue'
@@ -132,15 +131,15 @@ export default {
 
         if (null !== error) return
 
-        if (!_.has(this.privmsgCount, nick)) {
+        if (!has(this.privmsgCount, nick)) {
             this.privmsgCount[nick] = 0
         }
 
-        if (!_.has(this.privmsg, nick)) {
+        if (!has(this.privmsg, nick)) {
             this.privmsg[nick] = []
         }
 
-        if (!_.has(this.privmsgIndex, nick)) {
+        if (!has(this.privmsgIndex, nick)) {
             this.privmsgIndex[nick] = 0
         }
 
@@ -184,7 +183,7 @@ export default {
 
             this.addNotice(lines)
 
-            if (_.has(meta, 'offset')) {
+            if (has(meta, 'offset')) {
                 this.noticeOffset = meta.offset
             }
 
@@ -198,7 +197,7 @@ export default {
 
             this.addPrivmsg(lines)
 
-            if (_.has(meta, 'offset')) {
+            if (has(meta, 'offset')) {
                 this.privmsgOffset = meta.offset
             }
 
@@ -246,8 +245,18 @@ export default {
                 id: 'channel-tabs',
                 override: true
             }
-        );
-      },
+        )
+    },
+    classTabHidden(id) {
+        if (id !== this.activeTab.id) {
+            return [
+                'overflow-x-hidden',
+                'hidden',
+            ]
+        } else {
+            return []
+        }
+    },
   },
   emits: [],
 }

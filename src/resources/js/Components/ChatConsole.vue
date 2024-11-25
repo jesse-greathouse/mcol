@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import _ from 'lodash'
+import { has } from '@/funcs'
 import { streamConsole } from '@/Clients/stream'
 import { scaleToViewportHeight } from '@/style'
 import { parseChatLog } from '@/chat'
@@ -155,7 +155,7 @@ export default {
 
             this.addLines(objects)
 
-            if (_.has(meta, 'offset')) {
+            if (has(meta, 'offset')) {
                 this.consoleOffset = meta.offset
             }
 

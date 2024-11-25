@@ -1,4 +1,3 @@
-import _ from 'lodash'
 import { get, streamGet } from '@/Clients/client'
 
 const endpoint = '/stream'

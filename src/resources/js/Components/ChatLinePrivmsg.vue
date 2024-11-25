@@ -1,11 +1,11 @@
 <template>
-    <div class="w-full mr-4">
-        <div class="inline-flex">
+    <div class="flex items-start w-full mr-4">
+        <div class="inline-flex items-start mr-1">
             <span class="text-xs font-medium px-2.5 py-0.5 rounded border" :class="nickClass"  >
                 {{ nick }}
             </span>&colon;
         </div>
-        <div class="inline-flex">{{ message }}</div>
+        <div class="inline-flex items-start">{{ message }}</div>
     </div>
 </template>
 

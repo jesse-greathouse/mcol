@@ -27,19 +27,14 @@
   </template>
 
   <script>
-  import axios from 'axios';
-  import _ from 'lodash'
   import { Head, Link } from '@inertiajs/vue3'
   import { initFlowbite, Tabs } from 'flowbite'
-  import { mergeDataIntoQueryString, hrefToUrl } from '@inertiajs/core'
   import Multiselect from '@vueform/multiselect'
-  import pickBy from 'lodash/pickBy'
-  import throttle from 'lodash/throttle'
-  import mapValues from 'lodash/mapValues'
+  import { has } from '@/funcs'
 
   // local imports
   import { fetchNetworkClients } from '@/Clients/network'
-  import { formatDate, cleanChannelName } from '@/format'
+  import { cleanChannelName } from '@/format'
   import AppLayout from '@/Layouts/AppLayout.vue'
   import ChatClient from '@/Components/ChatClient.vue'
 
@@ -90,7 +85,7 @@
       },
       listChannels(network) {
         const channels = []
-        if (_.has(network, 'channels')) {
+        if (has(network, 'channels')) {
             Object.keys(network.channels).forEach((key) => {
                 channels.push(cleanChannelName(key))
             })

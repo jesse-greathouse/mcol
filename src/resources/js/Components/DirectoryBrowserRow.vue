@@ -3,7 +3,7 @@
         <td class="cursor-default select-none px-6 py-4 text-sm"
             @dblclick="openDir" >
             <span  class="inline-flex whitespace-nowrap">
-                <directory-browser-icon :file="file" /> {{ name }}
+                <file-icon :isDir="file.is_dir" :extension="file.extension" class="mr-6" /> {{ name }}
             </span>
         </td>
         <td class="cursor-default select-none px-6 py-4 text-sm "
@@ -20,11 +20,11 @@
 <script>
 import { formatSize } from '@/file-size'
 import { formatISODate, formatTruncate } from '@/format'
-import DirectoryBrowserIcon from '@/Components/DirectoryBrowserIcon.vue'
+import FileIcon from '@/Components/FileIcon.vue'
 
 export default {
     components: {
-        DirectoryBrowserIcon
+        FileIcon
     },
     props: {
         settings: Object,

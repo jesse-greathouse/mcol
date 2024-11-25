@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import { has, isUndefined } from '@/funcs'
 
 const COMMAND = {
     ADMIN: 'ADMIN',
@@ -105,7 +105,7 @@ function validateCommand(ircCommand) {
 
 function getCommandFromMask(mask) {
     let command = false
-    if (_.has(COMMAND_MASK, mask)) {
+    if (has(COMMAND_MASK, mask)) {
         command = COMMAND_MASK[mask]
     }
 
@@ -121,11 +121,11 @@ function isIrcCommand(ircCommand) {
 
 function parseChatLine(line) {
     // https://regexr.com/890ra
-    const re = /^\[(\d{4}\-\d{2}\-\d{2}T\d{2}\:\d{2}\:\d{2}[\+|\-]\d{2}\:\d{2})]\s(.*)$/s;
+    const re = /^\[(\d{4}\-\d{2}\-\d{2}T\d{2}\:\d{2}\:\d{2}[\+|\-]\d{2}\:\d{2})]\s(.*)$/s
     let [date, message, error] = [null, null, null]
 
     try {
-        ([, date, message] = re.exec(line));
+        ([, date, message] = re.exec(line))
     } catch(error) {
         // Sometimes the server chunks a line in a way thats impossible to parse.
         console.log(`couldn't parse line: ${line}`)
@@ -138,8 +138,8 @@ function parseChatLine(line) {
 async function parseChatLog(data) {
     let meta = {}
     let parseError = null
-    const lines = data.split(/\r?\n|\r|\n/g);
-    const lastIndex = lines.length - 1;
+    const lines = data.split(/\r?\n|\r|\n/g)
+    const lastIndex = lines.length - 1
 
     if (0 <= lastIndex) {
         const lastLine = lines[lastIndex]
@@ -163,10 +163,10 @@ function parseChatMessage(message) {
     let [nick, content, error] = ['', '', null]
 
     // https://regexr.com/890rs
-    const re = /(^([\S]+)\:\s)?(.*)/gs;
+    const re = /(^([\S]+)\:\s)?(.*)/gs
 
     try {
-        ([, , nick, content] = re.exec(message));
+        ([, , nick, content] = re.exec(message))
     } catch(error) {
         //TODO: Fix any parsing errors if possible.
         console.log(`couldn't parse message: ${message}`)
@@ -176,10 +176,31 @@ function parseChatMessage(message) {
     return {nick, content, error}
 }
 
+function parsePacket(message) {
+    let [num, gets, size, fileName, error] = [null, null, null, null, null]
+
+    // https://regexr.com/89508
+    const re = /^\#(\d{1,4})\s+(\d+)x\s+\[(.*)\]\s+(.*)$/gs
+
+    try {
+        const parts = re.exec(message)
+
+        if (null !== parts && 5 === parts.length) {
+            ([, num, gets, size, fileName] = parts)
+        }
+    } catch(error) {
+        //TODO: Fix any parsing errors if possible.
+        console.log(`couldn't parse message: ${message}`)
+        console.error(error)
+    }
+
+    return {num, gets, size, fileName, error}
+}
+
 async function parseMeta(line) {
     const data = line.split('[meta]: ')[1]
     return new Promise((resolve) => {
-        if (!_.isUndefined(data)) {
+        if (!isUndefined(data)) {
             resolve(JSON.parse(data));
         }
     });
@@ -193,4 +214,5 @@ export {
     parseChatLine,
     parseChatLog,
     parseChatMessage,
+    parsePacket,
 }

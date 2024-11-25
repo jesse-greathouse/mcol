@@ -46,7 +46,6 @@
 </template>
 
 <script>
-import _ from 'lodash'
 import { scaleToViewportHeight } from '@/style'
 import { makeChatLogDate, formatISODate } from '@/format'
 import { COMMAND } from '@/chat'
@@ -130,7 +129,6 @@ export default {
     },
     addLines(lines) {
         lines.forEach((line) => {
-            console.log(line)
             this.lines.push(line)
         })
     },

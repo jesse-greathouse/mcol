@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import { has } from '@/funcs'
 import { save } from '@/Clients/client'
 
 const endpoint = '/api/operation'
@@ -9,7 +9,7 @@ const headers = {
 
 async function saveOperation(operation) {
     let {data, error} = await save(operation, `${endpoint}`, headers)
-    if (_.has(data, 'data')) {
+    if (has(data, 'data')) {
         data = data.data
     }
     return {data, error}

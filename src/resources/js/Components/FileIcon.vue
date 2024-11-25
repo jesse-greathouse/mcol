@@ -1,11 +1,11 @@
 <template>
-    <span class="mr-6">
+    <span>
         <component v-bind:is="icon"></component>
     </span>
 </template>
 
 <script>
-import _ from 'lodash'
+import { has } from '@/funcs'
 import DirectoryIcon from '@/Components/FileIcons/Directory.vue'
 import DiscImageIcon from '@/Components/FileIcons/DiscImage.vue'
 import EbookIcon from '@/Components/FileIcons/Ebook.vue'
@@ -61,16 +61,20 @@ export default {
         RarIcon, SrtIcon, TarIcon, TxtIcon, VideoIcon, ZipIcon
     },
     props: {
-        file: Object,
+        extension: String,
+        isDir: {
+            type: Boolean,
+            default: false,
+        },
     },
     data() {
         let component = 'GenericIcon'
-        if (this.file.is_dir) {
+        if (this.isDir) {
             component = 'DirectoryIcon'
         }
 
-        if (_.has(extensionToComponentMap, this.file.extension)) {
-            component = extensionToComponentMap[this.file.extension]
+        if (has(extensionToComponentMap, this.extension)) {
+            component = extensionToComponentMap[this.extension]
         }
 
         return {

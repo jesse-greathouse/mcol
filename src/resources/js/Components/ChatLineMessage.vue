@@ -1,14 +1,18 @@
 <template>
-    <div class="w-full mr-4">
-        <div class="inline-flex">
+    <div class="flex items-start w-full mr-4">
+        <div class="inline-flex items-start mr-1">
             <span class="text-xs font-medium px-2.5 py-0.5 rounded border" :class="nickClass" >{{ nick }}</span>&colon;
         </div>
-        <div class="inline-flex">{{ content }}</div>
+        <div class="inline-flex items-start">
+            <component :content="content" :packet="packet" v-bind:is="contentComponent"></component>
+        </div>
     </div>
 </template>
 
 <script>
-import { parseChatMessage } from '@/chat'
+import { parseChatMessage, parsePacket } from '@/chat'
+import Generic from '@/Components/ChatMessageContent/Generic.vue'
+import Packet from '@/Components/ChatMessageContent/Packet.vue'
 
 const colorMap = {
   op: 'amber',
@@ -18,19 +22,35 @@ const colorMap = {
 
 export default {
   components: {
+    Generic,
+    Packet,
   },
   props: {
     message: String,
     channel: Object,
   },
   data() {
+    let contentComponent = 'Generic'
     const{nick, content} = parseChatMessage(this.message)
+
+    const packet = parsePacket(content)
+    if (this.isPacketAnnouncement(packet)) {
+         contentComponent = 'Packet'
+    }
+
     return {
         nick,
         content,
+        contentComponent,
+        packet,
     }
   },
   mounted() {
+  },
+  methods: {
+    isPacketAnnouncement(packet) {
+       return (null === packet.error && null !== packet.num && null !== packet.fileName)
+    },
   },
   computed: {
     nickClass() {

@@ -1,12 +1,12 @@
-import _ from 'lodash'
 import axios from 'axios';
+import { has } from '@/funcs'
 
 async function get(url, headers) {
     let data = null
     let error = null
     try {
         const response = await axios.get(url, headers)
-        if (_.has(response, 'data')) {
+        if (has(response, 'data')) {
             data =  response.data
         }
     } catch (e) {
@@ -23,7 +23,7 @@ async function post(body, url, headers) {
 
     try {
         const response = await axios.post(url, body, headers)
-        if (_.has(response, 'data')) {
+        if (has(response, 'data')) {
             data =  response.data
         }
     } catch (e) {
@@ -40,7 +40,7 @@ async function put(body, url, headers) {
 
     try {
         const response = await axios.put(url, body, headers)
-        if (_.has(response, 'data')) {
+        if (has(response, 'data')) {
             data =  response.data
         }
     } catch (e) {
@@ -53,7 +53,7 @@ async function put(body, url, headers) {
 
 async function save(body, url, headers, id = null) {
     // If the object has an Id property, treat it as a put.
-    if (_.has(body, 'id')) {
+    if (has(body, 'id')) {
         id = body.id
     }
 
