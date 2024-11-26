@@ -15,10 +15,16 @@
             <div>
                 <div v-for="network in networks" :ref="`${network}-target`" role="tabpanel" :aria-labelledby="`${network}-tab`" class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" >
                     <chat-client
+                        :settings="settings"
+                        :downloads="downloads"
                         :network="network"
                         :client="clients[network]"
                         :channels="listChannels(clients[network])"
-                        :isActive="`${network}-tab` === activeTab.id" />
+                        :isActive="`${network}-tab` === activeTab.id"
+                        @call:removeCompleted="removeCompleted"
+                        @call:requestCancel="requestCancel"
+                        @call:requestRemove="requestRemove"
+                        @call:saveDownloadDestination="saveDownloadDestination" />
                 </div>
             </div>
       </div>
@@ -30,10 +36,14 @@
   import { Head, Link } from '@inertiajs/vue3'
   import { initFlowbite, Tabs } from 'flowbite'
   import Multiselect from '@vueform/multiselect'
+  import { saveDownloadDestination } from '@/Clients/download-destination'
   import { has } from '@/funcs'
 
   // local imports
   import { fetchNetworkClients } from '@/Clients/network'
+  import { fetchDownloadQueue } from '@/Clients/download-queue'
+  import { makeDownloadIndexFromQueue } from '@/download-queue'
+  import { removeCompleted, requestRemove, requestCancel } from '@/Clients/rpc'
   import { cleanChannelName } from '@/format'
   import AppLayout from '@/Layouts/AppLayout.vue'
   import ChatClient from '@/Components/ChatClient.vue'
@@ -41,11 +51,13 @@
   const clientsInterval = 10000 // Check network connections every 10 seconds.
   let clientsTimeoutId
   const clearClientsInterval = function () {
-    clearClientsInterval(clientsTimeoutId)
+    clearTimeout(clientsTimeoutId)
   }
 
-  const clearAllIntervals = function() {
-    clearClientsInterval()
+  const downloadQueueInterval = 10000; // Check download queue every 10 seconds.
+  let downloadQueueTimeoutId;
+  const clearDownloadQueueInterval = function () {
+    clearTimeout(downloadQueueTimeoutId)
   }
 
   export default {
@@ -57,6 +69,7 @@
     },
     layout: AppLayout,
     props: {
+      queue: Object,
       settings: Object,
       networks: Array,
       instances: Object,
@@ -64,24 +77,69 @@
     data() {
         return {
             clients: this.instances,
+            downloadQueue: this.queue,
+            downloads: {},
             tabs: null,
             activeTab: { id: null },
         }
     },
     mounted() {
         initFlowbite()
-        this.resetIntervals()
+        this.checkDownloadQueue()
+        this.checkClients()
         this.tabs = this.makeTabs()
     },
+    watch: {
+        downloadQueue: {
+            deep: true,
+            handler: function() {
+                this.downloads = makeDownloadIndexFromQueue(this.downloadQueue)
+            },
+        },
+    },
     methods: {
-      async refreshClients() {
+      checkDownloadQueue() {
+        this.fetchDownloadQueue()
+        clearDownloadQueueInterval()
+        downloadQueueTimeoutId = setTimeout(this.checkDownloadQueue, downloadQueueInterval);
+      },
+      checkClients() {
+        this.fetchClients()
+        clearClientsInterval()
+        clientsTimeoutId = setTimeout(this.checkClients, clientsInterval);
+      },
+      async fetchClients() {
         const {data, error} = await fetchNetworkClients()
         if (null === error) {
           this.clients = data
         } else {
           console.log(error)
         }
-        this.resetIntervals()
+      },
+      async fetchDownloadQueue() {
+        const {data, error} = await fetchDownloadQueue()
+        if (null === error) {
+          this.downloadQueue = data
+        } else {
+          console.log(error)
+        }
+      },
+      async saveDownloadDestination(download, uri) {
+        const body = {
+            destination_dir: uri,
+            download: download.id
+        }
+
+        // Use put instead of post if dd already exists.
+        if (null !== download.destination) {
+            body.id = download.destination.id
+        }
+
+        const {error} = await saveDownloadDestination(body)
+
+        if (null === error) {
+            this.fetchQueue()
+        }
       },
       listChannels(network) {
         const channels = []
@@ -91,10 +149,6 @@
             })
         }
         return channels
-      },
-      resetIntervals() {
-        clearAllIntervals()
-        clientsTimeoutId = setTimeout(this.refreshClients, clientsInterval);
       },
       makeTabs() {
         const tabElements = []

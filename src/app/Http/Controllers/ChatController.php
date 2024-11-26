@@ -9,6 +9,7 @@ use Inertia\Inertia,
 
 use App\Models\Client,
     App\Models\Network,
+    App\Packet\DownloadQueue,
     App\Settings;
 
 class ChatController
@@ -28,6 +29,7 @@ class ChatController
     public function index()
     {
         return Inertia::render('Chat', [
+            'queue'     => fn () => DownloadQueue::getQueue(),
             'settings'  => fn (Settings $settings) => $settings->toArray(),
             'networks'  => fn () => $this->getNetworkList(),
             'instances' => fn () => $this->getNetworkClients(),

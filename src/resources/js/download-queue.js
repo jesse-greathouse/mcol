@@ -1,5 +1,15 @@
 import { has } from '@/funcs'
 
+const DOWNLOAD_STATE_COMPELTED = 'compelted'
+const DOWNLOAD_STATE_INCOMPLETE = 'incomplete'
+const DOWNLOAD_STATE_QUEUED = 'queued'
+
+const downloadStates = [
+    DOWNLOAD_STATE_COMPELTED,
+    DOWNLOAD_STATE_INCOMPLETE,
+    DOWNLOAD_STATE_QUEUED,
+]
+
 // maps a media type to a store
 const mediaTypeToStoreMap = {
     movie: 'movies',
@@ -130,9 +140,33 @@ function getDownloadDestinationRoots(download, settings, mediaStore = null) {
     return settings.media_store[mediaStore]
 }
 
+function indexQueue(files, index) {
+    files.forEach((file) => {
+        if (!has(index, file.file_name)) {
+            index[file.file_name] = file
+        }
+    })
+}
+
+function makeDownloadIndexFromQueue(downloadQueue) {
+    const index = {}
+
+    downloadStates.forEach((state) => {
+        if (has(downloadQueue, state)) {
+            indexQueue(downloadQueue[state], index)
+        }
+    })
+
+    return index
+}
+
 export {
+    DOWNLOAD_STATE_COMPELTED,
+    DOWNLOAD_STATE_INCOMPLETE,
+    DOWNLOAD_STATE_QUEUED,
     mediaTypeToStoreMap,
     getMediaStoreFromUri,
+    makeDownloadIndexFromQueue,
     shouldDisableFileSave,
     suggestDownloadDestination,
     getDownloadDestinationRoots,

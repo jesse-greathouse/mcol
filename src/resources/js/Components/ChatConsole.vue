@@ -40,6 +40,7 @@ export default {
     ChatInput,
   },
   props: {
+    settings: Object,
     user: String,
     network: String,
     notice: Array,

@@ -4,15 +4,27 @@
             <span class="text-xs font-medium px-2.5 py-0.5 rounded border" :class="nickClass" >{{ nick }}</span>&colon;
         </div>
         <div class="inline-flex items-start">
-            <component :content="content" :packet="packet" v-bind:is="contentComponent"></component>
+            <component
+                v-bind:is="contentComponent"
+                :settings="settings"
+                :content="content"
+                :packet="packet"
+                :download="download"
+                @call:xdccSend="xdccSend"
+                @call:removeCompleted="removeCompleted"
+                @call:requestCancel="requestCancel"
+                @call:requestRemove="requestRemove"
+                @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
     </div>
 </template>
 
 <script>
 import { parseChatMessage, parsePacket } from '@/chat'
+import { has } from '@/funcs'
 import Generic from '@/Components/ChatMessageContent/Generic.vue'
 import Packet from '@/Components/ChatMessageContent/Packet.vue'
+import Download from '@/Components/ChatMessageContent/Download.vue'
 
 const colorMap = {
   op: 'amber',
@@ -24,18 +36,27 @@ export default {
   components: {
     Generic,
     Packet,
+    Download,
   },
   props: {
+    settings: Object,
+    downloads: Object,
     message: String,
     channel: Object,
   },
   data() {
     let contentComponent = 'Generic'
+    let download = {}
     const{nick, content} = parseChatMessage(this.message)
 
     const packet = parsePacket(content)
     if (this.isPacketAnnouncement(packet)) {
-         contentComponent = 'Packet'
+        contentComponent = 'Packet'
+
+        if (has(this.downloads, packet.fileName)) {
+            download = this.downloads[packet.fileName]
+            contentComponent = 'Download'
+        }
     }
 
     return {
@@ -43,6 +64,7 @@ export default {
         content,
         contentComponent,
         packet,
+        download,
     }
   },
   mounted() {
@@ -50,6 +72,21 @@ export default {
   methods: {
     isPacketAnnouncement(packet) {
        return (null === packet.error && null !== packet.num && null !== packet.fileName)
+    },
+    xdccSend(packet) {
+        this.$emit('call:xdccSend', packet, this.nick)
+    },
+    removeCompleted(download) {
+      this.$emit('call:removeCompleted', download)
+    },
+    requestCancel(download) {
+      this.$emit('call:requestCancel', download)
+    },
+    requestRemove(packetId) {
+      this.$emit('call:requestRemove', packetId)
+    },
+    saveDownloadDestination(download, uri) {
+      this.$emit('call:saveDownloadDestination', download, uri)
     },
   },
   computed: {
@@ -74,6 +111,7 @@ export default {
         `dark:border-${color}-400`,
       ]
     },
-  }
+  },
+  emits: ['call:xdccSend', 'call:requestCancel', 'call:requestRemove', 'call:removeCompleted', 'call:saveDownloadDestination'],
 }
 </script>

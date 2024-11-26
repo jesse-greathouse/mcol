@@ -28,9 +28,16 @@
         <div ref="chatPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3" :style="{ maxHeight: chatPaneHeight }" >
             <message-line v-for="(line, i) in lines"
                 :key="`line-${i}`"
+                :settings="settings"
+                :downloads="downloads"
                 :showDate="showDate"
                 :line="line"
-                :channel="channel" />
+                :channel="channel"
+                @call:xdccSend="xdccSend"
+                @call:removeCompleted="removeCompleted"
+                @call:requestCancel="requestCancel"
+                @call:requestRemove="requestRemove"
+                @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
         <!-- End Chat Pane -->
 
@@ -49,6 +56,7 @@
 
     <!-- Start Chat Input -->
     <chat-input
+        ref="chatInput"
         :network="network"
         :target="channel.name"
         :default="COMMAND.PRIVMSG"
@@ -82,6 +90,8 @@ export default {
     ChatInput,
   },
   props: {
+    settings: Object,
+    downloads: Object,
     user: String,
     network: String,
     notice: Array,
@@ -298,9 +308,29 @@ export default {
 
         return list.concat(op, voice, user)
     },
+    xdccSend(packet, nick) {
+      this.$emit('call:xdccSend', packet, nick)
+    },
+    removeCompleted(download) {
+      this.$emit('call:removeCompleted', download)
+    },
+    requestCancel(download) {
+      this.$emit('call:requestCancel', download)
+    },
+    requestRemove(packetId) {
+      this.$emit('call:requestRemove', packetId)
+    },
+    saveDownloadDestination(download, uri) {
+      this.$emit('call:saveDownloadDestination', download, uri)
+    },
   },
   emits: [
-    'call:handleOperation'
+    'call:handleOperation',
+    'call:xdccSend',
+    'call:requestCancel',
+    'call:requestRemove',
+    'call:removeCompleted',
+    'call:saveDownloadDestination'
   ],
 }
 </script>

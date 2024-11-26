@@ -27,6 +27,7 @@
         <!-- Start Chat Area -->
         <div ref="consoleTarget" role="tabpanel" aria-labelledby="console-tab" class="flex flex-col w-full h-full inset-0 border-x border-gray-100">
             <chat-console
+                :settings="settings"
                 :user="client.user"
                 :network="network"
                 :notice="notice"
@@ -35,16 +36,25 @@
 
         <div v-for="channel in channels" :key="`${channel}`" :ref="`${channel}-target`" role="tabpanel" :aria-labelledby="`${channel}-tab`" class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden">
             <chat-channel
+                :settings="settings"
+                :downloads="downloads"
                 :user="client.user"
                 :network="network"
                 :notice="notice"
                 :connection="client.connection"
                 :channel="client.channels[`#${channel}`]"
-                :isActive="`${channel}-tab` === activeTab.id" />
+                :isActive="`${channel}-tab` === activeTab.id"
+                @call:xdccSend="xdccSend"
+                @call:removeCompleted="removeCompleted"
+                @call:requestCancel="requestCancel"
+                @call:requestRemove="requestRemove"
+                @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
 
         <div v-for="nick in privmsgTabs" :key="`${nick}`" :ref="`${nick}-target`" role="tabpanel" :aria-labelledby="`${nick}-tab`" class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden" :class="classTabHidden(`${nick}-tab`)">
             <chat-privmsg
+                :settings="settings"
+                :downloads="downloads"
                 :user="client.user"
                 :network="network"
                 :nick="nick"
@@ -58,8 +68,9 @@
 
 <script>
 import { Tabs } from 'flowbite'
+import { saveOperation } from '@/Clients/operation'
 import { streamNotice, streamPrivmsg } from '@/Clients/stream'
-import { parseChatLog, parseChatLine, parseChatMessage } from '@/chat'
+import { COMMAND, parseChatLog, parseChatLine, parseChatMessage, makeIrcCommand } from '@/chat'
 import { formatISODate } from '@/format'
 import { has, throttle } from '@/funcs'
 import ChatChannel from '@/Components/ChatChannel.vue'
@@ -78,6 +89,8 @@ export default {
     ChatPrivmsg,
   },
   props: {
+    settings: Object,
+    downloads: Object,
     network: String,
     client: Object,
     channels: Array,
@@ -124,6 +137,16 @@ export default {
 
             this.divertPrivmsg(date, message)
         })
+    },
+    classTabHidden(id) {
+        if (id !== this.activeTab.id) {
+            return [
+                'overflow-x-hidden',
+                'hidden',
+            ]
+        } else {
+            return []
+        }
     },
     divertPrivmsg(date, message) {
         const timestamp = formatISODate(date, 'MM/dd/yyyy HH:mm:ss')
@@ -176,6 +199,18 @@ export default {
     resePrivmsgInterval() {
         privmsgTimeoutId = setTimeout(this.streamPrivmsg, privmsgInterval);
     },
+    removeCompleted(download) {
+      this.$emit('call:removeCompleted', download)
+    },
+    requestCancel(download) {
+      this.$emit('call:requestCancel', download)
+    },
+    requestRemove(packetId) {
+      this.$emit('call:requestRemove', packetId)
+    },
+    saveDownloadDestination(download, uri) {
+      this.$emit('call:saveDownloadDestination', download, uri)
+    },
     async streamNotice() {
         await streamNotice(this.network, this.noticeOffset, async (chunk) => {
             const {lines, meta, parseError} = await parseChatLog(chunk)
@@ -203,6 +238,22 @@ export default {
 
             this.resePrivmsgInterval()
         })
+    },
+    async saveOperation(command) {
+        const network = this.network
+        const {error} = await saveOperation({command, network})
+
+        if (null === error) {
+            return true
+        }
+
+        return false
+    },
+    async xdccSend(packet, nick) {
+        const command = makeIrcCommand(`XDCC SEND ${packet.num}`, nick, COMMAND.PRIVMSG)
+        if (await this.saveOperation(command)) {
+            console.log(`requested xdcc: ${command}`)
+        }
     },
     makeTabs() {
         if (null !== this.tabs) {
@@ -247,17 +298,12 @@ export default {
             }
         )
     },
-    classTabHidden(id) {
-        if (id !== this.activeTab.id) {
-            return [
-                'overflow-x-hidden',
-                'hidden',
-            ]
-        } else {
-            return []
-        }
-    },
   },
-  emits: [],
+  emits: [
+    'call:requestCancel',
+    'call:requestRemove',
+    'call:removeCompleted',
+    'call:saveDownloadDestination'
+  ],
 }
 </script>

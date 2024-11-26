@@ -1,7 +1,16 @@
 <template>
  <div class="flex font-mono text-base max-w-full mb-1">
     <line-date v-if="showDate" :date="dateFormatted" />
-    <line-message v-if="line.type === 'message'" :message="messageFormatted" :channel="channel" />
+    <line-message v-if="line.type === 'message'"
+        :settings="settings"
+        :message="messageFormatted"
+        :channel="channel"
+        :downloads="downloads"
+        @call:xdccSend="xdccSend"
+        @call:removeCompleted="removeCompleted"
+        @call:requestCancel="requestCancel"
+        @call:requestRemove="requestRemove"
+        @call:saveDownloadDestination="saveDownloadDestination" />
     <line-event v-if="line.type === 'event'" :message="messageFormatted" />
     <line-notice v-if="line.type === 'notice'" :message="messageFormatted" />
     <line-user v-if="line.type === 'usermessage'" :message="messageFormatted" />
@@ -26,6 +35,8 @@ export default {
     LineUser,
   },
   props: {
+    settings: Object,
+    downloads: Object,
     line: String,
     showDate: Boolean,
     channel: Object,
@@ -79,7 +90,22 @@ export default {
         this.date = dateNow.toISOString()
         this.message = this.line.line
     },
+    xdccSend(packet, nick) {
+      this.$emit('call:xdccSend', packet, nick)
+    },
+    removeCompleted(download) {
+      this.$emit('call:removeCompleted', download)
+    },
+    requestCancel(download) {
+      this.$emit('call:requestCancel', download)
+    },
+    requestRemove(packetId) {
+      this.$emit('call:requestRemove', packetId)
+    },
+    saveDownloadDestination(download, uri) {
+      this.$emit('call:saveDownloadDestination', download, uri)
+    },
   },
-  emits: [],
+  emits: ['call:xdccSend', 'call:requestCancel', 'call:requestRemove', 'call:removeCompleted', 'call:saveDownloadDestination'],
 }
 </script>

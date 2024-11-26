@@ -123,6 +123,9 @@
   import Multiselect from '@vueform/multiselect'
   import VueTailwindDatepicker from "vue-tailwind-datepicker"
   // local imports
+  import { saveDownloadDestination } from '@/Clients/download-destination'
+  import { fetchDownloadQueue } from '@/Clients/download-queue'
+  import { removeCompleted, requestDownload, requestRemove, requestCancel } from '@/Clients/rpc'
   import { formatDate } from '@/format'
   import { has, intersection, mapValues, pickBy, throttle } from '@/funcs'
   import AppLayout from '@/Layouts/AppLayout.vue'
@@ -532,112 +535,48 @@
         this.exclude_dynamic_ranges = checked
       },
       async requestDownload(packetId) {
-        const url = '/api/rpc/download'
-        const rpcMethod = 'download@request'
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
-        const body = {
-          jsonrpc: '2.0',
-            method: rpcMethod,
-            params: {
-                packet: packetId
-            },
-            id: 1
-        }
+        const {data, error} = await requestDownload(packetId)
 
-        try {
-          const response = await axios.post(url, body, {headers: headers})
-          this.locks.push(response.data.result.packet.file_name)
-          // Schedule the next reload
-          clearLocksInterval()
-          locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
-        } catch (error) {
-          console.error(error)
+        if (null === error) {
+            this.locks.push(data.result.packet.file_name)
+            // Schedule the next reload
+            clearLocksInterval()
+            locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
         }
       },
       async requestRemove(packetId) {
-        const url = '/api/rpc/remove'
-        const rpcMethod = 'remove@request'
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
-        const body = {
-          jsonrpc: '2.0',
-            method: rpcMethod,
-            params: {
-                packet: packetId
-            },
-            id: 1
-        }
+        const {data, error} = await requestRemove(packetId)
 
-        try {
-          const response = await axios.post(url, body, {headers: headers})
-          const fileName = response.data.result.packet.file_name
-          const locksIndex = this.locks.indexOf(fileName)
-          if (0 <= locksIndex) {
-            delete this.locks[locksIndex]
-          }
+        if (null === error) {
+            const fileName = data.result.packet.file_name
+            const locksIndex = this.locks.indexOf(fileName)
+            if (0 <= locksIndex) {
+                delete this.locks[locksIndex]
+            }
 
-          if (has(this.queued, fileName)) {
-            delete this.queued[fileName];
-          }
+            if (has(this.queued, fileName)) {
+                delete this.queued[fileName]
+            }
 
-          if (has(this.downloadQueue.queued, fileName)) {
-            delete this.downloadQueue.queued[fileName];
-          }
-        } catch (error) {
-          console.error(error)
+            if (has(this.downloadQueue.queued, fileName)) {
+                delete this.downloadQueue.queued[fileName]
+            }
         }
       },
       async requestCancel(download) {
-        const url = '/api/rpc/cancel'
-        const rpcMethod = 'cancel@request'
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
-        const body = {
-          jsonrpc: '2.0',
-            method: rpcMethod,
-            params: {
-                bot: download.packet.bot_id
-            },
-            id: 1
-        }
+        const { error } = await requestCancel(download)
 
-        try {
-          await axios.post(url, body, {headers: headers})
-          this.fetchLocks()
-          this.fetchQueue()
-        } catch (error) {
-          console.error(error)
+        if (null === error) {
+            this.fetchLocks()
+            this.fetchQueue()
         }
       },
       async removeCompleted(download) {
-        const url = '/api/rpc/remove-completed'
-        const rpcMethod = 'removeCompleted@request'
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
-        const body = {
-          jsonrpc: '2.0',
-            method: rpcMethod,
-            params: {
-                download: download.id
-            },
-            id: 1
-        }
+        const { error } = await removeCompleted(download)
 
-        try {
-          await axios.post(url, body, {headers: headers})
-          this.fetchLocks()
-          this.fetchQueue()
-        } catch (error) {
-          console.error(error)
+        if (null === error) {
+            this.fetchLocks()
+            this.fetchQueue()
         }
       },
       async fetchLocks(packetList) {
@@ -684,44 +623,28 @@
         }
       },
       async fetchQueue() {
-        const url = '/api/download-queue/queue'
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
-
-        try {
-          const response = await axios.get(url, { headers: headers })
-          this.downloadQueue = response.data
-        } catch (error) {
-          console.error(error)
+        const {data, error} = await fetchDownloadQueue()
+        if (null === error) {
+          this.downloadQueue = data
         }
       },
       async saveDownloadDestination(download, uri) {
-        let method = 'post'
-        let url = '/api/download-destination'
-
-        // Use put instead of post if dd already exists.
-        if (null !== download.destination) {
-            method = 'put'
-            url = `${url}/${download.destination.id}`
-        }
-
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
-
         const body = {
             destination_dir: uri,
             download: download.id
         }
 
-        try {
-          await axios[method](url, body, {headers: headers})
-          this.fetchQueue()
-        } catch (error) {
-          console.error(error)
+        // Use put instead of post if dd already exists.
+        if (null !== download.destination) {
+            body.id = download.destination.id
+        }
+
+        const {error} = await saveDownloadDestination(body)
+
+        if (null === error) {
+            this.fetchQueue()
+        } else {
+            console.error(error)
         }
       },
     },

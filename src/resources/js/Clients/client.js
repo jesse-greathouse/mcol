@@ -51,6 +51,18 @@ async function put(body, url, headers) {
     return {data, error}
 }
 
+async function rpc(endpoint, rpcMethod, rpcParams, headers)
+{
+    const body = {
+        jsonrpc: '2.0',
+        method: rpcMethod,
+        params: rpcParams,
+        id: 1
+    }
+
+    return await post(body, endpoint, headers)
+}
+
 async function save(body, url, headers, id = null) {
     // If the object has an Id property, treat it as a put.
     if (has(body, 'id')) {
@@ -93,4 +105,4 @@ const setHeaders = (xhr, headers) => {
     })
 }
 
-export { get, post, put, save, streamGet };
+export { get, post, put, rpc, save, streamGet };

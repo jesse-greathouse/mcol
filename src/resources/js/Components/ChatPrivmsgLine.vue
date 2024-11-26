@@ -1,7 +1,7 @@
 <template>
  <div class="flex font-mono text-base max-w-full mb-1">
     <line-date v-if="showDate" :date="timestamp" />
-    <line-privmsg v-if="type === 'privmsg'" :nick="nick" :message="content" />
+    <line-privmsg v-if="type === 'privmsg'" :nick="nick" :message="content" :downloads="downloads" />
     <line-notice v-if="type === 'notice'" :message="content" />
     <line-privmsg v-if="type === 'usermessage'" color="pink" :nick="nick" :message="content" />
  </div>
@@ -19,6 +19,7 @@ export default {
     LineNotice,
   },
   props: {
+    downloads: Object,
     type: String,
     content: String,
     nick: String,

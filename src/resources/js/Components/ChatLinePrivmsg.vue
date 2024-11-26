@@ -13,6 +13,8 @@
 
 export default {
   props: {
+    settings: Object,
+    downloads: Object,
     nick: String,
     message: String,
     color: {

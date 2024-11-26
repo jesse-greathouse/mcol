@@ -26,6 +26,7 @@
         <!-- Start Chat Pane -->
         <div ref="privmsgPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3" :style="{ maxHeight: privmsgPaneHeight }" >
             <privmsg-line v-for="(line, i) in lines"
+                :downloads="downloads"
                 :key="`line-${i}`"
                 :showDate="showDate"
                 :type="line.type"
@@ -60,6 +61,7 @@ export default {
     ChatInput,
   },
   props: {
+    downloads: Object,
     user: String,
     network: String,
     nick: Object,
