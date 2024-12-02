@@ -17,10 +17,12 @@
                     <chat-client
                         :settings="settings"
                         :downloads="downloads"
+                        :downloadLocks="downloadLocks"
                         :network="network"
                         :client="clients[network]"
                         :channels="listChannels(clients[network])"
                         :isActive="`${network}-tab` === activeTab.id"
+                        @call:checkDownloadQueue="checkDownloadQueue"
                         @call:removeCompleted="removeCompleted"
                         @call:requestCancel="requestCancel"
                         @call:requestRemove="requestRemove"
@@ -40,6 +42,7 @@
   import { has } from '@/funcs'
 
   // local imports
+  import { fetchLocks } from '@/Clients/browse'
   import { fetchNetworkClients } from '@/Clients/network'
   import { fetchDownloadQueue } from '@/Clients/download-queue'
   import { makeDownloadIndexFromQueue } from '@/download-queue'
@@ -54,10 +57,16 @@
     clearTimeout(clientsTimeoutId)
   }
 
-  const downloadQueueInterval = 10000; // Check download queue every 10 seconds.
+  const downloadQueueInterval = 5000; // Check download queue every 5 seconds.
   let downloadQueueTimeoutId;
   const clearDownloadQueueInterval = function () {
     clearTimeout(downloadQueueTimeoutId)
+  }
+
+  const locksInterval = 5000; // Check download locks every 5 seconds.
+  let locksTimeoutId;
+  const clearLocksInterval = function () {
+    clearTimeout(locksTimeoutId)
   }
 
   export default {
@@ -73,6 +82,7 @@
       settings: Object,
       networks: Array,
       instances: Object,
+      locks: Array,
     },
     data() {
         return {
@@ -81,12 +91,14 @@
             downloads: {},
             tabs: null,
             activeTab: { id: null },
+            downloadLocks: this.locks,
         }
     },
     mounted() {
         initFlowbite()
         this.checkDownloadQueue()
         this.checkClients()
+        this.checkLocks()
         this.tabs = this.makeTabs()
     },
     watch: {
@@ -98,15 +110,20 @@
         },
     },
     methods: {
-      checkDownloadQueue() {
-        this.fetchDownloadQueue()
+      async checkDownloadQueue() {
+        await this.fetchDownloadQueue()
         clearDownloadQueueInterval()
-        downloadQueueTimeoutId = setTimeout(this.checkDownloadQueue, downloadQueueInterval);
+        downloadQueueTimeoutId = setTimeout(this.checkDownloadQueue, downloadQueueInterval)
       },
-      checkClients() {
-        this.fetchClients()
+      async checkClients() {
+        await this.fetchClients()
         clearClientsInterval()
-        clientsTimeoutId = setTimeout(this.checkClients, clientsInterval);
+        clientsTimeoutId = setTimeout(this.checkClients, clientsInterval)
+      },
+      async checkLocks() {
+        await this.fetchLocks()
+        clearLocksInterval()
+        locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
       },
       async fetchClients() {
         const {data, error} = await fetchNetworkClients()
@@ -124,6 +141,18 @@
           console.log(error)
         }
       },
+      async fetchLocks(packetList) {
+        const { data, error } = await fetchLocks(packetList)
+
+        if (null === error) {
+            const { locks } = data
+            this.downloadLocks = locks
+
+            if (locks.length <= 0) {
+                clearLocksInterval()
+            }
+        }
+      },
       async saveDownloadDestination(download, uri) {
         const body = {
             destination_dir: uri,
@@ -138,7 +167,42 @@
         const {error} = await saveDownloadDestination(body)
 
         if (null === error) {
-            this.fetchQueue()
+            this.fetchDownloadQueue()
+        }
+      },
+      async requestRemove(packetId) {
+        const {data, error} = await requestRemove(packetId)
+
+        if (null === error) {
+            const fileName = data.result.packet.file_name
+            const locksIndex = this.locks.indexOf(fileName)
+            if (0 <= locksIndex) {
+                delete this.locks[locksIndex]
+            }
+
+            if (has(this.queued, fileName)) {
+                delete this.queued[fileName]
+            }
+
+            if (has(this.downloadQueue.queued, fileName)) {
+                delete this.downloadQueue.queued[fileName]
+            }
+        }
+      },
+      async requestCancel(download) {
+        const { error } = await requestCancel(download)
+
+        if (null === error) {
+            this.fetchLocks()
+            this.fetchDownloadQueue()
+        }
+      },
+      async removeCompleted(download) {
+        const { error } = await removeCompleted(download)
+
+        if (null === error) {
+            this.fetchLocks()
+            this.fetchDownloadQueue()
         }
       },
       listChannels(network) {

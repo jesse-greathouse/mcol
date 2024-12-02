@@ -1,11 +1,11 @@
 import { has } from '@/funcs'
 
-const DOWNLOAD_STATE_COMPELTED = 'compelted'
+const DOWNLOAD_STATE_COMPLETED = 'completed'
 const DOWNLOAD_STATE_INCOMPLETE = 'incomplete'
 const DOWNLOAD_STATE_QUEUED = 'queued'
 
 const downloadStates = [
-    DOWNLOAD_STATE_COMPELTED,
+    DOWNLOAD_STATE_COMPLETED,
     DOWNLOAD_STATE_INCOMPLETE,
     DOWNLOAD_STATE_QUEUED,
 ]
@@ -161,7 +161,7 @@ function makeDownloadIndexFromQueue(downloadQueue) {
 }
 
 export {
-    DOWNLOAD_STATE_COMPELTED,
+    DOWNLOAD_STATE_COMPLETED,
     DOWNLOAD_STATE_INCOMPLETE,
     DOWNLOAD_STATE_QUEUED,
     mediaTypeToStoreMap,

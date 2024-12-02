@@ -3,9 +3,10 @@
     <line-date v-if="showDate" :date="dateFormatted" />
     <line-message v-if="line.type === 'message'"
         :settings="settings"
+        :downloads="downloads"
+        :downloadLocks="downloadLocks"
         :message="messageFormatted"
         :channel="channel"
-        :downloads="downloads"
         @call:xdccSend="xdccSend"
         @call:removeCompleted="removeCompleted"
         @call:requestCancel="requestCancel"
@@ -37,6 +38,7 @@ export default {
   props: {
     settings: Object,
     downloads: Object,
+    downloadLocks: Array,
     line: String,
     showDate: Boolean,
     channel: Object,

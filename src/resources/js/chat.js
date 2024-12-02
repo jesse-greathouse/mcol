@@ -197,6 +197,26 @@ function parsePacket(message) {
     return {num, gets, size, fileName, error}
 }
 
+function parseDownload(message) {
+    let [fileName, ip, port, size, error] = [null, null, null, null, null]
+
+    // https://regexr.com/89d2e
+    const re = /^DCC\s+SEND\s+(.*)\s+(.*)\s+(.*)\s+(.*)\s+$/gs
+
+    try {
+        const parts = re.exec(message)
+
+        if (null !== parts && 5 === parts.length) {
+            ([, fileName, ip, port, size] = parts)
+        }
+    } catch(error) {
+        console.log(`couldn't parse message: ${message}`)
+        console.error(error)
+    }
+
+    return {fileName, ip, port, size, error}
+}
+
 async function parseMeta(line) {
     const data = line.split('[meta]: ')[1]
     return new Promise((resolve) => {
@@ -214,5 +234,6 @@ export {
     parseChatLine,
     parseChatLog,
     parseChatMessage,
+    parseDownload,
     parsePacket,
 }

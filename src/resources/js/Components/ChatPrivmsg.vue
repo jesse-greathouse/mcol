@@ -26,13 +26,19 @@
         <!-- Start Chat Pane -->
         <div ref="privmsgPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3" :style="{ maxHeight: privmsgPaneHeight }" >
             <privmsg-line v-for="(line, i) in lines"
+                :settings="settings"
                 :downloads="downloads"
+                :downloadLocks="downloadLocks"
                 :key="`line-${i}`"
                 :showDate="showDate"
                 :type="line.type"
                 :nick="line.nick"
                 :timestamp="line.timestamp"
-                :content="line.content" />
+                :content="line.content"
+                @call:removeCompleted="removeCompleted"
+                @call:requestCancel="requestCancel"
+                @call:requestRemove="requestRemove"
+                @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
         <!-- End Chat Pane -->
     </div>
@@ -61,7 +67,9 @@ export default {
     ChatInput,
   },
   props: {
+    settings: Object,
     downloads: Object,
+    downloadLocks: Array,
     user: String,
     network: String,
     nick: Object,
@@ -185,9 +193,21 @@ export default {
     handleResize() {
         this.privmsgPaneHeight = this.scaleToViewportHeight(privmsgPaneScale)
     },
+    removeCompleted(download) {
+      this.$emit('call:removeCompleted', download)
+    },
+    requestCancel(download) {
+      this.$emit('call:requestCancel', download)
+    },
+    requestRemove(packetId) {
+      this.$emit('call:requestRemove', packetId)
+    },
+    saveDownloadDestination(download, uri) {
+      this.$emit('call:saveDownloadDestination', download, uri)
+    },
   },
   emits: [
-    'call:handleOperation'
+    'call:handleOperation', 'call:requestCancel', 'call:requestRemove', 'call:removeCompleted', 'call:saveDownloadDestination'
   ],
 }
 </script>

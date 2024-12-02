@@ -123,6 +123,7 @@
   import Multiselect from '@vueform/multiselect'
   import VueTailwindDatepicker from "vue-tailwind-datepicker"
   // local imports
+  import { fetchLocks } from '@/Clients/browse'
   import { saveDownloadDestination } from '@/Clients/download-destination'
   import { fetchDownloadQueue } from '@/Clients/download-queue'
   import { removeCompleted, requestDownload, requestRemove, requestCancel } from '@/Clients/rpc'
@@ -148,13 +149,13 @@
   }
 
   const locksInterval = 10000; // Check download locks every 10 seconds.
-  let locksTimeoutId;
+  let locksTimeoutId
   const clearLocksInterval = function () {
     clearTimeout(locksTimeoutId)
   }
 
   const queueInterval = 10000; // Check download queue every 10 seconds.
-  let queueTimeoutId;
+  let queueTimeoutId
   const clearQueueInterval = function () {
     clearTimeout(queueTimeoutId)
   }
@@ -383,13 +384,13 @@
           this.incomplete.length > 0 ||
           this.completed.length > 0
         ) {
-          locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
+          locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
         }
       },
       checkQueue() {
         this.fetchQueue()
         clearQueueInterval()
-        queueTimeoutId = setTimeout(this.checkQueue, queueInterval);
+        queueTimeoutId = setTimeout(this.checkQueue, queueInterval)
       },
       hasQueue() {
         return (
@@ -580,31 +581,23 @@
         }
       },
       async fetchLocks(packetList) {
-        const [_href, _data] = mergeDataIntoQueryString('get', '/api/browse/locks', {packet_list: packetList}, 'brackets')
-        const url = hrefToUrl(_href)
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
+        const { data, error } = await fetchLocks(packetList)
 
-        try {
-          const response = await axios.get(url, { headers: headers })
-          const { locks, queued, incomplete, completed } = response.data
-          this.locks = locks
-          this.queued = queued
-          this.incomplete = incomplete
-          this.completed = completed
+        if (null === error) {
+            const { locks, queued, incomplete, completed } = data
+            this.locks = locks
+            this.queued = queued
+            this.incomplete = incomplete
+            this.completed = completed
 
-          if (
-            locks.length <= 0 &&
-            queued.length <= 0 &&
-            incomplete.length <= 0 &&
-            completed.length <= 0
-          ) {
-            clearLocksInterval()
-          }
-        } catch (error) {
-          console.error(error)
+            if (
+                locks.length <= 0 &&
+                queued.length <= 0 &&
+                incomplete.length <= 0 &&
+                completed.length <= 0
+            ) {
+                clearLocksInterval()
+            }
         }
       },
       async fetchBrowse(withData) {

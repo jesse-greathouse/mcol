@@ -38,6 +38,7 @@
             <chat-channel
                 :settings="settings"
                 :downloads="downloads"
+                :downloadLocks="downloadLocks"
                 :user="client.user"
                 :network="network"
                 :notice="notice"
@@ -55,11 +56,17 @@
             <chat-privmsg
                 :settings="settings"
                 :downloads="downloads"
+                :downloadLocks="downloadLocks"
                 :user="client.user"
                 :network="network"
                 :nick="nick"
                 :privmsgs="privmsg[nick]"
-                :isActive="`${nick}-tab` === activeTab.id" />
+                :isActive="`${nick}-tab` === activeTab.id"
+                @call:xdccSend="xdccSend"
+                @call:removeCompleted="removeCompleted"
+                @call:requestCancel="requestCancel"
+                @call:requestRemove="requestRemove"
+                @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
         <!-- End Chat Area -->
 
@@ -91,6 +98,7 @@ export default {
   props: {
     settings: Object,
     downloads: Object,
+    downloadLocks: Array,
     network: String,
     client: Object,
     channels: Array,
@@ -252,7 +260,7 @@ export default {
     async xdccSend(packet, nick) {
         const command = makeIrcCommand(`XDCC SEND ${packet.num}`, nick, COMMAND.PRIVMSG)
         if (await this.saveOperation(command)) {
-            console.log(`requested xdcc: ${command}`)
+            this.$emit('call:checkDownloadQueue')
         }
     },
     makeTabs() {
@@ -300,6 +308,7 @@ export default {
     },
   },
   emits: [
+    'call:checkDownloadQueue',
     'call:requestCancel',
     'call:requestRemove',
     'call:removeCompleted',

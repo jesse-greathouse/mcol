@@ -8,6 +8,7 @@ use Inertia\Inertia,
     Inertia\Response;
 
 use App\Models\Client,
+    App\Models\FileDownloadLock,
     App\Models\Network,
     App\Packet\DownloadQueue,
     App\Settings;
@@ -30,6 +31,7 @@ class ChatController
     {
         return Inertia::render('Chat', [
             'queue'     => fn () => DownloadQueue::getQueue(),
+            'locks'     => fn () => FileDownloadLock::all()->pluck('file_name')->toArray(),
             'settings'  => fn (Settings $settings) => $settings->toArray(),
             'networks'  => fn () => $this->getNetworkList(),
             'instances' => fn () => $this->getNetworkClients(),

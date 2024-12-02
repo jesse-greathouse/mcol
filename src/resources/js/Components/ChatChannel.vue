@@ -30,6 +30,7 @@
                 :key="`line-${i}`"
                 :settings="settings"
                 :downloads="downloads"
+                :downloadLocks="downloadLocks"
                 :showDate="showDate"
                 :line="line"
                 :channel="channel"
@@ -92,6 +93,7 @@ export default {
   props: {
     settings: Object,
     downloads: Object,
+    downloadLocks: Array,
     user: String,
     network: String,
     notice: Array,
