@@ -46,8 +46,8 @@
     <!-- Start Chat Input -->
     <chat-input
         :network="network"
-        :target="nick"
-        :default="COMMAND.PRIVMSG"
+        :defaultTarget="nick"
+        :defaultCommand="COMMAND.PRIVMSG"
         @call:handleOperation="handleOperation" />
     <!-- End Chat Input -->
 </template>

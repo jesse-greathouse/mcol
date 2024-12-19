@@ -59,8 +59,10 @@
     <chat-input
         ref="chatInput"
         :network="network"
-        :target="channel.name"
-        :default="COMMAND.PRIVMSG"
+        :channels="[channel.name]"
+        :users="userList"
+        :defaultTarget="channel.name"
+        :defaultCommand="COMMAND.PRIVMSG"
         @call:handleOperation="handleOperation" />
     <!-- End Chat Input -->
 </template>

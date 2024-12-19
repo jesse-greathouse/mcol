@@ -1,5 +1,9 @@
 // A collection of functions that get used a lot but don't belong in any certain module.
 
+const inList = function(value, list) {
+    return list.indexOf(value) > -1;
+}
+
 // replaces lodash _.has
 const has = function (obj, key) {
     // first start with he easiest qualifier
@@ -210,6 +214,7 @@ function throttle(func, wait, options) {
 export {
     debounce,
     has,
+    inList,
     intersection,
     isUndefined,
     mapValues,

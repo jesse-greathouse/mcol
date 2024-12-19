@@ -4,6 +4,11 @@ const cleanChannelName = (channelName) => {
     return channelName.slice(1)
 }
 
+const isChannelName = (str) => {
+    const firstChar = str.charAt(0)
+    return ('#' === firstChar) ? true : false
+}
+
 const formatDate = (date, time = false) => {
     if (null === date) return ''
 
@@ -60,5 +65,6 @@ export {
     formatDate,
     formatISODate,
     formatTruncate,
+    isChannelName,
     makeChatLogDate,
 }

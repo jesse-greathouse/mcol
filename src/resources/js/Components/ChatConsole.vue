@@ -10,6 +10,7 @@
         <!-- Start Chat Input -->
         <chat-input
             :network="network"
+            :defaultCommand="COMMAND.JOIN"
             @call:handleOperation="handleOperation" />
     <!-- End Chat Input -->
 </template>
@@ -18,21 +19,13 @@
 import { has } from '@/funcs'
 import { streamConsole } from '@/Clients/stream'
 import { scaleToViewportHeight } from '@/style'
-import { parseChatLog } from '@/chat'
+import { COMMAND, parseChatLog } from '@/chat'
 import ConsoleLine from '@/Components/ChatConsoleLine.vue'
 import ChatInput from '@/Components/ChatInput.vue'
 
 const maxMessageLineBuffer = 1000 // Maximum 1000 lines so we don't crash the browser.
 const consolePaneScale = .70
 const consoleInterval = 60000 // Check console every 60 seconds.
-let consoleTimeoutId
-const clearConsoleInterval = function () {
-    clearTimeout(consoleTimeoutId)
-}
-
-const clearAllIntervals = function() {
-    clearConsoleInterval()
-}
 
 export default {
   components: {
@@ -48,12 +41,14 @@ export default {
   },
   data() {
     return {
+        COMMAND: COMMAND,
         lines: [],
         consoleOffset: 0,
         consolePaneHeight: this.scaleToViewportHeight(consolePaneScale),
         showDate: true,
         shouldScrollToBottom: true,
         noticeIndex: 0,
+        consoleTimeoutId: null,
     }
   },
   watch: {
@@ -111,8 +106,12 @@ export default {
             this.lines = this.lines.slice(overBuffer)
         }
     },
+    clearConsoleInterval() {
+        clearTimeout(this.consoleTimeoutId)
+    },
     resetConsoleInterval() {
-        consoleTimeoutId = setTimeout(this.streamConsole, consoleInterval);
+        this.clearConsoleInterval()
+        this.consoleTimeoutId = setTimeout(this.streamConsole, consoleInterval);
     },
     isScrolledToBottom() {
         const consolePane = this.$refs.consolePane

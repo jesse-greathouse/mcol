@@ -1,11 +1,14 @@
-import { has, isUndefined } from '@/funcs'
+import { has, trim, isUndefined } from '@/funcs'
+
+const SERVER = 'server'
+const USER = 'user'
+const CHANNEL = 'channel'
 
 const COMMAND = {
     ADMIN: 'ADMIN',
     INFO: 'INFO',
     JOIN: 'JOIN',
     KICK: 'KICK',
-    KILL: 'KILL',
     LINKS: 'LINKS',
     LIST: 'LIST',
     MODE: 'MODE',
@@ -17,12 +20,13 @@ const COMMAND = {
     PING: 'PING',
     PRIVMSG: 'PRIVMSG',
     QUIT: 'QUIT',
-    STATS: 'STATS',
     TIME: 'TIME',
     TRACE: 'TRACE',
     VERSION: 'VERSION',
     WHO: 'WHO',
     WHOIS: 'WHOIS',
+    //KILL: 'KILL',
+    //STATS: 'STATS',
 }
 
 const COMMAND_MASK = {
@@ -30,8 +34,7 @@ const COMMAND_MASK = {
     '/info': COMMAND.INFO,
     '/join': COMMAND.JOIN,
     '/kick': COMMAND.KICK,
-    '/KILL': COMMAND.KILL,
-    '/LINKS': COMMAND.LINKS,
+    '/links': COMMAND.LINKS,
     '/list': COMMAND.LIST,
     '/mode': COMMAND.MODE,
     '/msg': COMMAND.PRIVMSG,
@@ -40,14 +43,71 @@ const COMMAND_MASK = {
     '/notice': COMMAND.NOTICE,
     '/op': COMMAND.OPER,
     '/part': COMMAND.PART,
-    '/ping': COMMAND.ping,
+    '/ping': COMMAND.PING,
     '/quit': COMMAND.QUIT,
-    '/stats': COMMAND.STATS,
-    '/TIME': COMMAND.TIME,
+    '/time': COMMAND.TIME,
     '/trace': COMMAND.TRACE,
     '/version': COMMAND.VERSION,
     '/who': COMMAND.WHO,
     '/whois': COMMAND.WHOIS,
+    //'/kill': COMMAND.KILL,
+    //'/stats': COMMAND.STATS,
+}
+
+const TARGET_CONTEXT = {
+    ADMIN: [
+        [SERVER]
+    ],
+    INFO: [
+        [SERVER]
+    ],
+    JOIN: [
+        [CHANNEL]
+    ],
+    KICK: [
+        [CHANNEL],
+        [USER]
+    ],
+    LINKS: [
+        [SERVER]
+    ],
+    LIST: [],
+    MODE: [
+        [USER, CHANNEL],
+    ],
+    NAMES: [
+        [CHANNEL]
+    ],
+    NICK: [],
+    NOTICE: [
+        [USER],
+    ],
+    OPER: [],
+    PART: [
+        [CHANNEL]
+    ],
+    PING: [
+        [SERVER]
+    ],
+    PRIVMSG: [
+        [ CHANNEL, USER],
+    ],
+    QUIT: [],
+    TIME: [],
+    TRACE: [
+        [SERVER],
+    ],
+    VERSION: [
+        [SERVER],
+    ],
+    WHO: [
+        [USER],
+    ],
+    WHOIS: [
+        [SERVER],
+    ],
+    //KILL: [['users']],
+    // STATS: [],
 }
 
 function getCmdMask(command) {
@@ -226,14 +286,69 @@ async function parseMeta(line) {
     });
 }
 
+function parseInput(line, commands, selectedCommand, selectedParameters = [], lists = {}) {
+    let [command, message, parameters, parameterLists, error] = [selectedCommand, line, selectedParameters, [], null]
+    let numParams = 0
+    let words = message.split(' ');
+
+    // If its an empty string return the defaults
+    if (1 > words.length) {
+        return {command, parameters, message, parameterLists, error}
+    }
+
+    const firstChar = words[0].charAt(0)
+
+    if ('/' === firstChar) {
+        if (has(commands,  words[0])) {
+            const cmdMask =  words.shift()
+            command = commands[cmdMask]
+        }
+    }
+
+    if (null !== command && 1 >= words.length  && has(TARGET_CONTEXT, command)) {
+        words = parameters.concat(words)
+        numParams = (words.length >= TARGET_CONTEXT[command].length) ? TARGET_CONTEXT[command].length : words.length
+        parameters = words.slice(0, numParams)
+        parameterLists = makeParameterLists(command, lists)
+        words = words.slice(numParams - 1)
+    }
+
+    if (1 > words.length) {
+        message = trim(words.join(' '))
+    }
+
+    return {command, parameters, message, parameterLists, error}
+}
+
+function makeParameterLists(command, lists) {
+    const parameters = []
+    TARGET_CONTEXT[command].forEach((param) => {
+        parameters.push(makeCombinedList(param, lists))
+    })
+    return parameters
+}
+
+function makeCombinedList(param, lists) {
+    let combinedList = []
+    param.forEach((list) => {
+        if (has(lists, list)) {
+            combinedList = combinedList.concat(lists[list])
+        }
+    })
+
+    return combinedList
+}
+
 export {
     COMMAND,
     COMMAND_MASK,
     getCmdMask,
     makeIrcCommand,
+    makeParameterLists,
     parseChatLine,
     parseChatLog,
     parseChatMessage,
     parseDownload,
+    parseInput,
     parsePacket,
 }
