@@ -571,17 +571,6 @@ class Client
                 return;
             }
 
-            $notice = "Unhandled PRIVMSG from $userName: $message";
-            $this->console->warn("||||||||||||| ===> $notice");
-            $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
-
-            // Try to send a message back to the user.
-            // Don't be rude :-)
-            if ('' !== $userName && (null !== $target) && (trim($target) === $this->nick->nick)) {
-                $this->client->say($target, "Hello, $target. Sorry, I can't get back to you. This application doesn't actively monitor the chat. If I have done something wrong, please kindly raise an issue on my github: https://github.com/jesse-greathouse/mcol/issues");
-                $this->client->say($target, self::VERSION);
-            }
-
             return;
         });
     }
