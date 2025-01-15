@@ -14,6 +14,7 @@ use App\Chat\Log\Diverter as LogDiverter,
     App\Events\HotReportSummary as HotReportSummaryEvent,
     App\Events\PacketSearchResult as PacketSearchResultEvent,
     App\Events\PacketSearchSummary as PacketSearchSummaryEvent,
+    App\Exceptions\UnmappedChatLogEventException,
     App\Jobs\CheckFileDownloadCompleted,
     App\Jobs\DccDownload,
     App\Models\Bot,
@@ -253,7 +254,11 @@ class Client
         $this->client->on('joinInfo', function(string $user, string $channelName) {
             $message = "$user joined";
             $this->console->info("$message $channelName");
-            $this->logDiverter->log(LogMapper::EVENT_JOIN, $message, $channelName);
+            try {
+                $this->logDiverter->log(LogMapper::EVENT_JOIN, $message, $channelName);
+            } catch(UnmappedChatLogEventException $e) {
+                $this->console->error("Unmapped joinInfo event to: \"$channelName\". (This usually happens because of a truncated UDP packet.)");
+            }
         });
     }
 
