@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 
 use Jerodev\PhpIrcClient\IrcClient,
     Jerodev\PhpIrcClient\IrcChannel,
+    Jerodev\PhpIrcClient\Exceptions\ParseChannelNameException,
     Jerodev\PhpIrcClient\Options\ClientOptions;
 
 use App\Chat\Log\Diverter as LogDiverter,
@@ -397,7 +398,7 @@ class Client
      */
     public function dccHandler(): void
     {
-        $this->client->on('dcc', function($action, $fileName, $ip, $port, $fileSize) {
+        $this->client->on('dcc', function($action, $fileName, $ip, $port, $fileSize = 0) {
             $message = "A DCC event has been sent, with the following information";
             $information = "action $action, fileName: $fileName, ip: $ip, port: $port, fileSize: $fileSize";
             $this->console->warn("$message:");
@@ -1230,7 +1231,13 @@ class Client
      */
     public function connect(): void
     {
-        $this->client->connect();
+        try {
+            $this->client->connect();
+        } catch(ParseChannelNameException $e) {
+            $this->console->error("****************************************************************************************");
+            $this->console->error("           " . $e->getMessage());
+            $this->console->error("****************************************************************************************");
+        }
     }
 
     /**
