@@ -4,8 +4,8 @@ namespace App\Chat\Client;
 
 use Illuminate\Console\Command;
 
-use Jerodev\PhpIrcClient\IrcClient,
-    Jerodev\PhpIrcClient\IrcChannel;
+use JesseGreathouse\PhpIrcClient\IrcClient,
+    JesseGreathouse\PhpIrcClient\IrcChannel;
 
 use App\Chat\Client,
     App\Models\Bot,

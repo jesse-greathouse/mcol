@@ -1,9 +1,9 @@
 {
-    "name": "laravel/laravel",
+    "name": "jesse-greathouse/mcol",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
-    "license": "MIT",
+    "description": "The Media Collector.",
+    "keywords": ["IRC", "XDCC"],
+    "license": "GNU GPL",
     "repositories": [
         {
           "type": "vcs",

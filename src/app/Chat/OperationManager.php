@@ -5,7 +5,7 @@ namespace App\Chat;
 use Illuminate\Console\Command,
     Illuminate\Support\Facades\Log;
 
-use Jerodev\PhpIrcClient\IrcClient;
+use JesseGreathouse\PhpIrcClient\IrcClient;
 
 use App\Models\Instance,
     App\Models\Operation;

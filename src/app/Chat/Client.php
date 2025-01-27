@@ -4,10 +4,10 @@ namespace App\Chat;
 
 use Illuminate\Console\Command;
 
-use Jerodev\PhpIrcClient\IrcClient,
-    Jerodev\PhpIrcClient\IrcChannel,
-    Jerodev\PhpIrcClient\Exceptions\ParseChannelNameException,
-    Jerodev\PhpIrcClient\Options\ClientOptions;
+use JesseGreathouse\PhpIrcClient\IrcClient,
+    JesseGreathouse\PhpIrcClient\IrcChannel,
+    JesseGreathouse\PhpIrcClient\Exceptions\ParseChannelNameException,
+    JesseGreathouse\PhpIrcClient\Options\ClientOptions;
 
 use App\Chat\Log\Diverter as LogDiverter,
     App\Chat\Log\Mapper as LogMapper,
@@ -236,7 +236,7 @@ class Client
             $pingMsg = $pinger . ' PING -> ' . $this->nick->nick;
             $pongMsg = $this->nick->nick . ' PONG -> ' . $pinger;
 
-            // The response actually happens in the Message object: Jerodev\PhpIrcClient\Messages\PingMessage
+            // The response actually happens in the Message object: JesseGreathouse\PhpIrcClient\Messages\PingMessage
             // This is just showing that something happened in the log.
             $this->console->info($pingMsg);
             $this->console->info($pongMsg);
