@@ -103,7 +103,7 @@ class Streamer
      * @param string|null $channelName
      * @return Generator
      */
-    public function streamLog(string $logName, string $networkName, int $offset = 0, string $channelName = null): Generator
+    public function streamLog(string $logName, string $networkName, int $offset = 0, ?string $channelName = null): Generator
     {
         $mapper = $this->getMapper($networkName);
         $log = $mapper->getLogUri($logName, $channelName);
@@ -139,7 +139,7 @@ class Streamer
      * @param int $offset
      * @return int
      */
-    public function sanitizeOffset(string $uri, int $max, int $offset = null): int
+    public function sanitizeOffset(string $uri, int $max, ?int $offset): int
     {
         clearstatcache(true, $uri); // clears the caching of filesize
         $fileSize = fileSize($uri);

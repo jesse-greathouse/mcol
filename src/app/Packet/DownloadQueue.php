@@ -201,7 +201,7 @@ class DownloadQueue
      * @param array $packetList
      * @return Collection
      */
-    public static function getDownloads(string $status = null, array $packetList = []): Collection
+    public static function getDownloads(?string $status, array $packetList = []): Collection
     {
         $qb = Download::join('packets', 'packets.id', '=', 'downloads.packet_id')
             ->join ('file_download_locks', 'file_download_locks.file_name', 'downloads.file_name')

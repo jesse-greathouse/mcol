@@ -209,7 +209,7 @@ class Mapper
      * @var string $channel
      * @return string
      */
-    public function getLogUri(string $name, string $channel = null): string
+    public function getLogUri(string $name, ?string $channel = null): string
     {
         $uri = $this->instanceUri;
 

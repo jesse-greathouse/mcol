@@ -409,7 +409,7 @@ class Browse
      * @param string $negativeFilter
      * @return string
      */
-    protected function filterColumn(string $column, string $filter, string $negativeFilter = null): string
+    protected function filterColumn(string $column, string $filter, ?string $negativeFilter): string
     {
         $query = '';
         $state = 'IN';

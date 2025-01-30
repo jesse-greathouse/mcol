@@ -259,7 +259,7 @@ sub install_rar {
     my $optDir = $dir . '/opt';
     my $phpizeBinary = $optDir . '/php/bin/phpize';
     my $phpconfigBinary = $optDir . '/php/bin/php-config';
-    my $phpRarRepo = 'https://github.com/cataphract/php-rar.git';
+    my $phpRarRepo = 'https://github.com/jesse-greathouse/php-rar.git';
     my $originalDir = getcwd();
 
     # Download Repo Command
