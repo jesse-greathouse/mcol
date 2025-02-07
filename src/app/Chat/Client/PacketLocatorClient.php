@@ -2,7 +2,9 @@
 
 namespace App\Chat\Client;
 
-use Illuminate\Console\Command;
+use Illuminate\Console\Command,
+    Illuminate\Database\QueryException;
+
 
 use JesseGreathouse\PhpIrcClient\IrcClient,
     JesseGreathouse\PhpIrcClient\IrcChannel;
@@ -66,7 +68,11 @@ class PacketLocatorClient extends Client
                 // Only record packet #'s if this is a parent channel.
                 if (null !== $c && null === $c->parent) {
                     $bot = $this->getBotFromNick($from);
-                    Parse::packet($message, $bot, $c);
+                    try {
+                        Parse::packet($message, $bot, $c);
+                    } catch(QueryException $e) {
+
+                    }
                 }
             }
         });
