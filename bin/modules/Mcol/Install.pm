@@ -68,6 +68,8 @@ sub install {
     if ($options{'php'}) {
         configure_php($applicationRoot);
         install_php($applicationRoot);
+        install_msgpack($applicationRoot);
+        install_phpredis($applicationRoot);
         install_rar($applicationRoot);
     }
 
@@ -253,6 +255,52 @@ sub install_imagick {
     }
 }
 
+# installs msgpack-php.
+sub install_msgpack {
+    my ($dir) = @_;
+    my $optDir = $dir . '/opt';
+    my $phpizeBinary = $optDir . '/php/bin/phpize';
+    my $phpconfigBinary = $optDir . '/php/bin/php-config';
+    my $msgpackRepo = 'https://github.com/msgpack/msgpack-php.git';
+    my $originalDir = getcwd();
+
+    # Download Repo Command
+    my @downloadmsgpack = ('git');
+    push @downloadmsgpack, 'clone';
+    push @downloadmsgpack, $msgpackRepo;
+
+    # Configure Command
+    my @msgpackConfigure = ('./configure');
+    push @msgpackConfigure, '--prefix=' . $optDir;
+    push @msgpackConfigure, '--with-php-config=' . $phpconfigBinary;
+
+    # Delete Repo Command
+    my @msgpackDeleteRepo = ('rm');
+    push @msgpackDeleteRepo, '-rf';
+    push @msgpackDeleteRepo, "$originalDir/msgpack-php";
+
+    system(@downloadmsgpack);
+    command_result($?, $!, 'Downloading msgpack-php repo...', \@downloadmsgpack);
+    chdir glob("$originalDir/msgpack-php");
+
+    system($phpizeBinary);
+    command_result($?, $!, 'phpize...', \$phpizeBinary);
+
+    system(@msgpackConfigure);
+    command_result($?, $!, 'Configuring msgpack-php...', \@msgpackConfigure);
+
+    system('make');
+    command_result($?, $!, 'make msgpack-php...', 'make');
+
+    system('make install');
+    command_result($?, $!, 'make install msgpack-php', 'make install');
+
+    chdir glob("$originalDir");
+
+    system(@msgpackDeleteRepo);
+    command_result($?, $!, 'Deleting msgpack-php repo...', \@msgpackDeleteRepo);
+}
+
 # installs rar.
 sub install_rar {
     my ($dir) = @_;
@@ -297,6 +345,52 @@ sub install_rar {
 
     system(@phpRarDeleteRepo);
     command_result($?, $!, 'Deleting php-rar repo...', \@phpRarDeleteRepo);
+}
+
+# installs phpredis.
+sub install_phpredis {
+    my ($dir) = @_;
+    my $optDir = $dir . '/opt';
+    my $phpizeBinary = $optDir . '/php/bin/phpize';
+    my $phpconfigBinary = $optDir . '/php/bin/php-config';
+    my $phpredisRepo = 'https://github.com/phpredis/phpredis.git';
+    my $originalDir = getcwd();
+
+    # Download Repo Command
+    my @downloadphpredis = ('git');
+    push @downloadphpredis, 'clone';
+    push @downloadphpredis, $phpredisRepo;
+
+    # Configure Command
+    my @phpredisConfigure = ('./configure');
+    push @phpredisConfigure, '--prefix=' . $optDir;
+    push @phpredisConfigure, '--with-php-config=' . $phpconfigBinary;
+
+    # Delete Repo Command
+    my @phpredisDeleteRepo = ('rm');
+    push @phpredisDeleteRepo, '-rf';
+    push @phpredisDeleteRepo, "$originalDir/phpredis";
+
+    system(@downloadphpredis);
+    command_result($?, $!, 'Downloading phpredis repo...', \@downloadphpredis);
+    chdir glob("$originalDir/phpredis");
+
+    system($phpizeBinary);
+    command_result($?, $!, 'phpize...', \$phpizeBinary);
+
+    system(@phpredisConfigure);
+    command_result($?, $!, 'Configuring phpredis...', \@phpredisConfigure);
+
+    system('make');
+    command_result($?, $!, 'make phpredis...', 'make');
+
+    system('make install');
+    command_result($?, $!, 'make install phpredis', 'make install');
+
+    chdir glob("$originalDir");
+
+    system(@phpredisDeleteRepo);
+    command_result($?, $!, 'Deleting phpredis repo...', \@phpredisDeleteRepo);
 }
 
 # installs Composer.

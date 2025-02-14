@@ -2,7 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
+use Illuminate\Contracts\Cache\Repository,
+    Illuminate\Console\Command;
 
 use App\Models\Client,
     App\Models\Instance,
@@ -13,6 +14,13 @@ use App\Chat\Client\PacketLocatorClient as IrcClient;
 
 class MakeInstance extends Command
 {
+    /**
+     * Application cache
+     *
+     * @var Repository
+     */
+    protected $cache;
+
     /**
      * Nick selected for run
      *
@@ -41,6 +49,12 @@ class MakeInstance extends Command
      */
     protected $description = 'Instantiates an IRC client.';
 
+    public function __construct(Repository $cache)
+    {
+        parent::__construct();
+        $this->cache = $cache;
+    }
+
     /**
      * Execute the console command.
      */
@@ -61,7 +75,7 @@ class MakeInstance extends Command
             $this->info("Live instance id: {$liveInstance->id} status: {$liveInstance->status} found for $nick->nick");
         }
 
-        $client = new IrcClient($nick, $network, $this);
+        $client = new IrcClient($nick, $network, $this->cache, $this);
         $client->connect();
     }
 

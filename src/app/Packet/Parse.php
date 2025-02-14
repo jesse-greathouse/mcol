@@ -2,6 +2,8 @@
 
 namespace App\Packet;
 
+use Illuminate\Contracts\Cache\Repository;
+
 use App\Jobs\GeneratePacketMeta,
     App\Models\Bot,
     App\Models\Packet,
@@ -10,70 +12,85 @@ use App\Jobs\GeneratePacketMeta,
     App\Packet\MediaType\MediaTypeGuesser;
 
 class Parse {
-
-    const PACKET_MASK = '/#([0-9]+)\s+([0-9]+)x\s+\[([0-9B-k\.\s]+)\]\s+(.+)/';
+    /**
+     * Regular expression pattern for parsing packet messages.
+     */
+    private const PACKET_MASK = '/#(\d+)\s+(\d+)x\s+\[([0-9B-k\.\s]+)\]\s+(.+)/';
 
     /**
-     * Takes in a packet Text line and returns a persisted packet object.
+     * Processes a packet text line and returns a persisted Packet object.
      *
-     * @param string $text
-     * @param Bot $bot
-     * @param ?Channel $channel
-     * @return Packet|null
+     * @param string $text The raw packet message.
+     * @param Bot $bot The bot that reported the packet.
+     * @param ?Channel $channel The channel associated with the bot, if available.
+     * @param ?Repository $cache An optional cache repository for performance optimization.
+     * @return Packet|null The parsed and persisted packet, or null if parsing fails.
      */
-    public static function packet(string $text, Bot $bot, Channel $channel = null): Packet|null
-    {
-        $matches = [];
+    public static function packet(string $text, Bot $bot, ?Channel $channel = null, ?Repository $cache = null): ?Packet {
         $message = self::cleanMessage($text);
-        preg_match(self::PACKET_MASK, $message, $matches);
-        if (5 > count($matches)) return null;
+        $key = self::makeMessageCacheKey($message);
+
+        // Attempt to retrieve parsed packet data from cache
+        $matches = $cache?->get($key);
+        if ($matches) {
+            $matches = self::unserialize($matches);
+            if (!is_array($matches) || count($matches) < 5) {
+                $matches = null; // Invalidate bad cache entries
+            }
+        }
+
+        // If not cached, perform regex parsing
+        if (!$matches) {
+            preg_match(self::PACKET_MASK, $message, $matches);
+            if (count($matches) < 5) return null;
+            $cache?->put($key, self::serialize($matches));
+        }
 
         [, $number, $gets, $size, $fileName] = $matches;
+        $channel ??= self::getBotChannelByBestGuess($bot);
 
-        $channel = (null === $channel) ? self::getBotChannelByBestGuess($bot) : $channel;
-
-        $dataToUpdate = self::getDataToUpdate($fileName, $size, intval($gets), intval($number), $bot, $channel);
-
+        // Persist or update the packet record
         $packet = Packet::updateOrCreate(
             ['number' => $number, 'network_id' => $bot->network->id, 'channel_id' => $channel->id, 'bot_id' => $bot->id],
-            $dataToUpdate
+            self::getDataToUpdate($fileName, $size, (int) $gets, (int) $number, $bot, $channel)
         );
 
-        // If the metadata is empty, queue a job for the metadata.
-        if (0 >= count($packet->meta)) {
+        // Queue metadata generation if missing
+        if (count($packet->meta) === 0) {
             GeneratePacketMeta::dispatch($packet)->onQueue('meta');
         }
 
-        // Update First Appearance Table if no entry is present.
+        // Register first appearance of the file if not recorded
         FileFirstAppearance::firstOrCreate(
             ['file_name' => $packet->file_name],
             ['created_at' => $packet->created_at]
         );
+
         return $packet;
     }
 
     /**
-     * Returns an array of data fields to update.
+     * Cleans up the given text by removing redundant spaces and control characters.
+     *
+     * @param string $text
+     * @return string The cleaned-up message.
+     */
+    public static function cleanMessage(string $text): string {
+        return preg_replace(['/\s+/', '/[\x00-\x1F\x7F]/'], [' ', ''], $text);
+    }
+
+    /**
+     * Determines the data fields that need to be updated for a packet.
      *
      * @param string $fileName
      * @param string $size
-     * @param integer $gets
-     * @param integer $number
-     * @param Network $network
-     * @param Channel $channel
+     * @param int $gets
+     * @param int $number
      * @param Bot $bot
-     * @return array
+     * @param ?Channel $channel
+     * @return array The data fields to be updated in the packet.
      */
-    public static function getDataToUpdate(string $fileName, string $size, int $gets, int $number, Bot $bot, Channel $channel = null): array
-    {
-        $meta = [];
-        $guesser = new MediaTypeGuesser($fileName);
-        $mediaType = $guesser->guess();
-
-        $dataToUpdate = ['file_name' => $fileName, 'gets' => $gets, 'size' => $size, 'media_type' => $mediaType, 'meta' => $meta];
-
-        # Check to see if a different file has previously filled this position.
-        # Sometimes the bot owner can change which file is being served on this packet number.
+    private static function getDataToUpdate(string $fileName, string $size, int $gets, int $number, Bot $bot, ?Channel $channel): array {
         $existingPacket = Packet::where([
             ['number', '=', $number],
             ['network_id', '=', $bot->network->id],
@@ -81,63 +98,61 @@ class Parse {
             ['bot_id', '=', $bot->id]
         ])->first();
 
-        if (null !== $existingPacket) {
-             # If the packet existing at this location, is not the same file, update the created_at field.
-            if (trim($existingPacket->file_name) !== trim($fileName)) {
-                $dataToUpdate['created_at'] = now();
-            } else{
-                // Use the old metadata if is still the same file name.
-                $dataToUpdate['meta'] = $existingPacket->meta;
-            }
+        $data = [
+            'file_name' => $fileName,
+            'gets' => $gets,
+            'size' => $size,
+            'media_type' => (new MediaTypeGuesser($fileName))->guess(),
+            'meta' => $existingPacket?->meta ?? [],
+        ];
+
+        // If the file name changes, update the creation timestamp
+        if ($existingPacket && trim($existingPacket->file_name) !== trim($fileName)) {
+            $data['created_at'] = now();
         }
 
-        return $dataToUpdate;
+        return $data;
     }
 
     /**
-     * Makes a best guess at which channel a Bot may represent in the absence of a channel name.
+     * Attempts to determine the most appropriate channel for a bot.
      *
      * @param Bot $bot
-     * @return Channel
+     * @return ?Channel The best-guess channel.
      */
-    public static function getBotChannelByBestGuess(Bot $bot): Channel
-    {
-        // Use the same channel of a packet that was last reported by this bot.
-        $packet = Packet::where('bot_id', $bot->id)->orderBy('id', 'DESC')->first();
-
-        if (null !== $packet) {
-            return $packet->channel;
-        }
-
-        // If this bot has not reported any packets, just pick the last channel reported on this network.
-        $packet = Packet::where('network_id', $bot->network->id)->orderBy('id', 'DESC')->first();
-
-        if (null !== $packet) {
-            return $packet->channel;
-        }
-
-        // If still nothing qualifies just pick a channel on this network.
-        $channel = Channel::where('network_id', $bot->network->id)->first();
-
-        return $channel;
+    private static function getBotChannelByBestGuess(Bot $bot): ?Channel {
+        return Packet::where('bot_id', $bot->id)->latest()->value('channel')
+            ?? Packet::where('network_id', $bot->network->id)->latest()->value('channel')
+            ?? Channel::where('network_id', $bot->network->id)->first();
     }
 
     /**
-     * Clean's the text to remove any unwanted ascii characters,
-     * and remove redundant spaces.
+     * Generates a cache-friendly key from a given message.
      *
-     * @param string $text
-     * @return string
+     * @param string $message
+     * @return string The generated cache key.
      */
-    public static function cleanMessage(string $text): string
-    {
-        // Removes redundant spaces.
-        $text = preg_replace("/\s+/", ' ', $text);
-
-        // Removes control characters from string.
-        $text = preg_replace('/[\x00-\x1F\x7F]/', '', $text);
-
-        return $text;
+    private static function makeMessageCacheKey(string $message): string {
+        return crc32($message);
     }
 
+    /**
+     * Serializes an array into a storable string format.
+     *
+     * @param array $content
+     * @return string The serialized data.
+     */
+    private static function serialize(array $content): string {
+        return msgpack_pack($content);
+    }
+
+    /**
+     * Unserializes a stored string back into an array.
+     *
+     * @param string $content
+     * @return array The unserialized data.
+     */
+    private static function unserialize(string $content): array {
+        return msgpack_unpack($content) ?: [];
+    }
 }

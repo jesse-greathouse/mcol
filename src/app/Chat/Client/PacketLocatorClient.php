@@ -69,9 +69,10 @@ class PacketLocatorClient extends Client
                 if (null !== $c && null === $c->parent) {
                     $bot = $this->getBotFromNick($from);
                     try {
-                        Parse::packet($message, $bot, $c);
+                        Parse::packet($message, $bot, $c, $this->cache);
                     } catch(QueryException $e) {
-
+                        $this->console->error("Error parsing packet message: \"$message\"");
+                        $this->console->error($e->getMessage());
                     }
                 }
             }

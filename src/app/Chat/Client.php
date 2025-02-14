@@ -2,7 +2,8 @@
 
 namespace App\Chat;
 
-use Illuminate\Console\Command;
+use Illuminate\Console\Command,
+    Illuminate\Contracts\Cache\Repository;
 
 use JesseGreathouse\PhpIrcClient\IrcClient,
     JesseGreathouse\PhpIrcClient\IrcChannel,
@@ -96,6 +97,13 @@ class Client
     protected $network;
 
     /**
+     * Application cache.
+     *
+     * @var Repository
+     */
+    protected $cache;
+
+    /**
      * Console for using this client
      *
      * @var Command
@@ -137,8 +145,9 @@ class Client
      */
     protected $client;
 
-    public function __construct(Nick $nick, Network $network, Command $console) {
+    public function __construct(Nick $nick, Network $network, Repository $cache, Command $console) {
         $logRoot = env('LOG_DIR', '/var/log');
+        $this->cache = $cache;
         $this->nick = $nick;
         $this->network = $network;
         $this->console = $console;
