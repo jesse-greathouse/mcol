@@ -4,7 +4,8 @@ namespace App\Packet;
 
 use Illuminate\Contracts\Cache\Repository;
 
-use App\Jobs\GeneratePacketMeta,
+use App\Exceptions\NetworkWithNoChannelException,
+    App\Jobs\GeneratePacketMeta,
     App\Models\Bot,
     App\Models\Packet,
     App\Models\Channel,
@@ -29,7 +30,7 @@ class Parse {
      *
      * @param string $text The raw packet message.
      * @param Bot $bot The bot that reported the packet.
-     * @param ?Channel $channel The channel associated with the bot, if available.
+     * @param Channel $channel The channel associated with the bot, if available. If not, will be determined by best guess.
      * @param ?Repository $cache An optional cache repository for performance optimization.
      * @return Packet|null The parsed and persisted packet, or null if parsing fails.
      */
@@ -39,7 +40,11 @@ class Parse {
         if (!$matches) return null;
 
         [, $number, $gets, $size, $fileName] = $matches;
-        $channel ??= self::getBotChannelByBestGuess($bot);
+
+        // If no channel is provided, attempt to get the best-guess channel.
+        if ($channel === null) {
+            $channel = self::getBotChannelByBestGuess($bot);  // Will throw an exception if no channel is found
+        }
 
         return self::retrieveOrCreatePacket($number, $gets, $size, $fileName, $bot, $channel, $cache);
     }
@@ -172,9 +177,11 @@ class Parse {
      *
      * @param Bot $bot
      * @return Channel The best-guess channel.
+     * @throws NetworkWithNoChannelException If no channel can be found.
      */
     private static function getBotChannelByBestGuess(Bot $bot): Channel {
         $botId = $bot->id;
+
         if (isset(self::$channelCache[$botId])) {
             return self::$channelCache[$botId];
         }
@@ -182,6 +189,10 @@ class Parse {
         $channel = Packet::where('bot_id', $botId)->latest()->value('channel')
             ?? Packet::where('network_id', $bot->network->id)->latest()->value('channel')
             ?? Channel::where('network_id', $bot->network->id)->first();
+
+        if ($channel === null) {
+            throw new NetworkWithNoChannelException('No channel found for network: ' . $bot->network->name);
+        }
 
         return self::$channelCache[$botId] = $channel;
     }
