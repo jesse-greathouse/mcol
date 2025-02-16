@@ -3,10 +3,12 @@
 namespace App\Chat;
 
 use Illuminate\Console\Command,
-    Illuminate\Contracts\Cache\Repository;
+    Illuminate\Contracts\Cache\Repository,
+    Illuminate\Database\QueryException;
 
 use JesseGreathouse\PhpIrcClient\IrcClient,
     JesseGreathouse\PhpIrcClient\IrcChannel,
+    JesseGreathouse\PhpIrcClient\IrcClientEvent,
     JesseGreathouse\PhpIrcClient\Exceptions\ParseChannelNameException,
     JesseGreathouse\PhpIrcClient\Options\ClientOptions;
 
@@ -246,7 +248,7 @@ class Client
 
     public function pingHandler(): void
     {
-        $this->client->on('ping', function (string $pinger) {
+        $this->client->on(IrcClientEvent::PING, function (string $pinger) {
             try {
                 $convertedIp = long2ip($pinger);
                 if ($convertedIp !== false) {
@@ -273,7 +275,7 @@ class Client
      */
     public function joinHandler(): void
     {
-        $this->client->on('joinInfo', function (string $user, string $channelName) {
+        $this->client->on(IrcClientEvent::JOIN, function (string $user, string $channelName) {
             $message = "$user joined $channelName";
             $this->console->info($message);
 
@@ -295,7 +297,7 @@ class Client
      */
     public function kickHandler(): void
     {
-        $this->client->on('kick', function ($channel, string $user, string $kicker, string $reason) {
+        $this->client->on(IrcClientEvent::KICK, function ($channel, string $user, string $kicker, string $reason) {
             $channel = $this->updateChannel($channel);
             $channelName = $channel->getName();
 
@@ -312,7 +314,7 @@ class Client
      */
     public function nickHandler(): void
     {
-        $this->client->on('nick', function (string $nick, string $newNick) {
+        $this->client->on(IrcClientEvent::NICK, function (string $nick, string $newNick) {
             $message = "$nick sets nick: $newNick";
             $this->console->warn($message);
             $this->logDiverter->log(LogMapper::EVENT_NICK, $message);
@@ -326,7 +328,7 @@ class Client
      */
     public function quitHandler(): void
     {
-        $this->client->on('quit', function (string $user, string $reason) {
+        $this->client->on(IrcClientEvent::QUIT, function (string $user, string $reason) {
             $quitPrefix = 'Quit: ';
             $quitMessage = strpos($reason, $quitPrefix) === false ? $reason : substr($reason, strlen($quitPrefix));
 
@@ -344,7 +346,7 @@ class Client
      */
     public function partHandler(): void
     {
-        $this->client->on('part', function (string $user, $channel, string $reason) {
+        $this->client->on(IrcClientEvent::PART, function (string $user, $channel, string $reason) {
             $channel = $this->updateChannel($channel);
             $channelName = $channel->getName();
             $message = "$user parted: $reason";
@@ -362,7 +364,7 @@ class Client
      */
     public function modeHandler(): void
     {
-        $this->client->on('mode', function ($channel, string $user, string $mode) {
+        $this->client->on(IrcClientEvent::MODE, function ($channel, string $user, string $mode) {
             // Initialize channel name, defaulting to an empty string if not provided.
             $channelName = '';
 
@@ -393,7 +395,7 @@ class Client
      */
     public function inviteHandler(): void
     {
-        $this->client->on('invite', function ($channel, string $user) {
+        $this->client->on(IrcClientEvent::INVITE, function ($channel, string $user) {
             // Retrieve channel name from the channel object.
             $channelName = $channel->getName();
 
@@ -415,7 +417,7 @@ class Client
      */
     public function topicHandler(): void
     {
-        $this->client->on('topic', function ($channel, string $topic) {
+        $this->client->on(IrcClientEvent::INVITE, function ($channel, string $topic) {
             // Retrieve and update the channel information.
             $channel = $this->updateChannel($channel);
             $channelName = $channel->getName();
@@ -438,7 +440,7 @@ class Client
      */
     public function dccHandler(): void
     {
-        $this->client->on('dcc', function ($action, $fileName, $ip, $port, $fileSize = 0) {
+        $this->client->on(IrcClientEvent::DCC, function ($action, $fileName, $ip, $port, $fileSize = 0) {
             // Construct the message to be logged and displayed.
             $message = 'A DCC event has been sent, with the following information';
             $information = "Action: $action, File Name: $fileName, IP: $ip, Port: $port, File Size: $fileSize";
@@ -459,7 +461,7 @@ class Client
      */
     public function registeredHandler(): void
     {
-        $this->client->on('registered', function (string $server, string $user, string $message, string $hostMask) {
+        $this->client->on(IrcClientEvent::REGISTERED, function (string $server, string $user, string $message, string $hostMask) {
             // Assign the connected server and host mask.
             $this->connectedServer = $server;
             $this->hostMask = $hostMask;
@@ -509,18 +511,18 @@ class Client
         $tcpConnection = $clientConnection->getConnection();
 
         // Handle intentional close of the connection.
-        $this->client->on('close', function () {
+        $this->client->on(IrcClientEvent::CLOSE, function () {
             $this->terminateInstance();
         });
 
         // Handle disconnect not initiated by the client.
-        $tcpConnection->on('close', function () use ($clientConnection) {
+        $tcpConnection->on(IrcClientEvent::CLOSE, function () use ($clientConnection) {
             $clientConnection->setConnected(false);
             $this->terminateInstance();
         });
 
         // Handle the 'end' event of the TCP connection.
-        $tcpConnection->on('end', function () use ($clientConnection) {
+        $tcpConnection->on(IrcClientEvent::END, function () use ($clientConnection) {
             $clientConnection->setConnected(false);
             $this->terminateInstance();
         });
@@ -534,7 +536,7 @@ class Client
     public function versionHandler(): void
     {
         // Handle the version event and log the version.
-        $this->client->on('version', function () {
+        $this->client->on(IrcClientEvent::VERSION, function () {
             $message = 'VERSION ' . $this->client->getVersion();
             $this->console->warn($message);
             $this->logDiverter->log(LogMapper::EVENT_VERSION, $message);
@@ -549,7 +551,7 @@ class Client
     public function ctcpHandler(): void
     {
         // Handle the CTCP event and log the details.
-        $this->client->on('ctcp', function (string $action, array $args, string $command) {
+        $this->client->on(IrcClientEvent::CTCP, function (string $action, array $args, string $command) {
             $message = "CTCP: $command | action: $action params: " . json_encode($args);
             $this->console->warn($message);
             $this->logDiverter->log(LogMapper::EVENT_CTCP, $message);
@@ -563,7 +565,7 @@ class Client
      */
     public function privMessageHandler(): void
     {
-        $this->client->on('privmsg', function (string $userName, $target, string $message) {
+        $this->client->on(IrcClientEvent::PRIVMSG, function (string $userName, $target, string $message) {
 
             // If the Message string is empty don't bother parsing, just warn in the console.
             if (strlen($message) < 1) {
@@ -728,7 +730,7 @@ class Client
      */
     public function motdHandler(): void
     {
-        $this->client->on('motd', function (string $message) {
+        $this->client->on(IrcClientEvent::MOTD, function (string $message) {
             $cleanMessage = Parse::cleanMessage($message);
             $this->console->warn("[ {$this->network->name} ]: $cleanMessage");
             $this->logDiverter->log(LogMapper::EVENT_PING, $cleanMessage);
@@ -742,7 +744,9 @@ class Client
      */
     public function messageHandler(): void
     {
-        $this->client->on('message', function (string $from, IrcChannel $channel = null, string $message) {
+        $directMessageHandle = IrcClientEvent::MESSAGE . $this->nick->nick;
+
+        $this->client->on(IrcClientEvent::MESSAGE, function (string $from, IrcChannel $channel = null, string $message) {
             if ($channel === null) {
                 return;
             }
@@ -752,6 +756,9 @@ class Client
 
             $this->logDiverter->log(LogMapper::EVENT_MESSAGE, "$from: $message", $channel->getName());
 
+            // Parse the message for Packet offering data.
+            $this->parsePacketMessage($from, $channel, $message);
+
             // Do any pending operations.
             $this->operationManager->doOperations();
 
@@ -759,7 +766,7 @@ class Client
             $this->downloadProgressManager->reportProgress();
         });
 
-        $this->client->on("message{$this->nick->nick}", function (string $from, IrcChannel $channel = null, string $message) {
+        $this->client->on($directMessageHandle, function (string $from, IrcChannel $channel = null, string $message) {
             if ($channel === null) {
                 return;
             }
@@ -775,13 +782,52 @@ class Client
     }
 
     /**
+     * Parses a packet message from a user in an IRC channel and processes it.
+     *
+     * @param string $from     The nickname of the user sending the message.
+     * @param IrcChannel $channel The channel from which the message is sent.
+     * @param string $message  The packet message to be parsed.
+     *
+     * @return void
+     */
+    protected function parsePacketMessage(string $from, IrcChannel $channel, string $message): void
+    {
+        // Retrieve an instance of the channel model.
+        $channelModel = $this->getChannelByName($channel->getName());
+
+        // Early return if the channel does not have a parent.
+        if ($channelModel->parent !== null) {
+            return;
+        }
+
+        // Define the error message for easier logging.
+        $errorMessage = "Error parsing packet message: \"$message\"";
+
+        // Retrieve the bot object by nickname.
+        $bot = $this->getBotByNick($from);
+
+        // Attempt to parse the message, catching and logging errors as needed.
+        try {
+            Parse::packet($message, $bot, $channelModel, $this->cache);
+        } catch (QueryException $exception) {
+            // Log error for query-related exceptions.
+            $this->console->error($errorMessage);
+            $this->console->error($exception->getMessage());
+        } catch (NetworkWithNoChannelException $exception) {
+            // Log error for network-related exceptions where no channel exists.
+            $this->console->error($errorMessage);
+            $this->console->error($exception->getMessage());
+        }
+    }
+
+    /**
      * Handles console messages.
      *
      * @return void
      */
     public function consoleHandler(): void
     {
-        $this->client->on('console', function (string $user, string $message) {
+        $this->client->on(IrcClientEvent::CONSOLE, function (string $user, string $message) {
             $cleanMessage = Parse::cleanMessage($message);
 
             if ($user === $this->nick->nick) {
@@ -799,7 +845,7 @@ class Client
      */
     public function noticeHandler(): void
     {
-        $this->client->on('notice', function (string $notice) {
+        $this->client->on(IrcClientEvent::NOTICE, function (string $notice) {
             // Clean the notice message
             $clean = Parse::cleanMessage($notice);
             $parts = explode(' ', $clean);
@@ -1401,15 +1447,16 @@ class Client
      */
     public function namesHandler(): void
     {
-        $this->client->on('names', function (IrcChannel $channel, array $names) {
+        $this->client->on(IrcClientEvent::NAMES, function (IrcChannel $channel, array $names) {
             $channelName = $channel->getName();
             $this->updateChannel($channelName);
         });
 
         foreach($this->client->getChannels() as $channel) {
             $channelName = $channel->getName();
+            $namesChannelHandle = IrcClientEvent::NAMES . $channelName;
 
-            $this->client->on("names$channelName", function (array $names) use ($channelName) {
+            $this->client->on($namesChannelHandle, function (array $names) use ($channelName) {
                 $this->updateChannel($channelName);
             });
         }

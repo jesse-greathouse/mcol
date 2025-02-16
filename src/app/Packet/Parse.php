@@ -32,12 +32,13 @@ class Parse {
      * @param Bot $bot The bot that reported the packet.
      * @param Channel $channel The channel associated with the bot, if available. If not, will be determined by best guess.
      * @param ?Repository $cache An optional cache repository for performance optimization.
-     * @return Packet|null The parsed and persisted packet, or null if parsing fails.
+     * @return void
      */
-    public static function packet(string $text, Bot $bot, ?Channel $channel = null, ?Repository $cache = null): ?Packet {
+    public static function packet(string $text, Bot $bot, ?Channel $channel = null, ?Repository $cache = null): void
+    {
         $message = self::cleanMessage($text);
         $matches = self::getPacketMatches($message, $cache);
-        if (!$matches) return null;
+        if (!$matches) return;
 
         [, $number, $gets, $size, $fileName] = $matches;
 
@@ -46,7 +47,7 @@ class Parse {
             $channel = self::getBotChannelByBestGuess($bot);  // Will throw an exception if no channel is found
         }
 
-        return self::retrieveOrCreatePacket($number, $gets, $size, $fileName, $bot, $channel, $cache);
+        self::retrieveOrCreatePacket($number, $gets, $size, $fileName, $bot, $channel, $cache);
     }
 
     /**
@@ -55,7 +56,8 @@ class Parse {
      * @param string $text
      * @return string The cleaned-up message.
      */
-    public static function cleanMessage(string $text): string {
+    public static function cleanMessage(string $text): string
+    {
         return preg_replace(['/\s+/', '/[\x00-\x1F\x7F]/'], [' ', ''], $text);
     }
 
@@ -68,7 +70,8 @@ class Parse {
      * @param ?Repository $cache An optional cache repository for performance optimization.
      * @return array|null
      */
-    private static function getPacketMatches(string $message, ?Repository $cache): ?array {
+    private static function getPacketMatches(string $message, ?Repository $cache): ?array
+    {
         if (!$cache) {
             return self::parseMessage($message);
         }
@@ -94,7 +97,8 @@ class Parse {
      *
      * @return array $matches The chat message.
      */
-    private static function parseMessage(string $message): ?array {
+    private static function parseMessage(string $message): ?array
+    {
         preg_match(self::PACKET_MASK, $message, $matches);
         return count($matches) >= 5 ? $matches : null;
     }
@@ -110,12 +114,14 @@ class Parse {
      * @param Bot $bot The bot that reported the packet.
      * @param Channel $channel The channel associated with the bot, if available.
      * @param ?Repository $cache An optional cache repository for performance optimization.
-     * @return Packet|null The parsed and persisted packet, or null if parsing fails.
+     * @return void
      */
-    private static function retrieveOrCreatePacket(int $number, int $gets, string $size, string $fileName, Bot $bot, Channel $channel, ?Repository $cache): Packet {
-        $packetCacheKey = self::makePacketCacheKey($number, $bot, $channel);
-        if ($cache && ($cachedPacket = $cache->get($packetCacheKey))) {
-            return Packet::hydrate([self::unserialize($cachedPacket)])[0];
+    private static function retrieveOrCreatePacket(int $number, int $gets, string $size, string $fileName, Bot $bot, Channel $channel, ?Repository $cache): void
+    {
+        $packetCacheKey = self::makePacketCacheKey($number, $fileName, $bot, $channel);
+        if ($cache && (null !== $cache->get($packetCacheKey))) {
+            // If packet object is already cached, there is nothing left to do.
+            return;
         }
 
         $packet = Packet::updateOrCreate(
@@ -124,17 +130,18 @@ class Parse {
         );
 
         if (count($packet->meta) === 0) {
+            // If meta is empty this packet object was just created.
+            // Tag the file in the first appearance table.
+            FileFirstAppearance::firstOrCreate(
+                ['file_name' => $packet->file_name],
+                ['created_at' => $packet->created_at]
+            );
+
+            // Run a job to generate the metadata
             GeneratePacketMeta::dispatch($packet)->onQueue('meta');
         } else {
             $cache?->put($packetCacheKey, self::serialize($packet->toArray()), self::PACKET_CACHE_TTL);
         }
-
-        FileFirstAppearance::firstOrCreate(
-            ['file_name' => $packet->file_name],
-            ['created_at' => $packet->created_at]
-        );
-
-        return $packet;
     }
 
     /**
@@ -148,7 +155,8 @@ class Parse {
      * @param ?Channel $channel
      * @return array The data fields to be updated in the packet.
      */
-    private static function getDataToUpdate(string $fileName, string $size, int $gets, int $number, Bot $bot, ?Channel $channel): array {
+    private static function getDataToUpdate(string $fileName, string $size, int $gets, int $number, Bot $bot, ?Channel $channel): array
+    {
         $existingPacket = Packet::where([
             ['number', '=', $number],
             ['network_id', '=', $bot->network->id],
@@ -179,7 +187,8 @@ class Parse {
      * @return Channel The best-guess channel.
      * @throws NetworkWithNoChannelException If no channel can be found.
      */
-    private static function getBotChannelByBestGuess(Bot $bot): Channel {
+    private static function getBotChannelByBestGuess(Bot $bot): Channel
+    {
         $botId = $bot->id;
 
         if (isset(self::$channelCache[$botId])) {
@@ -203,7 +212,8 @@ class Parse {
      * @param string $message
      * @return string The generated cache key.
      */
-    private static function makeMessageCacheKey(string $message): string {
+    private static function makeMessageCacheKey(string $message): string
+    {
         return "parse_message:" . crc32($message);
     }
 
@@ -211,13 +221,16 @@ class Parse {
      * Generates a cache-friendly key from a packet number, bot, and channel.
      *
      * @param int $number The packet number.
+     * @param string $fileName The name of the file.
      * @param Bot $bot The bot that reported the packet.
      * @param Channel $channel The channel associated with the bot, if available.
      *
      * @return string The generated cache key.
      */
-    private static function makePacketCacheKey(int $number, Bot $bot, Channel $channel): string {
-        return "packet:{$bot->network->id}:{$channel->id}:{$bot->id}:{$number}";
+    private static function makePacketCacheKey(int $number, string $fileName, Bot $bot, Channel $channel): string
+    {
+        $serializedFileName = crc32($fileName);
+        return "packet:{$bot->network->id}:{$channel->id}:{$bot->id}:$number:$serializedFileName";
     }
 
     /**
@@ -226,7 +239,8 @@ class Parse {
      * @param array $content
      * @return string The serialized data.
      */
-    private static function serialize(array $content): string {
+    private static function serialize(array $content): string
+    {
         return msgpack_pack($content);
     }
 
@@ -236,7 +250,8 @@ class Parse {
      * @param string $content
      * @return array The unserialized data.
      */
-    private static function unserialize(string $content): array {
+    private static function unserialize(string $content): array
+    {
         return msgpack_unpack($content) ?: [];
     }
 }

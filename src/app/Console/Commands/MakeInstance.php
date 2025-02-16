@@ -10,7 +10,7 @@ use App\Models\Client,
     App\Models\Nick,
     App\Models\Network;
 
-use App\Chat\Client\PacketLocatorClient as IrcClient;
+use App\Chat\Client as IrcClient;
 
 class MakeInstance extends Command
 {
