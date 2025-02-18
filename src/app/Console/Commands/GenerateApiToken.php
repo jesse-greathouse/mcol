@@ -8,64 +8,56 @@ use App\Models\User;
 
 class GenerateApiToken extends Command
 {
-    /**
-     * User Selected
-     *
-     * @var User
-     */
-    protected $user;
+    /** @var User|null Selected user instance */
+    protected ?User $user = null;
 
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
+    /** @var string The name and signature of the console command */
     protected $signature = 'mcol:generate-api-token {email}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Creates an Api token for a user by a given email address.';
+    /** @var string The console command description */
+    protected $description = 'Creates an API token for a user by a given email address.';
 
     /**
      * Execute the console command.
+     *
+     * @return int Exit status code
      */
-    public function handle()
+    public function handle(): int
     {
         $user = $this->getUser();
 
-        if (null === $user) {
-            return 1;
+        if ($user === null) {
+            return Command::FAILURE;
         }
 
         $token = $user->createToken('bearer_token');
         $this->warn($token->plainTextToken);
+
+        return Command::SUCCESS;
     }
 
     /**
-     * Returns an instance of User by email address.
+     * Retrieve a User instance by email address.
      *
-     * @return User|null
+     * @return User|null User instance or null if not found
      */
-    protected function getUser(): User|null
+    protected function getUser(): ?User
     {
-        if (null === $this->user) {
-            $email = $this->argument('email');
+        if ($this->user !== null) {
+            return $this->user;
+        }
 
-            if (null === $email) {
-                $this->error('A valid email address is required.');
-                return null;
-            }
+        $email = $this->argument('email');
 
-            $user = User::where('email', $email)->first();
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->error('A valid email address is required.');
+            return null;
+        }
 
-            if (null === $user) {
-                $this->error('A valid email is required.');
-                return null;
-            }
-            $this->user = $user;
+        $this->user = User::where('email', $email)->first();
+
+        if ($this->user === null) {
+            $this->error('No user found with the provided email.');
         }
 
         return $this->user;

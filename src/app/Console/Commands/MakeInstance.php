@@ -5,33 +5,35 @@ namespace App\Console\Commands;
 use Illuminate\Contracts\Cache\Repository,
     Illuminate\Console\Command;
 
-use App\Models\Client,
+use App\Chat\Client as IrcClient,
+    App\Models\Client,
     App\Models\Instance,
     App\Models\Nick,
     App\Models\Network;
 
-use App\Chat\Client as IrcClient;
-
+/**
+ * Command to instantiate an IRC client.
+ */
 class MakeInstance extends Command
 {
     /**
-     * Application cache
+     * Application cache repository.
      *
      * @var Repository
      */
     protected $cache;
 
     /**
-     * Nick selected for run
+     * The Nick instance selected for the run.
      *
-     * @var Nick
+     * @var Nick|null
      */
     protected $nick;
 
     /**
-     * network selected for run
+     * The Network instance selected for the run.
      *
-     * @var Network
+     * @var Network|null
      */
     protected $network;
 
@@ -49,6 +51,11 @@ class MakeInstance extends Command
      */
     protected $description = 'Instantiates an IRC client.';
 
+    /**
+     * MakeInstance constructor.
+     *
+     * @param Repository $cache
+     */
     public function __construct(Repository $cache)
     {
         parent::__construct();
@@ -60,90 +67,91 @@ class MakeInstance extends Command
      */
     public function handle()
     {
-
         $nick = $this->getNick();
-        if (!$nick) $this->error('A valid --nick is required.');
-
         $network = $this->getNetwork();
-        if (!$network) $this->error('A valid --network is required.');
 
-        if (!$nick || !$network) return;
-
-        $liveInstance = $this->liveInstanceCheck($nick, $network);
-
-        if (null !== $liveInstance) {
-            $this->info("Live instance id: {$liveInstance->id} status: {$liveInstance->status} found for $nick->nick");
+        if (!$nick || !$network) {
+            $this->error('A valid --nick and --network are required.');
+            return;
         }
 
+        $liveInstance = $this->checkLiveInstance($nick, $network);
+
+        if ($liveInstance) {
+            $this->info("Live instance id: {$liveInstance->id} status: {$liveInstance->status} found for {$nick->nick}");
+        }
+
+        // Instantiate and connect the IRC client
         $client = new IrcClient($nick, $network, $this->cache, $this);
         $client->connect();
     }
 
     /**
-     * Return an instance of a "liveInstance" or null.
+     * Checks if a live instance exists or creates a new one.
      *
      * @param Nick $nick
      * @param Network $network
      * @return Instance|null
      */
-    protected function liveInstanceCheck(Nick $nick, Network $network): Instance|null
+    protected function checkLiveInstance(Nick $nick, Network $network): ?Instance
     {
+        // Create or update the client for the specified network and nick
         $client = Client::updateOrCreate(
             ['network_id' => $network->id, 'nick_id' => $nick->id],
             ['enabled' => true]
         );
 
-        if ($client) {
-            $pid = getmypid();
-            $instance = Instance::updateOrCreate(
-                ['client_id' => $client->id],
-                ['desired_status' => Instance::STATUS_UP, 'enabled' => true, 'pid' => $pid]
-            );
-
-            return $instance;
+        if (!$client) {
+            return null;
         }
 
-        return null;
+        // Retrieve or create the associated instance with the current PID
+        $pid = getmypid();
+        return Instance::updateOrCreate(
+            ['client_id' => $client->id],
+            ['desired_status' => Instance::STATUS_UP, 'enabled' => true, 'pid' => $pid]
+        );
     }
 
     /**
-     * Returns an instance of Nick by any given name.
+     * Retrieves the Nick instance based on the provided option.
      *
      * @return Nick|null
      */
-    protected function getNick(): Nick|null
+    protected function getNick(): ?Nick
     {
-        if (null === $this->nick) {
-            $name = $this->option('nick');
-
-            if (null === $name) {
-                $this->error('A valid --nick is required.');
-            }
-
-            $this->nick = Nick::where('nick', $name)->first();
+        if ($this->nick !== null) {
+            return $this->nick;
         }
 
-        return $this->nick;
+        $nickName = $this->option('nick');
+
+        if (!$nickName) {
+            $this->error('A valid --nick is required.');
+            return null;
+        }
+
+        return $this->nick = Nick::where('nick', $nickName)->first();
     }
 
-
     /**
-     * Returns an instance of Network by any given name.
+     * Retrieves the Network instance based on the provided option.
      *
      * @return Network|null
      */
-    protected function getNetwork(): Network|null
+    protected function getNetwork(): ?Network
     {
-        if (null === $this->network) {
-            $name = $this->option('network');
-
-            if (null === $name) {
-                $this->error('A valid --network is required.');
-            }
-
-            $this->network = Network::where('name', $name)->first();
+        if ($this->network !== null) {
+            return $this->network;
         }
 
-        return $this->network;
+        $networkName = $this->option('network');
+
+        if (!$networkName) {
+            $this->error('A valid --network is required.');
+            return null;
+        }
+
+        return $this->network = Network::where('name', $networkName)->first();
     }
 }

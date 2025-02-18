@@ -2,81 +2,82 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use Illuminate\Contracts\Console\PromptsForMissingInput;
 use function Laravel\Prompts\search;
+
+use Illuminate\Console\Command,
+    Illuminate\Contracts\Console\PromptsForMissingInput;
 
 use App\Jobs\PacketSearch as PacketSearchJob,
     App\Models\Channel,
     App\Models\PacketSearch as PacketSearchModel,
     App\Models\Network;
 
+/**
+ * Handles the packet search operation.
+ */
 class PacketSearch extends Command implements PromptsForMissingInput
 {
-    const INTERVAL = 1;
-    const MAX_RUNTIME = 30;
+    // Constants for search parameters.
+    public const INTERVAL = 1;
+    public const MAX_RUNTIME = 30;
 
     /**
-     * @var float
+     * @var float Time when the search started.
      */
     protected $startTime;
 
     /**
-     * @var PacketSearchModel
+     * @var PacketSearchModel Previous packet search instance.
      */
     protected $oldPacketSearch;
 
     /**
-     * searchStr string
-     *
-     * @var string
+     * @var string Search query string.
      */
     protected $searchStr;
 
     /**
-     * network selected for run
-     *
-     * @var Network
+     * @var Network Selected network instance.
      */
     protected $network;
 
     /**
-     * channel selected for run
-     *
-     * @var Channel
+     * @var Channel Selected channel instance.
      */
     protected $channel;
 
     /**
-     * @var string
+     * @var string Command signature for the packet search.
      */
     protected $signature = 'mcol:packet-search {network} {channel} {searchStr}';
 
     /**
-     * @var string
+     * @var string Command description.
      */
     protected $description = 'Issues a packet search in the IRC rooms of an instance.';
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
         $network = $this->getNetwork();
         $channel = $this->getChannel();
         $searchStr = $this->getSearchStr();
 
         if (null === $network || null === $channel || null === $searchStr) {
-            return 1;
+            $this->error('Missing arguments.');
+            return;
         }
-
-        $oldPacketSearch = $this->getOldPacketSearch();
 
         $this->warn("Searching for: $searchStr ...");
 
+        // Dispatch the job for packet search.
         PacketSearchJob::dispatch($network, $channel, $searchStr);
 
         $this->startTime = microtime(true);
+
+        $oldPacketSearch = $this->getOldPacketSearch();
 
         while (true) {
             sleep(self::INTERVAL);
@@ -88,16 +89,17 @@ class PacketSearch extends Command implements PromptsForMissingInput
                 break;
             }
 
-            // Infinite loop prevention.
+            // Timeout prevention
             $timeNow = microtime(true);
             if (($timeNow - $this->startTime) >= self::MAX_RUNTIME) {
                 $this->error("Search timed out.");
-                break;
+                return; // Failure, automatic exit code 1
             }
         }
 
-        $this->warn("... done!");
+        $this->info('Search completed successfully.'); // This signals a successful completion
     }
+
 
     /**
      * Prompt for missing input arguments using the returned questions.
@@ -133,7 +135,7 @@ class PacketSearch extends Command implements PromptsForMissingInput
      *
      * @return Network|null
      */
-    protected function getNetwork(): Network|null
+    protected function getNetwork(): ?Network
     {
         if (null === $this->network) {
             $name = $this->argument('network');
@@ -161,7 +163,7 @@ class PacketSearch extends Command implements PromptsForMissingInput
      *
      * @return Channel|null
      */
-    protected function getChannel(): Channel|null
+    protected function getChannel(): ?Channel
     {
         if (null === $this->channel) {
             $name = $this->argument('channel');
@@ -189,7 +191,7 @@ class PacketSearch extends Command implements PromptsForMissingInput
      *
      * @return string|null
      */
-    protected function getSearchStr(): string|null
+    protected function getSearchStr(): ?string
     {
         if (null === $this->searchStr) {
             $searchStr = $this->argument('searchStr');
@@ -197,7 +199,9 @@ class PacketSearch extends Command implements PromptsForMissingInput
             if (null === $searchStr || '' === trim($searchStr)) {
                 $this->error('A valid search string is required.');
                 return null;
-            } else if (is_array($searchStr)) {
+            }
+
+            if (is_array($searchStr)) {
                 $searchStr = implode(' ', $searchStr);
             }
 
@@ -212,7 +216,7 @@ class PacketSearch extends Command implements PromptsForMissingInput
      *
      * @return PacketSearchModel|null
      */
-    protected function getOldPacketSearch(): PacketSearchModel|null
+    protected function getOldPacketSearch(): ?PacketSearchModel
     {
         if (null === $this->oldPacketSearch) {
             $this->oldPacketSearch = PacketSearchModel::orderBy('created_at', 'DESC')->first();
@@ -227,17 +231,22 @@ class PacketSearch extends Command implements PromptsForMissingInput
      * @param PacketSearchModel|null $oldPacketSearch
      * @return PacketSearchModel|null
      */
-    protected function getNewPacketSearch(PacketSearchModel $oldPacketSearch = null): PacketSearchModel|null
+    protected function getNewPacketSearch(?PacketSearchModel $oldPacketSearch = null): ?PacketSearchModel
     {
         if (null !== $oldPacketSearch) {
             return PacketSearchModel::where('created_at', '>', $oldPacketSearch->created_at)
                 ->orderBy('created_at', 'DESC')
                 ->first();
-        } else {
-            return PacketSearchModel::orderBy('created_at', 'DESC')->first();
         }
+
+        return PacketSearchModel::orderBy('created_at', 'DESC')->first();
     }
 
+    /**
+     * Displays the results of a packet search.
+     *
+     * @param PacketSearchModel $packetSearch
+     */
     protected function showSearchResults(PacketSearchModel $packetSearch): void
     {
         $this->warn("Found {$packetSearch->packetSearchResults->count()} results in {$packetSearch->channel->name}");
@@ -246,12 +255,12 @@ class PacketSearch extends Command implements PromptsForMissingInput
             $tableHeader = ['id', 'size', 'file'];
             $tableBody = [];
 
-            foreach($packetSearch->packetSearchResults as $result) {
-                array_push($tableBody, [
+            foreach ($packetSearch->packetSearchResults as $result) {
+                $tableBody[] = [
                     $result->packet->id,
                     $result->packet->size,
                     $result->packet->file_name,
-                ]);
+                ];
             }
 
             $this->table($tableHeader, $tableBody);

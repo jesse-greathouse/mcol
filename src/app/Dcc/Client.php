@@ -80,7 +80,7 @@ class Client
         $isPacketList = $this->isPacketList();
 
         try {
-            $uri = $this->initializeDownload($isPacketList, $bytes, $resume);
+            $uri = $this->initializeDownload($isPacketList, $bytes);
 
             // Attempt to create a socket connection for downloading
             $dlStream = @stream_socket_client("tcp://$host:$port", $errno, $errstr);
@@ -140,11 +140,11 @@ class Client
      * Initializes the download process by setting up directories and file paths.
      *
      * @param bool $isPacketList Determines whether the download is a packet list.
-     * @param int|null &$bytes The number of bytes to resume from, passed by reference.
+     * @param int $bytes The number of bytes to resume from, passed by reference.
      * @return string The URI of the file to be downloaded.
      * @throws InitializeDownloadStreamException If the download directory doesn't exist.
      */
-    protected function initializeDownload(bool $isPacketList, ?int &$bytes): string
+    protected function initializeDownload(bool $isPacketList, int $bytes): string
     {
         // Choose the appropriate packet list directory
         if ($isPacketList) {

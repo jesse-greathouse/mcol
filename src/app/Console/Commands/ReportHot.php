@@ -2,8 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use Illuminate\Contracts\Console\PromptsForMissingInput;
+use Illuminate\Console\Command,
+    Illuminate\Contracts\Console\PromptsForMissingInput;
+
 use function Laravel\Prompts\search;
 
 use App\Jobs\HotReport as HotReportJob,
@@ -14,59 +15,46 @@ use App\Jobs\HotReport as HotReportJob,
 
 class ReportHot extends Command implements PromptsForMissingInput
 {
+    // Constant values
     const INTERVAL = 1;
     const WAIT_FOR_COMPLETION = 3;
     const MAX_RUNTIME = 30;
 
-    /**
-     * @var float
-     */
+    /** @var float */
     protected $startTime;
 
-    /**
-     * @var HotReport
-     */
+    /** @var HotReport */
     protected $oldHotReport;
 
-    /**
-     * network selected for run
-     *
-     * @var Network
-     */
+    /** @var Network Network selected for run */
     protected $network;
 
-    /**
-     * channel selected for run
-     *
-     * @var Channel
-     */
+    /** @var Channel Channel selected for run */
     protected $channel;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected $signature = 'mcol:hot {network} {channel}';
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected $description = 'Request a report of the hottest search terms of a given channel.';
 
     /**
      * Execute the console command.
+     *
+     * @return int
      */
-    public function handle()
+    public function handle(): int
     {
         $network = $this->getNetwork();
         $channel = $this->getChannel();
-    
+
         if (null === $network || null === $channel) {
             return 1;
         }
 
-        $oldHotReport = $this->getOldHotreport();
+        $oldHotReport = $this->getOldHotReport();
 
-        $this->warn("Looking for the hottest search terms on: $channel->name@$network->name ...");
+        $this->warn("Looking for the hottest search terms on: {$channel->name}@{$network->name} ...");
 
         HotReportJob::dispatch($network, $channel);
 
@@ -75,7 +63,7 @@ class ReportHot extends Command implements PromptsForMissingInput
         while (true) {
             sleep(self::INTERVAL);
 
-            $hotReport = $this->getNewHotreport($oldHotReport);
+            $hotReport = $this->getNewHotReport($oldHotReport);
 
             if (null !== $hotReport) {
                 $this->showReportResults($hotReport);
@@ -92,6 +80,7 @@ class ReportHot extends Command implements PromptsForMissingInput
 
         $this->warn("... done!");
 
+        return 0;
     }
 
     /**
@@ -128,7 +117,7 @@ class ReportHot extends Command implements PromptsForMissingInput
      *
      * @return Network|null
      */
-    protected function getNetwork(): Network|null
+    protected function getNetwork(): ?Network
     {
         if (null === $this->network) {
             $name = $this->argument('network');
@@ -156,7 +145,7 @@ class ReportHot extends Command implements PromptsForMissingInput
      *
      * @return Channel|null
      */
-    protected function getChannel(): Channel|null
+    protected function getChannel(): ?Channel
     {
         if (null === $this->channel) {
             $name = $this->argument('channel');
@@ -184,7 +173,7 @@ class ReportHot extends Command implements PromptsForMissingInput
      *
      * @return HotReport|null
      */
-    protected function getOldHotreport(): HotReport|null
+    protected function getOldHotReport(): ?HotReport
     {
         if (null === $this->oldHotReport) {
             $this->oldHotReport = HotReport::orderBy('created_at', 'DESC')->first();
@@ -199,15 +188,15 @@ class ReportHot extends Command implements PromptsForMissingInput
      * @param HotReport|null $oldHotReport
      * @return HotReport|null
      */
-    protected function getNewHotReport(HotReport $oldHotReport = null): HotReport|null
+    protected function getNewHotReport(HotReport $oldHotReport = null): ?HotReport
     {
         if (null !== $oldHotReport) {
             return HotReport::where('created_at', '>', $oldHotReport->created_at)
                 ->orderBy('created_at', 'DESC')
                 ->first();
-        } else {
-            return HotReport::orderBy('created_at', 'DESC')->first();
         }
+
+        return HotReport::orderBy('created_at', 'DESC')->first();
     }
 
     /**
@@ -228,12 +217,12 @@ class ReportHot extends Command implements PromptsForMissingInput
             $tableHeader = ['rank', 'rating', 'term'];
             $tableBody = [];
 
-            foreach($lines as $result) {
-                array_push($tableBody, [
+            foreach ($lines as $result) {
+                $tableBody[] = [
                     $rank,
                     $result->rating,
                     $result->term,
-                ]);
+                ];
 
                 // Increment the rank
                 $rank++;

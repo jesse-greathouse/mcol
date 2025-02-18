@@ -9,80 +9,47 @@ use App\Exceptions\UnknownBotException,
     App\Models\Bot,
     App\Models\Network;
 
-class Botlist extends Command
+class BotList extends Command
 {
-    /**
-     * 
-     * Bot from which we will request a list.
-     *
-     * @var Bot
-     */
-    protected $bot;
+    /** The bot from which we will request a list. */
+    protected ?Bot $bot = null;
 
-    /**
-     * 
-     * Network from which we can connect to an instance.
-     *
-     * @var Network
-     */
-    protected $network;
+    /** The network from which we can connect to an instance. */
+    protected ?Network $network = null;
 
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'mcol:bot-list {network} {nick}';
+    /** The name and signature of the console command. */
+    protected string $signature = 'mcol:bot-list {network} {nick}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Queue downloading of a list of packets from a bot';
+    /** The console command description. */
+    protected string $description = 'Queue downloading of a list of packets from a bot';
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
         $bot = $this->getBot();
         BotListRequest::dispatch($bot);
         $this->warn("Requested packet list from {$bot->nick}@{$bot->network->name}");
     }
 
-
-    public function getBot(): Bot|null
+    /**
+     * Get the bot instance based on the provided nickname and network.
+     *
+     * @throws UnknownBotException If the bot is not found.
+     */
+    public function getBot(): Bot
     {
-        if (null === $this->bot) {
-            $nick = $this->argument('nick');
-            $network = $this->getNetwork();
-            $bot = Bot::where('nick', $nick)
-                ->where('network_id', $network->id)
-                ->first();
-
-            if (null === $bot) {
-               throw new UnknownBotException("Bot with nick: $nick was not found on {$network->name}.");
-            }
-
-            $this->bot = $bot;
-        }
-
-        return $this->bot;
+        return $this->bot ??= Bot::where('nick', $this->argument('nick'))
+            ->where('network_id', $this->getNetwork()->id)
+            ->firstOr(fn () => throw new UnknownBotException("Bot with nick: {$this->argument('nick')} was not found on {$this->getNetwork()->name}."));
     }
 
-    public function getNetwork(): Network|null
+    /**
+     * Get the network instance based on the provided name.
+     */
+    public function getNetwork(): Network
     {
-        if (null === $this->network) {
-            $networkName = $this->argument('network');
-            $n = Network::where('name', $networkName)->first();
-            if (!$n) {
-                return null;
-            }
-
-            $this->network = $n;
-        }
-
-        return $this->network;
+        return $this->network ??= Network::where('name', $this->argument('network'))->firstOrFail();
     }
 }

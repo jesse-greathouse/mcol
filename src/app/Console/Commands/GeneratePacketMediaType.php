@@ -8,28 +8,23 @@ use App\Jobs\GeneratePacketMediaType as GeneratePacketMediaTypeJob;
 
 class GeneratePacketMediaType extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
+    /** @var string The name and signature of the console command. */
     protected $signature = 'mcol:generate-packet-media-type {--full}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Populates the media_type field of the packets table for every packet';
+    /** @var string The console command description. */
+    protected $description = 'Populates the media_type field of the packets table for every packet.';
 
     /**
      * Execute the console command.
+     *
+     * Dispatches a job to populate the media_type field in the packets table.
+     * If the --full option is provided, it triggers a full regeneration.
      */
-    public function handle()
+    public function handle(): void
     {
-        $full = (true === $this->option('full')) ? true : false;
+        $full = $this->option('full') === true;
 
         GeneratePacketMediaTypeJob::dispatch($full)->onQueue('longruns');
-        $this->warn("Queued job for Generating Packet Media Types.");
+        $this->warn('Queued job for generating packet media types.');
     }
 }

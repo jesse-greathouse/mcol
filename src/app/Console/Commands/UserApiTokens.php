@@ -9,64 +9,73 @@ use App\Models\User;
 class UserApiTokens extends Command
 {
     /**
-     * User Selected
+     * The user instance.
      *
-     * @var User
+     * @var User|null
      */
-    protected $user;
+    protected ?User $user = null;
 
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'mcol:tokens {email}';
+    protected string $signature = 'mcol:tokens {email}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Lists User API tokens for a user by a given email address.';
+    protected string $description = 'Lists User API tokens for a user by a given email address.';
 
     /**
      * Execute the console command.
+     *
+     * @return int
      */
-    public function handle()
+    public function handle(): int
     {
         $user = $this->getUser();
 
-        if (null === $user) {
-            return 1;
+        if ($user === null) {
+            return 1; // Command failed if user not found
         }
 
         foreach ($user->tokens as $token) {
-            $this->warn($token->plainTextToken);
+            $this->warn($token->plainTextToken); // Display each token
         }
+
+        return 0; // Command succeeded
     }
 
     /**
      * Returns an instance of User by email address.
      *
+     * This method caches the user instance after the first successful retrieval.
+     *
      * @return User|null
      */
-    protected function getUser(): User|null
+    protected function getUser(): ?User
     {
-        if (null === $this->user) {
-            $email = $this->argument('email');
+        // Return cached user if available
+        if ($this->user !== null) {
+            return $this->user;
+        }
 
-            if (null === $email) {
-                $this->error('A valid email address is required.');
-                return null;
-            }
+        $email = $this->argument('email');
 
-            $user = User::where('email', $email)->first();
+        if (empty($email)) {
+            $this->error('A valid email address is required.');
+            return null;
+        }
 
-            if (null === $user) {
-                $this->error('A valid email is required.');
-                return null;
-            }
-            $this->user = $user;
+        // Retrieve user by email
+        $this->user = User::where('email', $email)->first();
+
+        if ($this->user === null) {
+            $this->error('No user found with the provided email address.');
+            return null;
         }
 
         return $this->user;

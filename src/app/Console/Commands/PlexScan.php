@@ -9,15 +9,17 @@ use App\Media\MediaType,
 
 use \Exception;
 
+/**
+ * Command to trigger a Plex media library scan based on a specified media type.
+ */
 class PlexScan extends Command
 {
     /**
+     * The type of media to scan.
      *
-     * Media Type to scan.
-     *
-     * @var String
+     * @var string|null
      */
-    protected $type;
+    protected ?string $type = null;
 
     /**
      * The name and signature of the console command.
@@ -31,12 +33,16 @@ class PlexScan extends Command
      *
      * @var string
      */
-    protected $description = 'Transfer a file';
+    protected $description = 'Trigger a scan for Updated media in Plex.';
 
     /**
-     * Execute the console command.
+     * Executes the console command to scan the Plex media library.
+     *
+     * @param Plex $plex
+     *
+     * @throws Exception if Plex service is not configured or media type is invalid.
      */
-    public function handle(Plex $plex)
+    public function handle(Plex $plex): void
     {
         if (!$plex->isConfigured()) {
             throw new Exception("The Plex Service is not configured.");
@@ -45,18 +51,20 @@ class PlexScan extends Command
         $plex->scanMediaLibrary($this->getType());
     }
 
-
     /**
-     * Gets and validates the uri as input.
+     * Retrieves and validates the media type.
      *
      * @return string
+     *
+     * @throws Exception if the media type is invalid.
      */
     public function getType(): string
     {
-        if (null === $this->type) {
+        if ($this->type === null) {
             $this->type = $this->argument('type');
             $types = MediaType::getMediaTypes();
-            if (null === $this->type || '' === $this->type || !in_array($this->type, $types)) {
+
+            if (empty($this->type) || !in_array($this->type, $types, true)) {
                 throw new Exception("Invalid Media Type: {$this->type}");
             }
         }

@@ -12,75 +12,43 @@ use App\Models\Client,
 
 class Chat extends Command
 {
+    /** @var string Target of the chat message (user or room) */
+    protected string $target;
 
-    const COMMAND_MASK = '/^\/msg\s/is';
+    /** @var Network|null Network instance used for connection */
+    protected ?Network $network = null;
 
-    /**
-     * Target of : `PRIVMSG {target} {message}`
-     *
-     * @var string
-     */
-    protected $target;
+    /** @var string The formatted message to send */
+    protected string $message;
 
-    /**
-     * 
-     * Network from which we can connect to an instance.
-     *
-     * @var string
-     */
-    protected $network;
+    /** @var Nick|null The persona used for chatting */
+    protected ?Nick $nick = null;
 
-     /**
-     * 
-     * The text to pass to the chat client.
-     *
-     * @var string
-     */
-    protected $message;
+    /** @var string Console command signature */
+    protected $signature = 'mcol:chat {network} {target} {message}';
 
-    /**
-     * 
-     * The Nick as the persona whom is chatting.
-     *
-     * @var Nick
-     */
-    protected $nick;
-
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'mcol:chat {network} {target} {message}'; # Target can be a room or a user.
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
+    /** @var string Console command description */
     protected $description = 'Chat CLI Interface for mcol client instances.';
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
         $network = $this->getNetwork();
         $target = $this->getTarget();
 
         if (!$network || !$target) {
-            $this->error('invalid input.');
-            exit(0);
+            $this->error('Invalid input.');
+            return;
         }
 
         $nick = $this->getNickForNetwork();
 
         if (!$nick) {
-            $this->error('invalid nick. Cannot continue.');
-            exit(0);
+            $this->error('Invalid nick. Cannot continue.');
+            return;
         }
-
-        $command = $this->getMessage();
 
         $client = Client::updateOrCreate(
             ['network_id' => $network->id],
@@ -89,102 +57,72 @@ class Chat extends Command
 
         $instance = Instance::updateOrCreate(
             ['client_id' => $client->id],
-            ['desired_status' => Instance::STATUS_UP ]
+            ['desired_status' => Instance::STATUS_UP]
         );
 
-        $op = Operation::create(
-            [
-                'instance_id' => $instance->id,
-                'status' => Operation::STATUS_PENDING, 
-                'command' => $command,
-            ]
-        );
+        $operation = Operation::create([
+            'instance_id' => $instance->id,
+            'status' => Operation::STATUS_PENDING,
+            'command' => $this->getMessage(),
+        ]);
 
-        if (!$op) {
+        if (!$operation) {
             $this->error('Operation could not be completed.');
-            exit(0);
         }
-
     }
 
     /**
-     * Filters the message to be issued in the operation.
+     * Formats the message to be issued in the operation.
      *
      * @param string $message
      * @return string
      */
     public function filterMessage(string $message): string
     {
-        return "PRIVMSG {$this->target} :$message";
+        return "PRIVMSG {$this->getTarget()} :$message";
     }
 
-    public function getNickForNetwork(): Nick|null
+    /**
+     * Retrieves the Nick instance for the current network.
+     *
+     * @return Nick|null
+     */
+    public function getNickForNetwork(): ?Nick
     {
-
-        if (null === $this->nick) {
+        if (!$this->nick) {
             $network = $this->getNetwork();
-            if (null === $network) {
-                return null;
-            }
-
-            $client = Client::where('network_id', $network->id)->first();
-            if (null === $client) {
-                return null;
-            }
-
-            $this->nick = $client->nick;
-            
+            $this->nick = $network ? Client::where('network_id', $network->id)->value('nick') : null;
         }
-
         return $this->nick;
-
     }
 
-    public function getNetwork(): Network|null
+    /**
+     * Retrieves the Network instance.
+     *
+     * @return Network|null
+     */
+    public function getNetwork(): ?Network
     {
-        if (null === $this->network) {
-            $networkName = $this->argument('network');
-            $n = Network::where('name', $networkName)->first();
-            if (!$n) {
-                return null;
-            }
-
-            $this->network = $n;
-        }
-
-        return $this->network;
+        return $this->network ??= Network::where('name', $this->argument('network'))->first();
     }
 
-    public function getInstanceFrom(): Network|null
-    {
-        if (null === $this->network) {
-            $networkName = $this->argument('network');
-            $n = Network::where('name', $networkName)->first();
-            if (!$n) {
-                return null;
-            }
-
-            $this->network = $n;
-        }
-
-        return $this->network;
-    }
-
+    /**
+     * Retrieves the chat message.
+     *
+     * @return string
+     */
     public function getMessage(): string
     {
-        if (null === $this->message) { 
-            $this->message = $this->filterMessage($this->argument('message'));
-        }
-
-        return $this->message;
+        return $this->message ??= $this->filterMessage($this->argument('message'));
     }
 
+    /**
+     * Retrieves the chat target (user or room).
+     *
+     * @return string
+     */
     public function getTarget(): string
     {
-        if (null === $this->target) { 
-            $this->target = $this->argument('target');;
-        }
-
-        return $this->target;
+        return $this->target ??= $this->argument('target');
     }
 }

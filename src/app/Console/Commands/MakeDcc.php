@@ -10,184 +10,87 @@ use App\Dcc\Client,
 
 class MakeDcc extends Command
 {
-    /**
-     * Host selected for connection
-     *
-     * @var string
-     */
-    protected $host;
+    /** @var string|null Host selected for connection */
+    protected ?string $host = null;
 
-    /**
-     * network selected for run
-     *
-     * @var string
-     */
-    protected $port;
+    /** @var int|null Network port for the connection */
+    protected ?int $port = null;
 
-    /**
-     * Name of file to be sent.
-     *
-     * @var string
-     */
-    protected $file;
+    /** @var string|null Name of the file to be sent */
+    protected ?string $file = null;
 
-    /**
-     * Name of file size of the file.
-     *
-     * @var string
-     */
-    protected $fileSize;
+    /** @var int|null Size of the file in bytes */
+    protected ?int $fileSize = null;
 
-    /**
-     * Name of the bot.
-     *
-     * @var Bot
-     */
-    protected $bot;
+    /** @var Bot|null Instance of the bot */
+    protected ?Bot $bot = null;
 
-    /**
-     * The name of the file.
-     *
-     * @var string
-     */
+    /** @var string Command signature */
     protected $signature = 'mcol:make-dcc {--host=} {--port=} {--file=} {--file-size=} {--bot=} {--resume=0}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
+    /** @var string Command description */
     protected $description = 'Direct Client Connection via stream socket';
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
         $host = $this->getHost();
-        if (!$host) $this->error('A valid --host is required.');
-
         $port = $this->getPort();
-        if (!$port) $this->error('A valid --port is required.');
-
         $file = $this->getFile();
-        if (!$file) $this->error('A valid --file is required.');
-
         $bot = $this->getBot();
-        if (!$bot) $this->error('A valid --bot is required.');
-
         $fileSize = $this->getFileSize();
 
-        $resume = ($this->option('resume')) ? $this->option('resume') : null;
+        if (!$host || !$port || !$file || !$bot) {
+            return;
+        }
 
         $packet = $this->getPacketByFileAndBot($file, $bot);
+        $resume = $this->option('resume') ?? null;
 
-        if (!$host || !$port || !$file || !$bot) return;
-
-        $dcc = new Client($file, $fileSize, $bot, $packet);
-        $dcc->download(long2ip($host), $port, $resume);
-
-        return;
+        (new Client($file, $fileSize, $bot, $packet))
+            ->download(long2ip($host), $port, $resume);
     }
 
     /**
-     * Returns a Bot or null.
-     *
-     * @return Bot|null
+     * Retrieve a Bot instance or null.
      */
-    protected function getBot(): Bot|null
+    protected function getBot(): ?Bot
     {
-        if (null === $this->bot) {
-            $nick = $this->option('bot');
-
-            if (null === $nick) {
-                $this->error('--bot is required.');
-            }
-
-            $bot = Bot::where('nick', $nick)->first();
-
-            if (null !== $bot) {
-                $this->bot = $bot;
-            }
-        }
-
-        return $this->bot;
+        return $this->bot ??= Bot::where('nick', $this->option('bot'))?->first() ?: tap(null, fn() => $this->error('--bot is required.'));
     }
 
     /**
-     * Returns a string of the host name.
-     *
-     * @return string|null
+     * Retrieve the host as a string.
      */
-    protected function getHost(): string|null
+    protected function getHost(): ?string
     {
-        if (null === $this->host) {
-            $host = $this->option('host');
-
-            if (null === $host) {
-                $this->error('A valid --host is required.');
-            }
-
-            $this->host  = $host;
-        }
-
-        return $this->host;
+        return $this->host ??= $this->option('host') ?: tap(null, fn() => $this->error('A valid --host is required.'));
     }
 
     /**
-     * Returns a string of the socket port.
-     *
-     * @return string|null
+     * Retrieve the port as an integer.
      */
-    protected function getPort(): string|null
+    protected function getPort(): ?int
     {
-        if (null === $this->port) {
-            $port = $this->option('port');
-
-            if (null === $port) {
-                $this->error('A valid --port is required.');
-            }
-
-            $this->port = $port;
-        }
-
-        return $this->port;
+        return $this->port ??= filter_var($this->option('port'), FILTER_VALIDATE_INT) ?: tap(null, fn() => $this->error('A valid --port is required.'));
     }
 
     /**
-     * Returns a string of the file name.
-     *
-     * @return string|null
+     * Retrieve the file name as a string.
      */
-    protected function getFile(): string|null
+    protected function getFile(): ?string
     {
-        if (null === $this->file) {
-            $file = $this->option('file');
-
-            if (null === $file) {
-                $this->error('A valid --file is required.');
-            }
-
-            $this->file = $file;
-        }
-
-        return $this->file;
+        return $this->file ??= $this->option('file') ?: tap(null, fn() => $this->error('A valid --file is required.'));
     }
 
     /**
-     * Returns a size of the file.
-     *
-     * @return int|null
+     * Retrieve the file size as an integer.
      */
-    protected function getFileSize(): int|null
+    protected function getFileSize(): ?int
     {
-        if (null === $this->fileSize) {
-            $fileSize = (integer) $this->option('file-size');
-
-            $this->fileSize = $fileSize;
-        }
-
-        return $this->fileSize;
+        return $this->fileSize ??= (int) $this->option('file-size');
     }
 
     /**

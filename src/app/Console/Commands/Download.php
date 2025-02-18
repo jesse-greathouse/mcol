@@ -2,66 +2,61 @@
 
 namespace App\Console\Commands;
 
-use Exception;
 use Illuminate\Console\Command;
 
 use App\Exceptions\InvalidPacketException,
     App\Jobs\DownloadRequest,
     App\Models\Packet;
 
+use \Exception;
+
 class Download extends Command
 {
-    /**
-     * 
-     * Packet requested for download.
-     *
-     * @var Packet
-     */
-    protected $packet;
+    /** @var Packet|null Packet requested for download. */
+    protected ?Packet $packet = null;
 
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'mcol:download {id}';
+    /** @var string The name and signature of the console command. */
+    protected string $signature = 'mcol:download {id}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Queue downloading a packet based on the id';
+    /** @var string The console command description. */
+    protected string $description = 'Queue downloading a packet based on the ID';
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         try {
-            $packet = $this->getPacket();
+            $packet = $this->fetchPacket();
         } catch (Exception $e) {
             $this->error($e->getMessage());
-            return 1;
+            return Command::FAILURE;
         }
 
         DownloadRequest::dispatch($packet);
         $this->warn("Requested packet: {$packet->id} -- {$packet->file_name}");
+
+        return Command::SUCCESS;
     }
 
-
-    public function getPacket(): Packet
+    /**
+     * Retrieves the packet by ID, caching the result.
+     *
+     * @throws InvalidPacketException If the packet is not found.
+     */
+    private function fetchPacket(): Packet
     {
-        if (null === $this->packet) {
-            $id = (int) $this->argument('id');
-            $packet = Packet::where('id', $id)->first();
-            if (null === $packet) {
-               throw new InvalidPacketException("Packet with id: $id was not found.");
-            }
-
-            $this->packet = $packet;
+        if ($this->packet !== null) {
+            return $this->packet;
         }
 
-        return $this->packet;
+        $id = (int) $this->argument('id');
+        $packet = Packet::find($id);
+
+        if ($packet === null) {
+            throw new InvalidPacketException("Packet with ID: $id was not found.");
+        }
+
+        return $this->packet = $packet;
     }
 }

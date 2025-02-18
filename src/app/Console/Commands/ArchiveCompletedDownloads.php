@@ -9,31 +9,25 @@ use App\Jobs\ArchiveDownload,
 
 class ArchiveCompletedDownloads extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'mcol:archive-downloads';
+    /** @var string The name and signature of the console command. */
+    protected string $signature = 'mcol:archive-downloads';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Moves completed download records into the doownload_histories table.';
+    /** @var string The console command description. */
+    protected string $description = 'Moves completed download records into the download_histories table.';
 
     /**
      * Execute the console command.
+     *
+     * Efficiently dispatches jobs to archive completed downloads.
      */
-    public function handle()
+    public function handle(): void
     {
-        $count = 0;
-        foreach(Download::where('status', Download::STATUS_COMPLETED)->get() as $download) {
+        $downloads = Download::where('status', Download::STATUS_COMPLETED)->get();
+
+        foreach ($downloads as $download) {
             ArchiveDownload::dispatch($download)->onQueue('longruns');
-            $count++;
         }
 
-        $this->warn("Queued $count completed Downloads for archival.");
+        $this->warn("Queued {$downloads->count()} completed downloads for archival.");
     }
 }
