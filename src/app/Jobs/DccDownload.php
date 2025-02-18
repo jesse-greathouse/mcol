@@ -10,11 +10,13 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-use Exception,
-    App\Dcc\Client,
+use App\Dcc\Client,
+    App\Exceptions\IllegalPacketException,
     App\Exceptions\UnknownBotException,
     App\Models\Bot,
-    App\Models\FileDownloadLock;
+    App\Models\Packet;
+
+use \Exception;
 
 class DccDownload implements ShouldQueue, ShouldBeUnique
 {
@@ -111,8 +113,14 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
     public function handle(): void
     {
         $bot = $this->getBot();
-        $dcc = new Client($this);
-        $dcc->open(long2ip($this->host), $this->port, $this->file, $this->fileSize, $bot->id, $this->resume);
+        $packet = $this->getPacketByBot($bot);
+
+        if (!$packet) {
+            throw new IllegalPacketException("Packet with bot id: {$bot->id} and file: {$this->file} was expected but not found");
+        }
+
+        $dcc = new Client($this->file, $this->fileSize, $bot, $packet);
+        $dcc->download(long2ip($this->host), $this->port, $this->resume);
     }
 
     /**
@@ -137,6 +145,23 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
     }
 
     /**
+     * Retrieves a packet based on the file name and bot ID.
+     *
+     * This method looks for a packet in the database that matches the provided file name and bot ID.
+     * It tries to find an exact match for the file name first, and if not found, it attempts to replace
+     * underscores in the file name with spaces and searches again.
+     *
+     * @param Bot $bot the bot associated with the packet.
+     *
+     * @return Packet|null The found packet, or null if no packet is found for the given file name and bot ID.
+     */
+    protected function getPacketByBot(Bot $bot): ?Packet
+    {
+        return Packet::where('file_name', $this->file)->where('bot_id', $bot->id)->orderByDesc('created_at')->first()
+                ?? Packet::where('file_name', str_replace('_', ' ', $this->file))->where('bot_id', $bot->id)->orderByDesc('created_at')->first();
+    }
+
+    /**
      * Get the unique ID for the job.
      */
     public function uniqueId(): string
@@ -150,8 +175,8 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
      * @param  Exception  $exception
      * @return void
      */
-    public function failed(Exception $exception)
+    public function failed(Exception $e)
     {
-        Log::warning("DccDownload job failed on file: {$this->file}\n bot: {$this->botName}\n host: {$this->host}\n message: \n{$exception->getMessage()}");
+        Log::warning("DccDownload job failed on file: {$this->file}\n bot: {$this->botName}\n host: {$this->host}\n message: \n{$e->getMessage()}");
     }
 }

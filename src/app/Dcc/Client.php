@@ -4,17 +4,21 @@ namespace App\Dcc;
 
 use Illuminate\Support\Facades\Log;
 
-use App\Exceptions\IllegalPacketException,
+use App\Exceptions\InitializeDownloadStreamException,
     App\Jobs\DccDownload,
     App\Jobs\CheckFileDownloadCompleted,
     App\Models\Bot,
     App\Models\Download,
     App\Models\FileDownloadLock,
-    App\Models\Packet,
-    App\Models\Network;
+    App\Models\Packet;
 
-use \DateTime;
-use \Exception;
+use \DateTime,
+    \Exception;
+
+// Define DS constant for cross-platform compatibility if not already defined
+if (!defined('DS')) {
+    define('DS', DIRECTORY_SEPARATOR);
+}
 
 class Client
 {
@@ -23,309 +27,339 @@ class Client
     const PACKET_LIST_MASK = '/mylist\.txt$/i';
     const TRANSFER_TERMINATED_MESSAGE = 'TRANSFER TERMINATED';
 
+    // Define system-specific subdirectories for downloads and packet lists
+    const DOWNLOAD_URI = DS . 'var' . DS . 'download';
+    const PACKET_LIST_URI =  DS . 'var' . DS . 'packet-lists';
+
+    // Define the default directories for Windows systems
+    const DEFAULT_WINDOWS_DOWNLOAD_DIR = '%APPDATA%' .  self::DOWNLOAD_URI;
+    const DEFAULT_WINDOWS_PACKET_LIST_DIR = '%APPDATA%' . self::PACKET_LIST_URI;
+
+    // Define the default directories for Unix-like systems
+    const DEFAULT_UNIX_LIKE_DOWNLOAD_DIR = '$HOME' . self::DOWNLOAD_URI;
+    const DEFAULT_UNIX_LIKE_PACKET_LIST_DIR = '$HOME' . self::PACKET_LIST_URI;
+
+    /** @var int Timestamp of last update. */
+    protected ?int $lastUpdate = null;
+
+    /** @var Packet packet related to downloading file. */
+    protected Packet $packet;
+
+    /** @var Bot bot from which the file is downloading. */
+    protected Bot $bot;
+
+    /** @var string File name of the file to be downloaded. */
+    protected string $fileName;
+
+    /** @var int Size of the file in bytes */
+    protected int $fileSize;
+
     /**
-     * timestamp of last update.
-     *
-     * @var integer
+     * Create a new job instance.
      */
-    protected $lastUpdate;
+    public function __construct(string $fileName, int $fileSize, Bot $bot, Packet $packet)
+    {
+        $this->fileName = $fileName;
+        $this->fileSize = $fileSize;
+        $this->bot = $bot;
+        $this->packet = $packet;
+    }
 
     /**
      * Opens a connection for downloading a file.
      *
-     * @param string $host
-     * @param string $port
-     * @param string $fileName
-     * @param int|null $fileSize
-     * @param string|null $botId
-     * @param int|null $resume
+     * @param string $host The server host.
+     * @param string $port The server port.
+     * @param int|null $resume The byte position to resume the download from.
      * @return void
+     * @throws InitializeDownloadStreamException If an error occurs during the socket connection or download directory is invalid.
      */
-    public function open(string $host, string $port, string $fileName, int $fileSize = null, $botId = null, int $resume = null): void
+    public function download(string $host, string $port, ?int $resume = null): void
     {
-        $bytes = 0;
-        $isPacketList = $this->isPacketList($fileName);
-        $bot = Bot::find($botId);
+        $bytes = $resume ?? 0;
+        $isPacketList = $this->isPacketList();
 
-        if ($isPacketList) {
-            $varDir = env('VAR', '/var');
-            $downloadDir = "$varDir/packet-lists";
-            if (!is_dir($downloadDir)) {
-                mkdir($downloadDir);
+        try {
+            $uri = $this->initializeDownload($isPacketList, $bytes, $resume);
+
+            // Attempt to create a socket connection for downloading
+            $dlStream = @stream_socket_client("tcp://$host:$port", $errno, $errstr);
+            if (!is_resource($dlStream)) {
+                throw new InitializeDownloadStreamException("Connection failed: $errstr ($errno)");
             }
 
-            $uri = "$downloadDir/$botId.txt";
-
-            if (file_exists($uri)) {
-                unlink($uri);
-                touch($uri);
-            }
-        } else {
-            $downloadDir = env('DOWNLOAD_DIR', '/var/mcol/download');
-            $packet = $this->getPacketByFileNameAndBotId($fileName, $botId);
-            if (null === $packet) {
-                throw new IllegalPacketException("Packet with bot id: $botId and file: $fileName was expected but not found");
-            }
-
-            // Sometimes the bot mutates the file name.
-            // This keeps the file name consistent with what's in our records.
-            $fileName = $packet->file_name;
-
-            if (!$this->isFileDownloadLocked($fileName)) {
-                $this->lockFile($fileName);
-            }
-
-            $uri = "$downloadDir/$fileName";
-
-            // Register or update the file download status data.
-            $download = $this->registerDownload($uri, $fileName, $packet->media_type, $packet->id, $packet->meta, $fileSize, $bytes);
-
-            if (file_exists($uri)) {
-                if (null === $resume) {
-                    unlink($uri);
-                    touch($uri);
-                } else {
-                    $bytes = $resume;
-                }
-            }
-        }
-
-        // Open a stream to the remote file system.
-        $fp = stream_socket_client("tcp://$host:$port", $errno, $errstr);
-        if (!$fp) {
-            Log::error("$errstr ($errno)");
-        } else {
-            // Open a file pointer to recieve the file
-            // and set the pointer to the correct position.
             $file = fopen($uri, 'a');
             fseek($file, $bytes);
 
-            // Reading ends when length - 1 bytes have been read
-            // Adds +1 to byte length so added bytes can be tracked more evenly.
-            // bytes + chunk = downloaded progress.
-            $increment = self::CHUNK_BYTES + 1;
-
-            while (!feof($fp)) {
-                // Sometimes user deletes file before it's finished :-(
-                // Silly Users >:@
-                if (!file_exists($uri)) {
-                    break;
-                }
-
-                $chunk = fgets($fp, $increment);
-                if (false === $chunk) break;
+            while (!feof($dlStream) && file_exists($uri)) {
+                if (($chunk = fgets($dlStream, self::CHUNK_BYTES)) === false) break;
                 fwrite($file, $chunk);
 
-                // Only save the progress every n intervals for performance.
                 if (!$isPacketList && file_exists($uri) && $this->shouldUpdate()) {
-                    clearstatcache(true, $uri); // clears the caching of filesize
-                    $progressSize = fileSize($uri);
-                    $download = $this->registerDownload($uri, $fileName, $packet->media_type, $packet->id, $packet->meta, $fileSize, $progressSize);
-                }
-            }
-
-            // Packet lists can bail now.
-            if ($isPacketList) {
-                fclose($file);
-                fclose($fp);
-                Log::warning("Downloaded the packet list from {$bot->nick}");
-                return;
-            }
-
-            // If expected file size wasn't sent as a parameter,
-            // it's impossible to know how large the file should be.
-            if (null === $fileSize) {
-                $fileSize = $download->progress_bytes;
-            }
-
-            $meta = stream_get_meta_data($file);
-
-            if (isset($meta['uri']) && file_exists($uri)) {
-                clearstatcache(true, $meta['uri']); // clears the caching of filesize
-                $bytesDownloaded = filesize($meta['uri']);
-                if ((integer) $bytesDownloaded === (integer) $fileSize) {
-                    $download->status = Download::STATUS_COMPLETED;
-                    $download->progress_bytes = null;
-                    $download->save();
-                }
-            } else {
-                // Delete the download and release the lock.
-                $download->delete();
-                $this->releaseLock($fileName);
-                $network = Network::where('id', $packet->network_id)->first();
-                Log::warning("Download of stream: \"$fileName\" closed prematurely.");
-
-                // Attempt Resume or Bail
-                if (null !== $network && null !== $bot && file_exists($uri)) {
-                    $position = filesize($uri);
-                    DccDownload::dispatch($host, $port, $fileName, $fileSize, $bot->nick, $position)->onQueue('download');
-                    Log::warning("Queued to resume DCC Download Job: host: $host port: $port file: $fileName file-size: $fileSize bot: '{$bot->nick}' resume: $position");
-                } else {
-                    Log::warning("Unable to Queue for resume of: \"$fileName\" because of missing file or incomplete network/bot data.");
+                    // clearstatcache removes status caching for filesize on this file
+                    // https://www.php.net/manual/en/function.clearstatcache.php
+                    clearstatcache(true, $uri);
+                    $this->registerDownload($uri, filesize($uri));
                 }
             }
 
             fclose($file);
-            fclose($fp);
+            fclose($dlStream);
 
-            Log::warning(self::TRANSFER_TERMINATED_MESSAGE . ": $fileName");
+            $this->finalizeDownload($host, $port, $uri);
+
+        } catch (Exception $e) {
+            // Log the error
+            Log::error($e->getMessage());
+
+            // Ensure any file lock is released before rethrowing
+            if ($this->isFileDownloadLocked($this->packet->file_name)) {
+                $this->releaseLock($this->packet->file_name);
+            }
+
+            throw $e;
         }
     }
 
     /**
-     * Should the client update the progress counter.
+     * Determines whether to update the progress counter.
      *
-     * @return boolean
+     * @return bool True if the downloading file status should be updated.
      */
-    public function shouldUpdate(): bool
+    protected function shouldUpdate(): bool
     {
         $now = time();
-
-        if (null === $this->lastUpdate) {
+        if ($this->lastUpdate === null || ($now - $this->lastUpdate) >= self::UPDATE_INTERVAL) {
             $this->lastUpdate = $now;
             return true;
         }
-
-        $interval = $now - $this->lastUpdate;
-
-        if ($interval >= self::UPDATE_INTERVAL) {
-            $this->lastUpdate = $now;
-            return true;
-        }
-
         return false;
     }
 
     /**
-     * Set up the download object
+     * Initializes the download process by setting up directories and file paths.
      *
-     * @param string $uri
-     * @param string $fileName
-     * @param string $mediaType
-     * @param integer $packetId
-     * @param array $meta
-     * @param integer|null $fileSize
-     * @param integer|null $bytes
-     * @return Download
+     * @param bool $isPacketList Determines whether the download is a packet list.
+     * @param int|null &$bytes The number of bytes to resume from, passed by reference.
+     * @return string The URI of the file to be downloaded.
+     * @throws InitializeDownloadStreamException If the download directory doesn't exist.
      */
-    protected function registerDownload(string $uri,  string $fileName, string $mediaType, int $packetId, array $meta, int $fileSize = null, int $bytes = null): Download
+    protected function initializeDownload(bool $isPacketList, ?int &$bytes): string
+    {
+        // Choose the appropriate packet list directory
+        if ($isPacketList) {
+            $packetListDir = $this->getPacketListDirectory();
+            if (!is_dir($packetListDir)) {
+                if (!mkdir($packetListDir, 0777, true)) {
+                    throw new InitializeDownloadStreamException("Packet List directory: $packetListDir could not be created.");
+                }
+            }
+            return $packetListDir . DS . "{$this->bot->id}.txt";
+        }
+
+        // Use the environment variable for download directory, or default based on the system
+        $downloadDir = env('DOWNLOAD_DIR', $this->getDownloadDirectory());
+
+        if (!is_dir($downloadDir)) {
+            if (!mkdir($downloadDir, 0777, true)) {
+                throw new InitializeDownloadStreamException("Download directory: $downloadDir could not be created.");
+            }
+        }
+
+        if (!$this->isFileDownloadLocked()) {
+            $this->lockFile();
+        }
+
+        $uri = $downloadDir . DS . $this->packet->file_name;
+
+        // If the file exists and it's not a resume, just delete it.
+        if (file_exists($uri) && $bytes === 0) {
+            unlink($uri);
+            touch($uri);
+        }
+
+        $this->registerDownload($uri, $bytes);
+
+        return $uri;
+    }
+
+    /**
+     * Determines the appropriate download directory based on the operating system or environment.
+     *
+     * @return string The download directory path.
+     */
+    protected function getDownloadDirectory(): string
+    {
+        // If the VAR environment variable is set, use it, otherwise default based on the OS
+        $envDownloadDir = env('VAR');
+        if ($envDownloadDir) {
+            return $envDownloadDir  . DS . 'download';
+        }
+
+        // Default to Windows or Linux/macOS based on the system
+        return (PHP_OS_FAMILY === 'Windows')
+            ? $this->replaceSystemVariables(self::DEFAULT_WINDOWS_DOWNLOAD_DIR)
+            : $this->replaceSystemVariables(self::DEFAULT_UNIX_LIKE_DOWNLOAD_DIR);
+    }
+
+    /**
+     * Retrieves the appropriate packet list directory based on the operating system.
+     *
+     * @return string The packet list directory path.
+     */
+    protected function getPacketListDirectory(): string
+    {
+        // If VAR is set, we use it for packet list directory as well
+        $envPacketListDir = env('VAR');
+        if ($envPacketListDir) {
+            return $envPacketListDir . DS . 'packet-lists';
+        }
+
+        // Default to Unix-like systems (Linux/macOS) or Windows
+        return (PHP_OS_FAMILY === 'Windows')
+            ? $this->replaceSystemVariables(self::DEFAULT_WINDOWS_PACKET_LIST_DIR)
+            : $this->replaceSystemVariables(self::DEFAULT_UNIX_LIKE_PACKET_LIST_DIR);
+    }
+
+    /**
+     * Replaces system-specific variables with their actual values.
+     *
+     * @param string $path The path containing system variables.
+     * @return string The path with system variables replaced.
+     */
+    protected function replaceSystemVariables(string $path): string
+    {
+        // Replace %APPDATA% and $HOME with the respective system values
+        if (PHP_OS_FAMILY === 'Windows') {
+            $path = str_replace('%APPDATA%', getenv('APPDATA'), $path);
+        } elseif (PHP_OS_FAMILY === 'Linux' || PHP_OS_FAMILY === 'Darwin') {
+            $path = str_replace('$HOME', getenv('HOME'), $path);
+        }
+
+        return $path;
+    }
+
+    /**
+     * Finalizes the download, determining success or resumption.
+     *
+     * @param string $host The server host.
+     * @param string $port The server port.
+     * @param string $uri The location of the downloaded file.
+     * @return void
+     */
+    protected function finalizeDownload(string $host, string $port, string $uri): void
+    {
+        clearstatcache(true, $uri);
+        $bytesDownloaded = file_exists($uri) ? filesize($uri) : 0;
+
+        if ($bytesDownloaded === $this->fileSize) {
+            Download::where('file_name', $this->packet->file_name)->update(['status' => Download::STATUS_COMPLETED, 'progress_bytes' => null]);
+        } else {
+            $this->handleIncompleteDownload($host, $port, $uri);
+        }
+    }
+
+    /**
+     * Handles an incomplete download scenario, attempting resumption if possible.
+     * @param string $host The server host.
+     * @param string $port The server port.
+     * @param string $uri The location of the downloaded file.
+     * @return void
+     */
+    protected function handleIncompleteDownload(string $host, string $port, string $uri): void
+    {
+        $download = Download::where('file_name', $this->packet->file_name)->first();
+        $download?->delete();
+        $this->releaseLock();
+
+        if (!$this->bot || !file_exists($uri)) {
+            Log::warning("Unable to resume download: {$this->fileName}");
+            return;
+        }
+
+        $position = filesize($uri);
+        DccDownload::dispatch($host, $port, $this->fileName, $this->fileSize, $this->bot->nick, $position)->onQueue('download');
+        Log::warning("Queued to resume download: {$this->fileName} at $position bytes");
+    }
+
+    /**
+     * Registers or updates the file download status.
+     *
+     * @param string $uri The URI of the file being downloaded.
+     * @param int $bytes The number of bytes downloaded so far.
+     * @return Download The created or updated Download instance.
+     */
+    protected function registerDownload(string $uri, int $bytes): Download
     {
         return Download::updateOrCreate(
-            [ 'file_uri' => $uri ],
+            ['file_uri' => $uri],
             [
-                'file_name'         => $fileName,
-                'media_type'        => $mediaType,
-                'packet_id'         => $packetId,
-                'meta'              => $meta,
-                'status'            => Download::STATUS_INCOMPLETE,
-                'file_size_bytes'   => $fileSize,
-                'progress_bytes'    => $bytes,
-                'queued_total'      => null,
-                'queued_status'     => null,
+                'file_name' => $this->packet->file_name,
+                'media_type' => $this->packet->media_type,
+                'packet_id' => $this->packet->id,
+                'meta' => $this->packet->meta,
+                'status' => Download::STATUS_INCOMPLETE,
+                'file_size_bytes' => $this->fileSize,
+                'progress_bytes' => $bytes,
             ]
         );
     }
 
     /**
-     * Removes all Non-numeric characters from a string.
+     * Releases the lock on the specified file to allow other processes to access it.
      *
-     * @param string $txtStr
-     * @return string
-     */
-    protected function clnNumericStr(string $txtStr): string
-    {
-        return preg_replace("/[^0-9]/", "", $txtStr);
-    }
-
-    /**
-     * Returns a single Download model instance.
+     * This method deletes the file's lock entry from the `FileDownloadLock` model, enabling other processes
+     * to download or manipulate the file.
      *
-     * @param string $fileName
      * @return void
      */
-    protected function releaseLock(string $fileName): void
+    protected function releaseLock(): void
     {
-        $lock = FileDownloadLock::where('file_name', $fileName)->first();
-        if (null !== $lock) {
-            $lock->delete();
-        } else {
-            Log::warning("Attempted download lock removal of: $fileName, failed. Lock did not exist.");
-        }
+        FileDownloadLock::where('file_name', $this->packet->file_name)->delete();
     }
 
     /**
-     * Answers if a file is a packet list by the file name.
+     * Determines if the given file name corresponds to a packet list.
      *
-     * @param string $fileName
-     * @return bool
+     * This method uses a regular expression to check if the provided file name matches the pattern
+     * defined by the constant `PACKET_LIST_MASK`, which identifies packet list files.
+     *
+     * @return bool True if the file name matches the packet list pattern, otherwise false.
      */
-    protected function isPacketList(string $fileName): bool
+    protected function isPacketList(): bool
     {
-        $matches = [];
-        preg_match(self::PACKET_LIST_MASK, $fileName, $matches);
-
-        return (0 < count($matches));
+        return (bool) preg_match(self::PACKET_LIST_MASK, $this->fileName);
     }
 
     /**
-     * From a given file name, retrieve a packet object.
+     * Determines if a file is currently locked for downloading.
      *
-     * @param string $fileName
-     * @param int $botId
-     * @return Packet|null
+     * This method checks the `FileDownloadLock` model to see if there is an active lock entry for the specified
+     * file, indicating that the file is currently being downloaded or is in use.
+     *
+     * @return bool True if the file is locked for downloading, otherwise false.
      */
-    protected function getPacketByFileNameAndBotId(string $fileName, int $botId): Packet | null
+    protected function isFileDownloadLocked(): bool
     {
-        $packet = null;
-
-        try {
-            $packet = Packet::where('file_name', $fileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
-
-            if (null === $packet) {
-                // Sometimes the Bot advertize a file having whitespace delimiter, but then sends the file with _ (underscore) delimiter.
-                // It makes me very happy that some bot operators do this :-D because now I get to write this extra line of code.
-                $underscoreFileName = str_replace('_', ' ', $fileName);
-                $packet = Packet::where('file_name', $underscoreFileName)->where('bot_id', $botId)->OrderByDesc('created_at')->first();
-            }
-        } catch(Exception $e) {
-            Log::error("Failed to Query packet by file: $fileName and botId: $botId");
-            Log::error("$e");
-        }
-
-        return $packet;
+        return FileDownloadLock::where('file_name', $this->packet->file_name)->exists();
     }
 
-    /**
-     * Checks to see if there is a download lock on the file name.
-     * Download locks prevents a file from being simultanously downloaded from multiple sources.
-     *
-     * @param string $fileName
-     * @return boolean
-     */
-    protected function isFileDownloadLocked(string $fileName): bool
-    {
-        $lock = FileDownloadLock::where('file_name', $fileName)->first();
-
-        if (null !== $lock) {
-            return true;
-        } else {
-            return false;
-        }
-    }
 
     /**
-     * Locks a file.
+     * Locks the specified file for downloading to prevent concurrent downloads.
      *
-     * @param string $fileName
-     * @return boolean
+     * This method creates a lock entry in the `FileDownloadLock` model for the specified file, preventing other
+     * processes from downloading the same file simultaneously. It also dispatches a job to check if the download is
+     * completed after a delay.
+     *
+     * @return void
      */
-    protected function lockFile(string $fileName): void
+    protected function lockFile(): void
     {
-        // Lock the file for Downloading to prevent further downloads of the same file.
-        FileDownloadLock::create(['file_name' => $fileName]);
-        //Queue the job that checks if the file is finished downloading.
-        $timeStamp = new DateTime('now');
-        CheckFileDownloadCompleted::dispatch($fileName, $timeStamp)
+        FileDownloadLock::create(['file_name' => $this->packet->file_name]);
+
+        $timestamp = new DateTime();
+        CheckFileDownloadCompleted::dispatch($this->packet->file_name, $timestamp)
             ->delay(now()->addMinutes(CheckFileDownloadCompleted::SCHEDULE_INTERVAL));
     }
 }

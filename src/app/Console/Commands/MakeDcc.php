@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 
 use App\Dcc\Client,
-    App\Chat\Client as ChatClient,
-    App\Models\Bot;
+    App\Models\Bot,
+    App\Models\Packet;
 
 class MakeDcc extends Command
 {
@@ -66,7 +66,7 @@ class MakeDcc extends Command
     {
         $host = $this->getHost();
         if (!$host) $this->error('A valid --host is required.');
-        
+
         $port = $this->getPort();
         if (!$port) $this->error('A valid --port is required.');
 
@@ -79,11 +79,13 @@ class MakeDcc extends Command
         $fileSize = $this->getFileSize();
 
         $resume = ($this->option('resume')) ? $this->option('resume') : null;
-        
+
+        $packet = $this->getPacketByFileAndBot($file, $bot);
+
         if (!$host || !$port || !$file || !$bot) return;
 
-        $dcc = new Client();
-        $dcc->open(long2ip($host), $port, $file, $fileSize, $bot->id, $resume);
+        $dcc = new Client($file, $fileSize, $bot, $packet);
+        $dcc->download(long2ip($host), $port, $resume);
 
         return;
     }
@@ -186,5 +188,23 @@ class MakeDcc extends Command
         }
 
         return $this->fileSize;
+    }
+
+    /**
+     * Retrieves a packet based on the file name and bot ID.
+     *
+     * This method looks for a packet in the database that matches the provided file name and bot ID.
+     * It tries to find an exact match for the file name first, and if not found, it attempts to replace
+     * underscores in the file name with spaces and searches again.
+     *
+     * @param string $file the the file to match with the bot.
+     * @param Bot $bot the bot associated with the packet.
+     *
+     * @return Packet|null The found packet, or null if no packet is found for the given file name and bot ID.
+     */
+    protected function getPacketByFileAndBot(string $file, Bot $bot): ?Packet
+    {
+        return Packet::where('file_name', $file)->where('bot_id', $bot->id)->orderByDesc('created_at')->first()
+                ?? Packet::where('file_name', str_replace('_', ' ', $file))->where('bot_id', $file)->orderByDesc('created_at')->first();
     }
 }
