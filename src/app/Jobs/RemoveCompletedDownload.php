@@ -2,15 +2,16 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Bus\Queueable,
+    Illuminate\Contracts\Queue\ShouldBeUnique,
+    Illuminate\Contracts\Queue\ShouldQueue,
+    Illuminate\Foundation\Bus\Dispatchable,
+    Illuminate\Queue\InteractsWithQueue,
+    Illuminate\Queue\SerializesModels;
 
 use App\Models\Download,
-    App\Models\FileDownloadLock;
+    App\Models\FileDownloadLock,
+    App\Jobs\ArchiveDownload;
 
 class RemoveCompletedDownload implements ShouldQueue, ShouldBeUnique
 {
@@ -32,41 +33,54 @@ class RemoveCompletedDownload implements ShouldQueue, ShouldBeUnique
      */
     public $uniqueFor = 1;
 
-    public function __construct(public Download $download){}
+    /**
+     * The download object associated with this job.
+     *
+     * @var \App\Models\Download
+     */
+    public function __construct(public Download $download) {}
 
     /**
      * Execute the job.
+     *
+     * @return void
      */
     public function handle(): void
     {
+        // Release the lock before processing the file
         $this->releaseLock();
+
+        // Only attempt to delete the file if it exists to prevent errors
         if (file_exists($this->download->file_uri)) {
             unlink($this->download->file_uri);
         }
 
-        // Move the download to the archives table
+        // Dispatch the job to move the download to the archives table
         ArchiveDownload::dispatch($this->download);
     }
 
     /**
      * Get the unique ID for the job.
+     *
+     * @return string
      */
     public function uniqueId(): string
     {
+        // Return a string as the unique identifier for this job
         return (string) "{$this->download->id}-REMOVE-COMPLETED";
     }
 
     /**
-     * Removes any lock from a Download.
+     * Removes any lock from a Download by deleting the corresponding lock entry.
      *
      * @return void
      */
     protected function releaseLock(): void
     {
+        // Extract the file name from the file URI
         $fileName = basename($this->download->file_uri);
-        $lock = FileDownloadLock::where('file_name', $fileName)->first();
-        if (null !== $lock) {
-            $lock->delete();
-        }
+
+        // Delete the lock if it exists
+        FileDownloadLock::where('file_name', $fileName)->first()?->delete();
     }
 }

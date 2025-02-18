@@ -2,16 +2,19 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Bus\Queueable,
+    Illuminate\Contracts\Queue\ShouldBeUnique,
+    Illuminate\Contracts\Queue\ShouldQueue,
+    Illuminate\Foundation\Bus\Dispatchable,
+    Illuminate\Queue\InteractsWithQueue,
+    Illuminate\Queue\SerializesModels;
 
 use App\Models\FileFirstAppearance,
     App\Models\Packet;
 
+/**
+ * Job to update the file first appearance based on packet creation date.
+ */
 class GenerateFileFirstAppearance implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -24,21 +27,23 @@ class GenerateFileFirstAppearance implements ShouldQueue, ShouldBeUnique
     public $timeout = 4800;
 
     /**
-     * Go through every packet
-     * If there is a packet with created_at before the file first appearance
-     * updated first appearance so it reflects the created date of the packet.
+     * Handle the job of updating file first appearance for each packet.
+     *
+     * @return void
      */
     public function handle(): void
     {
-        foreach (Packet::lazy() as $packet) {
+        // Optimize query to retrieve only necessary fields
+        Packet::lazy()->each(function ($packet) {
             $file = FileFirstAppearance::firstOrCreate(
-                ['file_name' => $packet->file_name]
+                ['file_name' => $packet->file_name],
+                ['created_at' => $packet->created_at]
             );
 
+            // Only update if the file creation date needs adjustment
             if ($file->created_at->gt($packet->created_at)) {
-                $file->created_at = $packet->created_at;
-                $file->save();
+                $file->update(['created_at' => $packet->created_at]);
             }
-        }
+        });
     }
 }

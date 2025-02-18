@@ -2,13 +2,14 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Bus\Queueable,
+    Illuminate\Contracts\Queue\ShouldBeUnique,
+    Illuminate\Contracts\Queue\ShouldQueue,
+    Illuminate\Database\Eloquent\ModelNotFoundException,
+    Illuminate\Foundation\Bus\Dispatchable,
+    Illuminate\Queue\InteractsWithQueue,
+    Illuminate\Queue\SerializesModels,
+    Illuminate\Support\Facades\Log;
 
 use App\Exceptions\InvalidClientException,
     App\Models\Packet,
@@ -38,10 +39,15 @@ class RemoveRequest implements ShouldQueue, ShouldBeUnique
      */
     public $uniqueFor = 1;
 
-    public function __construct(public Packet $packet){}
+    /**
+     * The packet instance associated with this job.
+     *
+     * @var Packet
+     */
+    public function __construct(public Packet $packet) {}
 
     /**
-     * Execute the job.
+     * Execute the job to remove the request and manage downloads.
      */
     public function handle(): void
     {
@@ -50,28 +56,29 @@ class RemoveRequest implements ShouldQueue, ShouldBeUnique
 
         $instance = Instance::updateOrCreate(
             ['client_id' => $client->id],
-            ['desired_status' => Instance::STATUS_UP ]
+            ['desired_status' => Instance::STATUS_UP]
         );
 
-        $op = Operation::create(
-            [
-                'instance_id' => $instance->id,
-                'status' => Operation::STATUS_PENDING, 
-                'command' => $command,
-            ]
-        );
+        Operation::create([
+            'instance_id' => $instance->id,
+            'status' => Operation::STATUS_PENDING,
+            'command' => $command,
+        ]);
 
-        if (!$op) {
-            Log::error("Failed to remove queue for: \"{$this->packet->file_name}\"  with: {$this->packet->bot->nick}");
-        } else {
-            $this->removeDownloads();
-        }
+        $this->removeDownloads();
     }
 
+    /**
+     * Retrieve the client associated with the packet's network.
+     *
+     * @return Client|null
+     * @throws InvalidClientException
+     */
     public function getClient(): Client|null
     {
-        $client = Client::where('network_id', $this->packet->bot->network->id)->first();
-        if (null === $client) {
+        try {
+            $client = Client::where('network_id', $this->packet->bot->network->id)->firstOrFail();
+        } catch (ModelNotFoundException $e) {
             throw new InvalidClientException("Client for network: {$this->packet->bot->network->name} was not found.");
         }
 
@@ -93,25 +100,21 @@ class RemoveRequest implements ShouldQueue, ShouldBeUnique
      */
     protected function removeDownloads(): void
     {
-        $downloads = Download::where('packet_id', $this->packet->id)->get();
-        foreach($downloads as $download) {
-            $this->releaseLock($download);
-            $download->delete();
-        }
+        Download::where('packet_id', $this->packet->id)
+            ->each(function ($download) {
+                $this->releaseLock($download);
+                $download->delete();
+            });
     }
 
     /**
-     * Removes any lock from a Download.
+     * Removes any lock from a specific download.
      *
      * @param Download $download
      * @return void
      */
     protected function releaseLock(Download $download): void
     {
-        $fileName = basename($download->file_uri);
-        $lock = FileDownloadLock::where('file_name', $fileName)->first();
-        if (null !== $lock) {
-            $lock->delete();
-        }
-    } 
+        FileDownloadLock::where('file_name', basename($download->file_uri))->delete();
+    }
 }

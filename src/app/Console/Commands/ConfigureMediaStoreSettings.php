@@ -93,7 +93,7 @@ class ConfigureMediaStoreSettings extends Command
      *
      * @return string The var directory path.
      */
-    protected function getDefaultVarDir(): string
+    private function getDefaultVarDir(): string
     {
         // Default to Windows or Linux/macOS based on the system
         return (PHP_OS_FAMILY === 'Windows')

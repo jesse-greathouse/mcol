@@ -2,14 +2,14 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Bus\Queueable,
+    Illuminate\Contracts\Queue\ShouldBeUnique,
+    Illuminate\Contracts\Queue\ShouldQueue,
+    Illuminate\Database\Eloquent\Collection,
+    Illuminate\Foundation\Bus\Dispatchable,
+    Illuminate\Queue\InteractsWithQueue,
+    Illuminate\Queue\SerializesModels,
+    Illuminate\Support\Facades\Log;
 
 use App\Exceptions\InvalidClientException,
     App\Models\Bot,
@@ -27,23 +27,28 @@ class CancelRequest implements ShouldQueue, ShouldBeUnique
     /**
      * The number of seconds the job can run before timing out.
      * Two days is the maximum length of time a download can run for now.
-     * TODO: Make this more dynamic
+     * TODO: Make this more dynamic.
      *
      * @var int
      */
-    public $timeout = 3;
+    public int $timeout = 3;
 
     /**
      * The number of seconds after which the job's unique lock will be released.
      *
      * @var int
      */
-    public $uniqueFor = 1;
+    public int $uniqueFor = 1;
 
-    public function __construct(public Bot $bot){}
+    public function __construct(public Bot $bot)
+    {}
 
     /**
      * Execute the job.
+     *
+     * This cancels the XDCC transfer and removes associated download data.
+     *
+     * @return void
      */
     public function handle(): void
     {
@@ -52,22 +57,20 @@ class CancelRequest implements ShouldQueue, ShouldBeUnique
 
         $instance = Instance::updateOrCreate(
             ['client_id' => $client->id],
-            ['desired_status' => Instance::STATUS_UP ]
+            ['desired_status' => Instance::STATUS_UP]
         );
 
-        $op = Operation::create(
-            [
-                'instance_id' => $instance->id,
-                'status' => Operation::STATUS_PENDING, 
-                'command' => $command,
-            ]
-        );
+        $op = Operation::create([
+            'instance_id' => $instance->id,
+            'status' => Operation::STATUS_PENDING,
+            'command' => $command,
+        ]);
 
         if (!$op) {
-            Log::error("Failed to cancel the XDCC transwer with: {$this->bot->nick}");
+            Log::error("Failed to cancel the XDCC transfer with: {$this->bot->nick}");
         } else {
-            // Remove the file, lock and the Download Records for this bot.
-            foreach($this->getDownloadsForBot() as $download) {
+            // Remove the file, lock, and Download Records for this bot.
+            foreach ($this->getDownloadsForBot() as $download) {
                 if (file_exists($download->file_uri)) {
                     unlink($download->file_uri);
                 }
@@ -77,10 +80,16 @@ class CancelRequest implements ShouldQueue, ShouldBeUnique
         }
     }
 
-    public function getClient(): Client|null
+    /**
+     * Get the client associated with the bot's network.
+     *
+     * @throws InvalidClientException if no client is found.
+     * @return Client|null
+     */
+    public function getClient(): ?Client
     {
         $client = Client::where('network_id', $this->bot->network->id)->first();
-        if (null === $client) {
+        if ($client === null) {
             throw new InvalidClientException("Client for network: {$this->bot->network->name} was not found.");
         }
 
@@ -89,6 +98,8 @@ class CancelRequest implements ShouldQueue, ShouldBeUnique
 
     /**
      * Get the unique ID for the job.
+     *
+     * @return string
      */
     public function uniqueId(): string
     {
@@ -96,21 +107,23 @@ class CancelRequest implements ShouldQueue, ShouldBeUnique
     }
 
     /**
-     * Undocumented function
+     * Get the downloads associated with the bot.
+     *
+     * Optimized query to join tables for a more efficient result set.
      *
      * @return Collection
      */
     protected function getDownloadsForBot(): Collection
     {
         return Download::join('packets', 'packets.id', '=', 'downloads.packet_id')
-            ->join ('file_download_locks', 'file_download_locks.file_name', 'packets.file_name')
-            ->join ('bots', 'bots.id', 'packets.bot_id')
+            ->join('file_download_locks', 'file_download_locks.file_name', '=', 'packets.file_name')
+            ->join('bots', 'bots.id', '=', 'packets.bot_id')
             ->where('bots.id', $this->bot->id)
             ->get(DownloadQueue::$columns);
     }
 
     /**
-     * Returns a single Download model instance.
+     * Release the download lock for the given download.
      *
      * @param Download $download
      * @return void
@@ -119,10 +132,11 @@ class CancelRequest implements ShouldQueue, ShouldBeUnique
     {
         $fileName = basename($download->file_uri);
         $lock = FileDownloadLock::where('file_name', $fileName)->first();
-        if (null !== $lock) {
+
+        if ($lock !== null) {
             $lock->delete();
         } else {
-            Log::warning("Attempted download lock removal of: $fileName, failed. Lock did not exist.");
+            Log::warning("Attempted to remove download lock for file: $fileName, but lock did not exist.");
         }
     }
 }

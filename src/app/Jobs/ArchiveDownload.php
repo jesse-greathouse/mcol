@@ -2,18 +2,23 @@
 
 namespace App\Jobs;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\Queue\ShouldQueue,
+    Illuminate\Foundation\Bus\Dispatchable,
+    Illuminate\Foundation\Queue\Queueable,
+    Illuminate\Queue\InteractsWithQueue,
+    Illuminate\Queue\SerializesModels,
+    Illuminate\Support\Facades\Log;
 
 use App\Models\Download,
     App\Models\DownloadHistory;
 
 use \Exception;
 
+/**
+ * Class ArchiveDownload
+ *
+ * Handles the archiving process for a download, including creating history records and deleting the original download.
+ */
 class ArchiveDownload implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -28,31 +33,37 @@ class ArchiveDownload implements ShouldQueue
     /**
      * The Download object.
      *
-     * @var Download
+     * @var \App\Models\Download
      */
     public $download;
 
     /**
-     * @param Download $download
+     * Create a new job instance.
+     *
+     * @param \App\Models\Download $download The download instance to archive.
      */
-    public function __construct(Download $download){
+    public function __construct(Download $download)
+    {
         $this->download = $download;
     }
 
     /**
-     * Execute the job.
+     * Execute the job to archive the download and create history.
+     *
+     * @return void
      */
     public function handle(): void
     {
         try {
-            // Variable shortcuts
+            // Shortcut variables for improved readability and reduced property lookups.
             $download = $this->download;
             $packet = $download->packet;
             $channel = $packet->channel;
             $bot = $packet->bot;
             $network = $bot->network;
-            $mediaType = (null !== $download->media_type) ? $download->media_type : 'unknown'; // Not null.
+            $mediaType = $download->media_type ?? 'unknown'; // Use null coalescing for default.
 
+            // Create a history record for the download.
             DownloadHistory::create([
                 'file_name'         => $download->file_name,
                 'media_type'        => $mediaType,
@@ -64,8 +75,10 @@ class ArchiveDownload implements ShouldQueue
                 'meta'              => $download->meta,
             ]);
 
+            // Delete the original download after processing.
             $download->delete();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
+            // Log and fail the job if an exception occurs.
             Log::warning($e->getMessage());
             $this->fail($e);
         }

@@ -20,13 +20,21 @@ use App\Media\Application,
     App\Media\TvSeason,
     App\Models\Packet;
 
-use \Exception;
+use Exception;
 
+/**
+ * Job to generate and save metadata for packets.
+ */
 class GeneratePacketMeta implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    const PACKET_OPTIMIZATION_PROPERTIES = [
+    /**
+     * Optimization properties to be copied to the packet.
+     *
+     * @var string[]
+     */
+    private const PACKET_OPTIMIZATION_PROPERTIES = [
         'resolution',
         'extension',
         'language',
@@ -34,7 +42,12 @@ class GeneratePacketMeta implements ShouldQueue
         'is_dolby_vision',
     ];
 
-    const MEDIA_MAP = [
+    /**
+     * Map of media types to their corresponding class.
+     *
+     * @var array
+     */
+    private const MEDIA_MAP = [
         MediaType::APPLICATION  => Application::class,
         MediaType::BOOK         => Book::class,
         MediaType::GAME         => Game::class,
@@ -53,9 +66,9 @@ class GeneratePacketMeta implements ShouldQueue
     public $timeout = 86400;
 
     /**
-     * Packet for the context of this job.
+     * The packet associated with this job.
      *
-     * @var Packet
+     * @var Packet|null
      */
     public $packet;
 
@@ -72,26 +85,46 @@ class GeneratePacketMeta implements ShouldQueue
     /**
      * Execute the job.
      *
+     * @return void
      */
     public function handle(): void
     {
-        if (null !== $this->packet) {
-            $this->makeMeta($this->packet);
-        } else {
-            $rs = Packet::lazy();
-            foreach ($rs as $packet) {
-                $this->makeMeta($packet);
-            }
+        // Execute for a single requested packet object.
+        if ($this->packet !== null) {
+            $this->processMetaForPacket($this->packet);
+            return;
         }
+
+        // Execute for all packet objects in the database.
+        Packet::lazy()->each(function (Packet $packet) {
+            $this->processMetaForPacket($packet);
+        });
     }
 
     /**
-     * Undocumented function
+     * Process the metadata for a given packet.
      *
      * @param Packet $packet
      * @return void
      */
-    private function makeMeta(Packet $packet): void
+    private function processMetaForPacket(Packet $packet): void
+    {
+        $meta = $this->generateMetaForPacket($packet);
+
+        if (!empty($meta)) {
+            $packet->meta = $meta;
+            $packet = $this->applyMetadataOptimization($packet, $meta);
+            $packet->save();
+        }
+    }
+
+    /**
+     * Generate metadata for a packet based on its media type.
+     *
+     * @param Packet $packet
+     * @return array
+     */
+    private function generateMetaForPacket(Packet $packet): array
     {
         $meta = [];
 
@@ -101,28 +134,27 @@ class GeneratePacketMeta implements ShouldQueue
             try {
                 $media = new $mediaClass($packet->file_name);
                 $meta = $media->toArray();
-            } catch(Exception $e) {
+            } catch (Exception $e) {
                 Log::warning($e);
             }
         }
 
-        $packet->meta = $meta;
-        $packet = $this->optimizePacketWithMetadata($packet, $meta);
-
-        $packet->save();
+        return $meta;
     }
 
     /**
-     * Takes an array of metadata and adds optimization to some properties of Packet.
+     * Apply optimizations to the packet using the provided metadata.
      *
      * @param Packet $packet
      * @param array $meta
      * @return Packet
      */
-    private function optimizePacketWithMetadata(Packet $packet, array $meta): Packet
+    private function applyMetadataOptimization(Packet $packet, array $meta): Packet
     {
-        foreach(self::PACKET_OPTIMIZATION_PROPERTIES as $property) {
-            if (isset($meta[$property])) $packet->$property = $meta[$property];
+        foreach (self::PACKET_OPTIMIZATION_PROPERTIES as $property) {
+            if (isset($meta[$property])) {
+                $packet->$property = $meta[$property];
+            }
         }
 
         return $packet;
