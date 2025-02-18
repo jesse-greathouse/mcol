@@ -2,88 +2,124 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest,
+    Illuminate\Validation\Validator;
 
 use App\Models\Download,
     App\Models\Packet;
 
 class StoreDownloadRequest extends FormRequest
 {
+    /** @var string Maximum length for file URI. */
+    protected $maxFileUriLength = 255;
+
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * @return bool Always false for this request.
      */
     public function authorize(): bool
     {
         return false;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
+    /** @var array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string> Validation rules for the request. */
     public function rules(): array
     {
         return [
-            'file_uri'          => 'required|max:255',
-            'status'            => 'nullable|max:255',
-            'enabled'           => 'nullable|in:0,1',
-            'file_size_bytes'   => 'nullable|numeric',
-            'progress_bytes'    => 'nullable|numeric',
-            'queued_total'      => 'nullable|numeric',
-            'queued_status'     => 'nullable|numeric',
-            'packet'            => 'required|numeric',
+            'file_uri'        => "required|max:{$this->maxFileUriLength}",
+            'status'          => 'nullable|max:255',
+            'enabled'         => 'nullable|in:0,1',
+            'file_size_bytes' => 'nullable|numeric',
+            'progress_bytes'  => 'nullable|numeric',
+            'queued_total'    => 'nullable|numeric',
+            'queued_status'   => 'nullable|numeric',
+            'packet'          => 'required|numeric',
         ];
     }
 
     /**
      * Get the "after" validation callables for the request.
+     *
+     * @return array<int, \Closure> After validation actions.
      */
     public function after(): array
     {
         return [
-            function (Validator $validator) {
-                if (!$this->packetExists($validator)) {
-                    $validated = $validator->validated();
-                    $id = $validated['packet'];
-                    $validator->errors()->add(
-                        'packet',
-                        "Packet with id: $id was not found."
-                    );
-                }
-            },
-            function (Validator $validator) {
-                if (!$this->isValidStatus($validator)) {
-                    $validated = $validator->validated();
-                    $status = $validated['status'];
-                    $incomplete = Download::STATUS_INCOMPLETE;
-                    $completed = Download::STATUS_COMPLETED;
-                    $queued = Download::STATUS_QUEUED;
-                    $validStatuses = "$incomplete, $completed and $queued";
-                    $validator->errors()->add(
-                        'status',
-                        "Status: $status is not valid. (Valid statuses are: $validStatuses)"
-                    );
-                }
-            }
+            fn(Validator $validator) => $this->validatePacket($validator),
+            fn(Validator $validator) => $this->validateStatus($validator),
         ];
     }
 
-    public function packetExists(Validator $validator): bool
+    /**
+     * Validate if the packet exists.
+     *
+     * @param Validator $validator The validator instance.
+     * @return void
+     */
+    protected function validatePacket(Validator $validator): void
     {
-        $validated = $validator->validated();
-        $packet = Packet::find($validated['packet']);
-        return (null !== $packet);
+        if (!$this->packetExists($validator)) {
+            $validated = $validator->validated();
+            $id = $validated['packet'];
+            $validator->errors()->add(
+                'packet',
+                "Packet with id: $id was not found."
+            );
+        }
     }
 
-    public function isValidStatus(Validator $validator): bool
+    /**
+     * Validate if the status is valid.
+     *
+     * @param Validator $validator The validator instance.
+     * @return void
+     */
+    protected function validateStatus(Validator $validator): void
+    {
+        if (!$this->isValidStatus($validator)) {
+            $validated = $validator->validated();
+            $status = $validated['status'];
+            $validStatuses = implode(', ', [
+                Download::STATUS_INCOMPLETE,
+                Download::STATUS_COMPLETED,
+                Download::STATUS_QUEUED,
+            ]);
+            $validator->errors()->add(
+                'status',
+                "Status: $status is not valid. (Valid statuses are: $validStatuses)"
+            );
+        }
+    }
+
+    /**
+     * Check if the packet exists.
+     *
+     * @param Validator $validator The validator instance.
+     * @return bool True if the packet exists, false otherwise.
+     */
+    protected function packetExists(Validator $validator): bool
     {
         $validated = $validator->validated();
+        return Packet::find($validated['packet']) !== null;
+    }
 
-        if (!isset($validated['status']) || null === $validated['status']) return true;
+    /**
+     * Check if the status is valid.
+     *
+     * @param Validator $validator The validator instance.
+     * @return bool True if the status is valid, false otherwise.
+     */
+    protected function isValidStatus(Validator $validator): bool
+    {
+        $validated = $validator->validated();
+        $status = $validated['status'] ?? null;
 
-        return in_array(strtoupper($validated['status']), [
+        if ($status === null) {
+            return true;
+        }
+
+        return in_array(strtoupper($status), [
             Download::STATUS_INCOMPLETE,
             Download::STATUS_COMPLETED,
             Download::STATUS_QUEUED,

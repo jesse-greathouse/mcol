@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\Validator;
-use Illuminate\Http\Exceptions\HttpResponseException;
-
+use Illuminate\Contracts\Validation\Validator,
+    Illuminate\Http\Exceptions\HttpResponseException;
 
 /**
  * Provides default implementation of ValidatesWhenResolved contract.

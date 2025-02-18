@@ -2,21 +2,18 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Http\Request,
+    Illuminate\Http\Resources\Json\ResourceCollection;
 
 class MediaStoreCollection extends ResourceCollection
 {
-    /**
-     * The resource that this resource collects.
-     *
-     * @var string
-     */
+    /** @var string The resource that this resource collects. */
     public $collects = MediaStoreResource::class;
 
     /**
      * Transform the resource collection into an array.
      *
+     * @param Request $request
      * @return array<int|string, mixed>
      */
     public function toArray(Request $request): array

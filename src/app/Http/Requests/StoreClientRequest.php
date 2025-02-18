@@ -10,10 +10,17 @@ use App\Models\Client,
     App\Models\Nick,
     App\Models\Network;
 
+/**
+ * Class StoreClientRequest
+ *
+ * This request validates data for creating or updating a client.
+ */
 class StoreClientRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determines if the user is authorized to make this request.
+     *
+     * @return bool
      */
     public function authorize(): bool
     {
@@ -36,80 +43,146 @@ class StoreClientRequest extends FormRequest
 
     /**
      * Get the "after" validation callables for the request.
+     *
+     * @return array<int, callable>
      */
     public function after(): array
     {
         return [
+            /**
+             * After validation, check if the Nick exists.
+             */
             function (Validator $validator) {
-                if (!$this->nickExists($validator)) {
-                    $validated = $validator->validated();
-                    $id = $validated['nick'];
-                    $validator->errors()->add(
-                        'nick',
-                        "Nick with id: $id was not found."
-                    );
-                }
+                $this->validateNick($validator);
             },
+
+            /**
+             * After validation, check if the Network exists.
+             */
             function (Validator $validator) {
-                if (!$this->networkExists($validator)) {
-                    $validated = $validator->validated();
-                    $id = $validated['network'];
-                    $validator->errors()->add(
-                        'network',
-                        "Network with id: $id was not found."
-                    );
-                }
+                $this->validateNetwork($validator);
             },
+
+            /**
+             * After validation, check if the combination of Nick and Network already exists.
+             */
             function (Validator $validator) {
-                if ($this->combinationExists($validator)) {
-                    $validated = $validator->validated();
-                    $NickId = $validated['nick'];
-                    $NetworkId = $validated['network'];
-                    $validator->errors()->add(
-                        'nick',
-                        "Nick with id: $NickId already has a client with Network: $NetworkId."
-                    );
-                    $validator->errors()->add(
-                        'network',
-                        "Network with id: $NetworkId already has a client with Nick: $NickId."
-                    );
-                }
-            }
+                $this->validateCombination($validator);
+            },
         ];
     }
 
-    public function networkExists(Validator $validator): bool
+    /**
+     * Validate if the Nick exists.
+     *
+     * @param Validator $validator
+     * @return void
+     */
+    protected function validateNick(Validator $validator): void
     {
-        $validated = $validator->validated();
-
-        $network = Network::find($validated['network']);
-
-        return (null !== $network);
+        if (!$this->nickExists($validator)) {
+            $validated = $validator->validated();
+            $id = $validated['nick'];
+            $validator->errors()->add(
+                'nick',
+                "Nick with id: $id was not found."
+            );
+        }
     }
 
-    public function nickExists(Validator $validator): bool
+    /**
+     * Validate if the Network exists.
+     *
+     * @param Validator $validator
+     * @return void
+     */
+    protected function validateNetwork(Validator $validator): void
     {
-        $validated = $validator->validated();
-
-        $nick = Network::find($validated['nick']);
-
-        return (null !== $nick);
+        if (!$this->networkExists($validator)) {
+            $validated = $validator->validated();
+            $id = $validated['network'];
+            $validator->errors()->add(
+                'network',
+                "Network with id: $id was not found."
+            );
+        }
     }
 
-    public function combinationExists(Validator $validator): bool
+    /**
+     * Validate if the combination of Nick and Network already exists.
+     *
+     * @param Validator $validator
+     * @return void
+     */
+    protected function validateCombination(Validator $validator): void
+    {
+        if ($this->combinationExists($validator)) {
+            $validated = $validator->validated();
+            $nickId = $validated['nick'];
+            $networkId = $validated['network'];
+            $validator->errors()->add(
+                'nick',
+                "Nick with id: $nickId already has a client with Network: $networkId."
+            );
+            $validator->errors()->add(
+                'network',
+                "Network with id: $networkId already has a client with Nick: $nickId."
+            );
+        }
+    }
+
+    /**
+     * Check if the Network exists in the database.
+     *
+     * @param Validator $validator
+     * @return bool
+     */
+    protected function networkExists(Validator $validator): bool
     {
         $validated = $validator->validated();
 
+        // Check if network exists
+        return Network::find($validated['network']) !== null;
+    }
+
+    /**
+     * Check if the Nick exists in the database.
+     *
+     * @param Validator $validator
+     * @return bool
+     */
+    protected function nickExists(Validator $validator): bool
+    {
+        $validated = $validator->validated();
+
+        // Check if nick exists
+        return Nick::find($validated['nick']) !== null;
+    }
+
+    /**
+     * Check if a combination of Nick and Network already exists in the database.
+     *
+     * @param Validator $validator
+     * @return bool
+     */
+    protected function combinationExists(Validator $validator): bool
+    {
+        $validated = $validator->validated();
+
+        // Validate network and nick existence
         $network = Network::find($validated['network']);
-        if (null == $network) return false;
+        if ($network === null) {
+            return false;
+        }
 
         $nick = Nick::find($validated['nick']);
-        if (null == $nick) return false;
+        if ($nick === null) {
+            return false;
+        }
 
-        $client = Client::where('network_id', $network->id)
+        // Check if the combination exists
+        return Client::where('network_id', $network->id)
             ->where('nick_id', $nick->id)
-            ->first();
-
-        return (null !== $client);
+            ->exists();
     }
 }

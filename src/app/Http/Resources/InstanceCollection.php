@@ -2,17 +2,13 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Http\Request,
+    Illuminate\Http\Resources\Json\ResourceCollection;
 
 class InstanceCollection extends ResourceCollection
 {
-    /**
-     * The resource that this resource collects.
-     *
-     * @var string
-     */
-    public $collects = InstanceResource::class;
+    /** @var class-string<InstanceResource> The resource collected by this collection. */
+    public string $collects = InstanceResource::class;
 
     /**
      * Transform the resource collection into an array.

@@ -2,9 +2,14 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Http\Request,
+    Illuminate\Http\Resources\Json\ResourceCollection;
 
+/**
+ * Class ChannelCollection
+ *
+ * @package App\Http\Resources
+ */
 class ChannelCollection extends ResourceCollection
 {
     /**
@@ -17,10 +22,13 @@ class ChannelCollection extends ResourceCollection
     /**
      * Transform the resource collection into an array.
      *
-     * @return array<int|string, mixed>
+     * @param Request $request The incoming request.
+     *
+     * @return array<int|string, mixed> The transformed resource collection.
      */
     public function toArray(Request $request): array
     {
+        // Directly return the parent transformation without additional processing
         return parent::toArray($request);
     }
 }

@@ -2,26 +2,35 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
-use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Broadcasting\InteractsWithSockets,
+    Illuminate\Contracts\Broadcasting\ShouldBroadcast,
+    Illuminate\Broadcasting\PrivateChannel,
+    Illuminate\Foundation\Events\Dispatchable,
+    Illuminate\Queue\SerializesModels;
 
 use App\Models\PacketSearch;
 
-class PacketSearchSummary implements ShouldDispatchAfterCommit
+/**
+ * Class PacketSearchSummary
+ *
+ * This event represents the summary of a packet search and broadcasts on a private channel.
+ *
+ * @package App\Events
+ */
+class PacketSearchSummary implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * @var PacketSearch
+     * @var PacketSearch The packet search associated with the event.
      */
     public PacketSearch $packetSearch;
 
+    /**
+     * PacketSearchSummary constructor.
+     *
+     * @param PacketSearch $packetSearch The packet search instance.
+     */
     public function __construct(PacketSearch $packetSearch)
     {
         $this->packetSearch = $packetSearch;
@@ -30,12 +39,14 @@ class PacketSearchSummary implements ShouldDispatchAfterCommit
     /**
      * Get the channels the event should broadcast on.
      *
-     * @return array<int, \Illuminate\Broadcasting\Channel>
+     * This method defines the private channel the event will be broadcast on.
+     *
+     * @return array<int, \Illuminate\Broadcasting\Channel> The broadcast channels.
      */
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('packet-search-summary'),
+            new PrivateChannel('packet-search-summary'),  // Broadcasting on a private channel for security
         ];
     }
 }

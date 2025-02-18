@@ -2,15 +2,15 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Http\Request,
+    Illuminate\Http\Resources\Json\ResourceCollection;
 
 class PacketSearchCollection extends ResourceCollection
 {
     /**
      * The resource that this resource collects.
      *
-     * @var string
+     * @var class-string<PacketSearchResource>
      */
     public $collects = PacketSearchResource::class;
 
@@ -21,6 +21,7 @@ class PacketSearchCollection extends ResourceCollection
      */
     public function toArray(Request $request): array
     {
+        // Directly leveraging the parent method to handle the collection transformation
         return parent::toArray($request);
     }
 }

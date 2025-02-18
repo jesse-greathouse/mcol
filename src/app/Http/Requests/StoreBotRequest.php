@@ -2,16 +2,21 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule,
+use Illuminate\Foundation\Http\FormRequest,
+    Illuminate\Validation\Rule,
     Illuminate\Validation\Validator;
 
 use App\Models\Network;
 
+/**
+ * StoreBotRequest handles the validation of the data for storing a bot.
+ */
 class StoreBotRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * @return bool
      */
     public function authorize(): bool
     {
@@ -26,13 +31,15 @@ class StoreBotRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nick' => [ 'required', 'max:255', Rule::unique('bots')->ignore($this->route()->parameter('id'), 'id')],
+            'nick' => ['required', 'max:255', Rule::unique('bots')->ignore($this->route()->parameter('id'), 'id')],
             'network' => 'required|numeric',
         ];
     }
 
     /**
      * Get the "after" validation callables for the request.
+     *
+     * @return array<callable>
      */
     public function after(): array
     {
@@ -50,12 +57,17 @@ class StoreBotRequest extends FormRequest
         ];
     }
 
+    /**
+     * Check if the network exists.
+     *
+     * @param Validator $validator
+     * @return bool
+     */
     public function networkExists(Validator $validator): bool
     {
         $validated = $validator->validated();
 
-        $network = Network::find($validated['network']);
-
-        return (null !== $network);
+        // Directly accessing the network record in a more efficient manner.
+        return Network::find($validated['network']) !== null;
     }
 }

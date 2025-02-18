@@ -2,27 +2,19 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-use Illuminate\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest,
+    Illuminate\Validation\Validator;
 
 use App\Models\Bot,
     App\Models\Channel,
     App\Models\Network;
 
+use \InvalidArgumentException;
+
 class StorePacketRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        // Currently there is no use-case for API to store and update these resources.
-        return false;
-    }
-
-    /**
-     * Get the validation rules that apply to the request.
+     * The validation rules for the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
@@ -40,69 +32,58 @@ class StorePacketRequest extends FormRequest
     }
 
     /**
+     * Determine if the user is authorized to make this request.
+     *
+     * @return bool
+     */
+    public function authorize(): bool
+    {
+        // Currently there is no use-case for API to store and update these resources.
+        return false;
+    }
+
+    /**
      * Get the "after" validation callables for the request.
+     *
+     * @return array<callable>
      */
     public function after(): array
     {
         return [
-            function (Validator $validator) {
-                if (!$this->botExists($validator)) {
-                    $validated = $validator->validated();
-                    $id = $validated['bot'];
-                    $validator->errors()->add(
-                        'bot',
-                        "Bot with id: $id was not found."
-                    );
-                }
-            },
-            function (Validator $validator) {
-                if (!$this->channelExists($validator)) {
-                    $validated = $validator->validated();
-                    $id = $validated['channel'];
-                    $validator->errors()->add(
-                        'channel',
-                        "Channel with id: $id was not found."
-                    );
-                }
-            },
-            function (Validator $validator) {
-                if (!$this->networkExists($validator)) {
-                    $validated = $validator->validated();
-                    $id = $validated['network'];
-                    $validator->errors()->add(
-                        'network',
-                        "Network with id: $id was not found."
-                    );
-                }
-            }
+            // Callable for bot existence check
+            fn (Validator $validator) => $this->validateResourceExists($validator, 'bot'),
+
+            // Callable for channel existence check
+            fn (Validator $validator) => $this->validateResourceExists($validator, 'channel'),
+
+            // Callable for network existence check
+            fn (Validator $validator) => $this->validateResourceExists($validator, 'network'),
         ];
     }
 
-    public function botExists(Validator $validator): bool
+    /**
+     * Helper function to validate if a resource (bot, channel, or network) exists.
+     *
+     * @param Validator $validator
+     * @param string    $resourceType
+     * @return void
+     */
+    private function validateResourceExists(Validator $validator, string $resourceType): void
     {
         $validated = $validator->validated();
+        $id = $validated[$resourceType];
 
-        $bot = Bot::find($validated['bot']);
+        // Dynamically resolve the model based on the resource type (bot, channel, network)
+        $modelClass = match ($resourceType) {
+            'bot' => Bot::class,
+            'channel' => Channel::class,
+            'network' => Network::class,
+            default => throw new InvalidArgumentException("Invalid resource type: $resourceType"),
+        };
 
-        return (null !== $bot);
+        // Check if the resource exists
+        if (null === $modelClass::find($id)) {
+            $validator->errors()->add($resourceType, ucfirst($resourceType) . " with id: $id was not found.");
+        }
     }
-
-    public function channelExists(Validator $validator): bool
-    {
-        $validated = $validator->validated();
-
-        $channel = Channel::find($validated['channel']);
-
-        return (null !== $channel);
-    }
-
-    public function networkExists(Validator $validator): bool
-    {
-        $validated = $validator->validated();
-
-        $network = Network::find($validated['network']);
-
-        return (null !== $network);
-    }
-
 }

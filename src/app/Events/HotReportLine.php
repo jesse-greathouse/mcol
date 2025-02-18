@@ -2,13 +2,10 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Broadcasting\InteractsWithSockets,
+    Illuminate\Broadcasting\PrivateChannel,
+    Illuminate\Foundation\Events\Dispatchable,
+    Illuminate\Queue\SerializesModels;
 
 use App\Models\HotReportLine as ReportLine;
 
@@ -16,12 +13,16 @@ class HotReportLine
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    /**
-     * @var ReportLine
-     */
+    /** @var ReportLine The hot report line instance */
     public ReportLine $hotReportLine;
 
-    public function __construct(ReportLine $hotReportLine) {
+    /**
+     * Create a new event instance.
+     *
+     * @param ReportLine $hotReportLine
+     */
+    public function __construct(ReportLine $hotReportLine)
+    {
         $this->hotReportLine = $hotReportLine;
     }
 

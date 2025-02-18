@@ -2,9 +2,14 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Http\Request,
+    Illuminate\Http\Resources\Json\ResourceCollection;
 
+/**
+ * Class DownloadDestinationCollection
+ *
+ * @package App\Http\Resources
+ */
 class DownloadDestinationCollection extends ResourceCollection
 {
     /**
@@ -17,10 +22,12 @@ class DownloadDestinationCollection extends ResourceCollection
     /**
      * Transform the resource collection into an array.
      *
+     * @param  \Illuminate\Http\Request  $request
      * @return array<int|string, DownloadDestinationResource>
      */
     public function toArray(Request $request): array
     {
+        // Delegate transformation to the parent class.
         return parent::toArray($request);
     }
 }

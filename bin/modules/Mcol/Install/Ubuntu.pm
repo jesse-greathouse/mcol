@@ -4,130 +4,80 @@ package Mcol::Install::Ubuntu;
 use strict;
 use Cwd qw(getcwd abs_path);
 use File::Basename;
-use lib(dirname(abs_path(__FILE__))  . "/modules");
+use lib dirname(abs_path(__FILE__)) . "/modules";
 use Mcol::Utility qw(command_result);
 use Exporter 'import';
 
 our @EXPORT_OK = qw(install_system_dependencies install_php);
 
-my @systemDependencies = (
-    'supervisor',
-    'authbind',
-    'expect',
-    'openssl',
-    'build-essential',
-    'intltool',
-    'autoconf',
-    'automake',
-    'gcc',
-    'curl',
-    'pkg-config',
-    'cpanminus',
-    'mysql-client',
-    'imagemagick',
-    'libpcre3-dev',
-    'libcurl4',
-    'libcurl4-openssl-dev',
-    'libmagickwand-dev',
-    'libssl-dev',
-    'libxslt1-dev',
-    'libmysqlclient-dev',
-    'libxml2',
-    'libxml2-dev',
-    'libicu-dev',
-    'libmagick++-dev',
-    'libzip-dev',
-    'libonig-dev',
-    'libsodium-dev',
-    'libglib2.0-dev',
-    'libwebp-dev',
+my @systemDependencies = qw(
+    supervisor authbind expect openssl build-essential intltool autoconf
+    automake gcc curl pkg-config cpanminus mysql-client imagemagick
+    libpcre3-dev libcurl4 libcurl4-openssl-dev libmagickwand-dev
+    libssl-dev libxslt1-dev libmysqlclient-dev libxml2 libxml2-dev
+    libicu-dev libmagick++-dev libzip-dev libonig-dev libsodium-dev
+    libglib2.0-dev libwebp-dev
 );
 
-1;
-
 # ====================================
-#    Subroutines below this point
+# Subroutines
 # ====================================
 
-# installs OS level system dependencies.
+# Installs OS-level system dependencies.
 sub install_system_dependencies {
-    my $username = getpwuid( $< );
+    my $username = getpwuid($<);
     print "Sudo is required for updating and installing system dependencies.\n";
-    print "Please enter sudoers password for: $username elevated privelages.\n";
+    print "Please enter sudoers password for: $username elevated privileges.\n";
 
-    my @updateCmd = ('sudo');
-    push @updateCmd, 'apt-get';
-    push @updateCmd, 'update';
+    my @updateCmd = ('sudo', 'apt-get', 'update');
     system(@updateCmd);
     command_result($?, $!, "Updated system dependencies...", \@updateCmd);
 
-    my @cmd = ('sudo');
-    push @cmd, 'apt-get';
-    push @cmd, 'install';
-    push @cmd, '-y';
-    foreach my $dependency (@systemDependencies) {
-        push @cmd, $dependency;
-    }
-
+    my @cmd = ('sudo', 'apt-get', 'install', '-y', @systemDependencies);
     system(@cmd);
     command_result($?, $!, "Installed system dependencies...", \@cmd);
 }
 
-# installs PHP.
+# Installs PHP.
 sub install_php {
     my ($dir) = @_;
-    my @configurePhp = ('./configure');
-    push @configurePhp, '--prefix=' . $dir . '/opt/php';
-    push @configurePhp, '--sysconfdir=' . $dir . '/etc';
-    push @configurePhp, '--with-config-file-path=' . $dir . '/etc/php';
-    push @configurePhp, '--with-config-file-scan-dir=' . $dir . '/etc/php/conf.d';
-    push @configurePhp, '--enable-opcache';
-    push @configurePhp, '--enable-fpm';
-    push @configurePhp, '--enable-dom';
-    push @configurePhp, '--enable-exif';
-    push @configurePhp, '--enable-fileinfo';
-    push @configurePhp, '--enable-mbstring';
-    push @configurePhp, '--enable-bcmath';
-    push @configurePhp, '--enable-intl';
-    push @configurePhp, '--enable-ftp';
-    push @configurePhp, '--enable-pcntl';
-    push @configurePhp, '--enable-gd';
-    push @configurePhp, '--enable-soap';
-    push @configurePhp, '--enable-sockets';
-    push @configurePhp, '--without-sqlite3';
-    push @configurePhp, '--without-pdo-sqlite';
-    push @configurePhp, '--with-libxml';
-    push @configurePhp, '--with-xsl';
-    push @configurePhp, '--with-zlib';
-    push @configurePhp, '--with-curl';
-    push @configurePhp, '--with-webp';
-    push @configurePhp, '--with-openssl';
-    push @configurePhp, '--with-zip';
-    push @configurePhp, '--with-sodium';
-    push @configurePhp, '--with-mysqli';
-    push @configurePhp, '--with-pdo-mysql';
-    push @configurePhp, '--with-mysql-sock';
-    push @configurePhp, '--with-iconv';
+
+    my @configurePhp = (
+        './configure',
+        '--prefix=' . $dir . '/opt/php',
+        '--sysconfdir=' . $dir . '/etc',
+        '--with-config-file-path=' . $dir . '/etc/php',
+        '--with-config-file-scan-dir=' . $dir . '/etc/php/conf.d',
+        '--enable-opcache', '--enable-fpm', '--enable-dom', '--enable-exif',
+        '--enable-fileinfo', '--enable-mbstring', '--enable-bcmath',
+        '--enable-intl', '--enable-ftp', '--enable-pcntl', '--enable-gd',
+        '--enable-soap', '--enable-sockets', '--without-sqlite3',
+        '--without-pdo-sqlite', '--with-libxml', '--with-xsl', '--with-zlib',
+        '--with-curl', '--with-webp', '--with-openssl', '--with-zip',
+        '--with-sodium', '--with-mysqli', '--with-pdo-mysql', '--with-mysql-sock',
+        '--with-iconv'
+    );
 
     my $originalDir = getcwd();
 
-    # Unpack
-    system(('bash', '-c', "tar -xzf $dir/opt/php-*.tar.gz -C $dir/opt/"));
-    command_result($?, $!, 'Unpack PHP Archive...', 'tar -xf ' . $dir . '/opt/php-*.tar.gz -C ' . $dir . ' /opt/');
+    # Unpack PHP Archive
+    system('bash', '-c', "tar -xzf $dir/opt/php-*.tar.gz -C $dir/opt/");
+    command_result($?, $!, 'Unpacked PHP Archive...', 'tar -xf ' . $dir . '/opt/php-*.tar.gz -C ' . $dir . '/opt/');
 
     chdir glob("$dir/opt/php-*/");
 
-    # configure
+    # Configure PHP
     system(@configurePhp);
-    command_result($?, $!, 'Configure PHP...', \@configurePhp);
+    command_result($?, $!, 'Configured PHP...', \@configurePhp);
 
-    # make
+    # Make and Install PHP
     system('make');
-    command_result($?, $!, 'Make PHP...', 'make');
+    command_result($?, $!, 'Made PHP...', 'make');
 
-    # install
     system('make install');
-    command_result($?, $!, 'Install PHP...', 'make install');
+    command_result($?, $!, 'Installed PHP...', 'make install');
 
     chdir $originalDir;
 }
+
+1;

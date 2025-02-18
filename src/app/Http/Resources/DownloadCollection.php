@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Http\Request,
+    Illuminate\Http\Resources\Json\ResourceCollection;
 
 class DownloadCollection extends ResourceCollection
 {
@@ -12,15 +12,16 @@ class DownloadCollection extends ResourceCollection
      *
      * @var string
      */
-    public $collects = DownloadResource::class;
+    public $collects = DownloadResource::class; // Specifies the resource being collected.
 
     /**
      * Transform the resource collection into an array.
      *
+     * @param Request $request
      * @return array<int|string, DownloadResource>
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return parent::toArray($request); // Efficiently transforms the collection using the parent method.
     }
 }

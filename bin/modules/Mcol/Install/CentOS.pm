@@ -1,9 +1,8 @@
 #!/usr/bin/perl
 
-package Mcol::Install::MacOS;
+package Mcol::Install::CentOS;
 use strict;
 use Cwd qw(getcwd abs_path);
-use Env;
 use File::Basename;
 use lib dirname(abs_path(__FILE__)) . "/modules";
 use Mcol::Utility qw(command_result);
@@ -11,38 +10,38 @@ use Exporter 'import';
 
 our @EXPORT_OK = qw(install_system_dependencies install_php);
 
-my $bin = abs_path(dirname(__FILE__) . '/../../../');
-my $applicationRoot = abs_path(dirname($bin));
+# CentOS system dependencies
 my @systemDependencies = qw(
-    intltool autoconf automake expect gcc pcre2 curl libiconv pkg-config
-    openssl@3.0 mysql-client oniguruma libxml2 icu4c imagemagick mysql
-    libsodium libzip glib webp
+    epel-release supervisor authbind expect openssl-devel gcc curl
+    pkgconfig mysql-devel imagemagick pcre-devel libcurl-devel
+    libxml2-devel libicu-devel libxslt-devel libzip-devel oniguruma-devel
+    libsodium-devel glib2-devel libwebp-devel
 );
 
 # ====================================
 # Subroutines
 # ====================================
 
-# Installs OS level system dependencies.
+# Installs OS-level system dependencies for CentOS
 sub install_system_dependencies {
-    print "Brew is required for updating and installing system dependencies.\n";
+    my $username = getpwuid($<);
+    print "Sudo is required for updating and installing system dependencies.\n";
+    print "Please enter sudoers password for: $username elevated privileges.\n";
 
-    system('brew upgrade');
-    command_result($?, $!, "Updated system dependencies...");
+    # Update system
+    my @updateCmd = ('sudo', 'yum', 'update', '-y');
+    system(@updateCmd);
+    command_result($?, $!, "Updated system dependencies...", \@updateCmd);
 
-    # Install all dependencies in one command to minimize the system calls.
-    system('brew install', @systemDependencies);
-    command_result($?, $!, "Installed system dependencies...", 'brew install', @systemDependencies);
-
-    install_pip();
-    install_supervisor();
+    # Install system dependencies
+    my @cmd = ('sudo', 'yum', 'install', '-y', @systemDependencies);
+    system(@cmd);
+    command_result($?, $!, "Installed system dependencies...", \@cmd);
 }
 
-# Installs PHP.
+# Installs PHP on CentOS
 sub install_php {
     my ($dir) = @_;
-
-    $ENV{'PKG_CONFIG_PATH'} = '/usr/local/opt/icu4c/lib/pkgconfig';
 
     my @configurePhp = (
         './configure',
@@ -57,7 +56,7 @@ sub install_php {
         '--without-pdo-sqlite', '--with-libxml', '--with-xsl', '--with-zlib',
         '--with-curl', '--with-webp', '--with-openssl', '--with-zip',
         '--with-sodium', '--with-mysqli', '--with-pdo-mysql', '--with-mysql-sock',
-        '--with-iconv=/usr/local/opt/libiconv'
+        '--with-iconv'
     );
 
     my $originalDir = getcwd();
@@ -76,34 +75,10 @@ sub install_php {
     system('make');
     command_result($?, $!, 'Made PHP...', 'make');
 
-    system('make install');
+    system('make', 'install');
     command_result($?, $!, 'Installed PHP...', 'make install');
 
     chdir $originalDir;
-}
-
-# Installs Pip if not already installed.
-sub install_pip {
-    my $pipStatus = `python3 -m pip --version`;
-    return if $pipStatus =~ /^pip/;  # No need to install if pip is already present
-
-    my $pipInstallScript = 'get-pip.py';
-    system("curl https://bootstrap.pypa.io/$pipInstallScript -o $pipInstallScript");
-    command_result($?, $!, "Downloaded Pip...");
-
-    system("chmod +x $pipInstallScript");
-    command_result($?, $!, "Gave Pip Installer Execute Permission...");
-
-    system("python3 $pipInstallScript");
-    command_result($?, $!, "Installed Pip...");
-
-    unlink($pipInstallScript);
-}
-
-# Installs Supervisor using pip.
-sub install_supervisor {
-    system('python3', '-m', 'pip', 'install', 'supervisor');
-    command_result($?, $!, "Installed Supervisor...", 'python3', '-m', 'pip', 'install', 'supervisor');
 }
 
 1;

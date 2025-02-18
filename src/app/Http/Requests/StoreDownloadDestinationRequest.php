@@ -2,13 +2,26 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest,
+    Illuminate\Validation\Validator;
 
 use App\Models\Download;
 
+/**
+ * StoreDownloadDestinationRequest handles the validation for storing download destinations.
+ */
 class StoreDownloadDestinationRequest extends FormRequest
 {
+    /**
+     * @var string Destination directory for the download.
+     */
+    public string $destinationDir;
+
+    /**
+     * @var int Download ID associated with the destination.
+     */
+    public int $download;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -25,13 +38,15 @@ class StoreDownloadDestinationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'destination_dir'   => 'required|max:255',
-            'download'          => 'required|numeric',
+            'destination_dir' => 'required|max:255',
+            'download' => 'required|numeric',
         ];
     }
 
     /**
      * Get the "after" validation callables for the request.
+     *
+     * @return array<int, \Closure> An array of validation callables to run after validation.
      */
     public function after(): array
     {
@@ -49,12 +64,18 @@ class StoreDownloadDestinationRequest extends FormRequest
         ];
     }
 
+    /**
+     * Check if the download exists.
+     *
+     * @param Validator $validator The validator instance.
+     *
+     * @return bool True if the download exists, otherwise false.
+     */
     public function downloadExists(Validator $validator): bool
     {
         $validated = $validator->validated();
-
         $download = Download::find($validated['download']);
 
-        return (null !== $download);
+        return $download !== null;
     }
 }

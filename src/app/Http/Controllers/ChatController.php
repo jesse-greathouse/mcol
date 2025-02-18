@@ -16,18 +16,18 @@ use App\Models\Client,
 class ChatController
 {
     /**
-     * Holds a collection of Network names
+     * Holds a collection of Network names.
      *
      * @var Collection
      */
-    private $networkList;
+    private Collection $networkList;
 
     /**
-     * Main fiew for the Chat page
+     * Main view for the Chat page.
      *
      * @return Response
      */
-    public function index()
+    public function index(): Response
     {
         return Inertia::render('Chat', [
             'queue'     => fn () => DownloadQueue::getQueue(),
@@ -41,32 +41,38 @@ class ChatController
     /**
      * For a list of networks, get an array of clients.
      *
-     * @return array <string, Client>
+     * @return array<string, Client>
      */
     private function getNetworkClients(): array
     {
         $clients = [];
 
-        foreach($this->getNetworkList() as $network) {
+        // Avoid calling getNetworkList repeatedly by storing it in a variable
+        $networkList = $this->getNetworkList();
+
+        foreach ($networkList as $network) {
             $client = Client::join('networks', 'networks.id', '=', 'clients.network_id')
                 ->where('clients.enabled', true)
                 ->where('networks.name', $network)
                 ->first();
 
-            $clients[$network] = $client->meta;
+            if ($client) {
+                $clients[$network] = $client->meta;
+            }
         }
 
         return $clients;
     }
 
     /**
-     * Makes sure the networkList is populated.
+     * Ensures the networkList is populated.
      *
      * @return Collection
      */
     private function getNetworkList(): Collection
     {
-        if (null === $this->networkList) {
+        // Populate the list only if it's not already set
+        if (is_null($this->networkList)) {
             $this->networkList = Network::all()->pluck('name');
         }
 

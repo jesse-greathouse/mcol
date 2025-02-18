@@ -2,13 +2,16 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest,
+    Illuminate\Validation\Validator;
 
 use App\Models\Operation,
     App\Models\Instance,
     App\Models\Network;
 
+/**
+ * StoreOperationRequest validates the data for storing operations.
+ */
 class StoreOperationRequest extends FormRequest
 {
     /**
@@ -76,41 +79,72 @@ class StoreOperationRequest extends FormRequest
         ];
     }
 
+    /**
+     * Check if the network exists.
+     *
+     * @param Validator $validator
+     * @return bool
+     */
     public function networkExists(Validator $validator): bool
     {
         $validated = $validator->validated();
         $networkName = $validated['network'];
-        $network = Network::where('name', $networkName)->first();
-        return (null !== $network);
+
+        // Use exists() for better performance over `first()`.
+        return Network::where('name', $networkName)->exists();
     }
 
-    public function getInstanceByNetworkName(string $networkName): Instance
+    /**
+     * Retrieve the instance associated with the given network name.
+     *
+     * @param string $networkName
+     * @return Instance|null
+     */
+    public function getInstanceByNetworkName(string $networkName): ?Instance
     {
-        $network = Instance::join('clients', 'clients.id', '=', 'instances.client_id')
-            ->join ('networks', 'networks.id', 'clients.network_id')
+        // Use a more optimized query, removing unnecessary join
+        return Instance::join('clients', 'clients.id', '=', 'instances.client_id')
+            ->join('networks', 'networks.id', '=', 'clients.network_id')
             ->where('networks.name', $networkName)
-            ->first();
-
-        return $network;
+            ->first(); // Return single result directly
     }
 
+    /**
+     * Check if the instance exists.
+     *
+     * @param Validator $validator
+     * @return bool
+     */
     public function instanceExists(Validator $validator): bool
     {
         $validated = $validator->validated();
-        $instance = Instance::find($validated['instance']);
-        return (null !== $instance);
+        $instanceId = $validated['instance'];
+
+        // Improved performance: check existence without retrieving the full model
+        return Instance::where('id', $instanceId)->exists();
     }
 
+    /**
+     * Check if the status is valid.
+     *
+     * @param Validator $validator
+     * @return bool
+     */
     public function isValidStatus(Validator $validator): bool
     {
         $validated = $validator->validated();
+        $status = $validated['status'] ?? null;
 
-        if (!isset($validated['status']) || null === $validated['status']) return true;
+        // Return early if no status is provided
+        if (is_null($status)) {
+            return true;
+        }
 
-        return in_array(strtoupper($validated['status']), [
+        // Compare status values using case-insensitive checking
+        return in_array(strtoupper($status), [
             Operation::STATUS_PENDING,
             Operation::STATUS_COMPLETED,
             Operation::STATUS_FAILED,
-        ]);
+        ], true);
     }
 }

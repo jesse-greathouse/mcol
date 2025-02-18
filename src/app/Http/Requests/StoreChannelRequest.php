@@ -2,16 +2,22 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest,
+    Illuminate\Validation\Validator;
 
 use App\Models\Channel,
     App\Models\Network;
 
+/**
+ * Request class for storing a channel.
+ * Contains authorization and validation logic for channel creation.
+ */
 class StoreChannelRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * @return bool Always returns true for now.
      */
     public function authorize(): bool
     {
@@ -36,53 +42,51 @@ class StoreChannelRequest extends FormRequest
 
     /**
      * Get the "after" validation callables for the request.
+     *
+     * @return array<callable> The after validation logic.
      */
     public function after(): array
     {
         return [
             function (Validator $validator) {
-                if (!$this->networkExists($validator)) {
-                    $validated = $validator->validated();
-                    $id = $validated['network'];
-                    $validator->errors()->add(
-                        'network',
-                        "Network with id: $id was not found."
-                    );
-                }
+                $this->validateNetworkExistence($validator);
             },
             function (Validator $validator) {
-                if (!$this->parentExists($validator)) {
-                    $validated = $validator->validated();
-                    $id = $validated['parent'];
-                    $validator->errors()->add(
-                        'parent',
-                        "Parent channel with id: $id was not found."
-                    );
-                }
+                $this->validateParentExistence($validator);
             }
         ];
     }
 
-    public function networkExists(Validator $validator): bool
+    /**
+     * Validate that the network exists in the database.
+     *
+     * @param Validator $validator The validator instance.
+     * @return void
+     */
+    private function validateNetworkExistence(Validator $validator): void
     {
         $validated = $validator->validated();
+        $networkId = $validated['network'];
 
-        $network = Network::find($validated['network']);
-
-        return (null !== $network);
+        if (!Network::find($networkId)) {
+            $validator->errors()->add('network', "Network with ID: $networkId was not found.");
+        }
     }
 
-    public function parentExists(Validator $validator): bool
+    /**
+     * Validate that the parent channel exists in the database.
+     *
+     * @param Validator $validator The validator instance.
+     * @return void
+     */
+    private function validateParentExistence(Validator $validator): void
     {
         $validated = $validator->validated();
+        $parentId = $validated['parent'];
 
-        // If Parent does not exist then simply return true
-        if (!isset($validated['parent']) || null === $validated['parent']) {
-            return true;
+        // Skip validation if parent is not set
+        if (isset($parentId) && null !== $parentId && !Channel::find($parentId)) {
+            $validator->errors()->add('parent', "Parent channel with ID: $parentId was not found.");
         }
-
-        $channel = Channel::find($validated['parent']);
-
-        return (null !== $channel);
     }
 }

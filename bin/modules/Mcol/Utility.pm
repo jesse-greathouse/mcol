@@ -17,8 +17,6 @@ our @EXPORT_OK = qw(
   is_pid_running
 );
 
-1;
-
 # ====================================
 #    Subroutines below this point
 # ====================================
@@ -28,20 +26,90 @@ sub  trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
 
 # Returns string associated with operating system.
 sub get_operating_system {
-    # From the source code of File::Spec
     my %osNames = (
         MSWin32 => 'Win32',
-        os2     => 'OS2',
-        VMS     => 'VMS',
-        NetWare => 'Win32', # Yes, File::Spec::Win32 works on NetWare.
-        symbian => 'Win32', # Yes, File::Spec::Win32 works on symbian.
-        dos     => 'OS2',   # Yes, File::Spec::OS2 works on DJGPP.
-        cygwin  => 'Cygwin',
-        amigaos => 'AmigaOS',
-        linux   => 'Ubuntu',
-        darwin  => 'MacOS');
+        NetWare => 'Win32',
+        symbian => 'Win32',
+        darwin  => 'MacOS'
+    );
 
-    return $osNames{$^O} or 'Ubuntu';
+    # Check for Linux-based OS and delegate to a separate function
+    if ($^O eq 'linux') {
+        return get_linux_distribution();
+    }
+
+    # If $^O is not found in the hash, die with an error message
+    die "Unsupported operating system: $^O\n" unless exists $osNames{$^O};
+
+    return $osNames{$^O};
+}
+
+# Detects the Linux distribution.
+sub get_linux_distribution {
+    # Arrays for different types of distribution identification
+    my @os_release_dists = (
+        { pattern => 'centos',          name => 'CentOS' },
+        { pattern => 'ubuntu',          name => 'Ubuntu' },
+        { pattern => 'fedora',          name => 'Fedora' },
+        { pattern => 'debian',          name => 'Debian' },
+        { pattern => 'opensuse',        name => 'OpenSUSE' },
+        { pattern => 'arch',            name => 'Arch' },
+        { pattern => 'alpine',          name => 'Alpine' },
+        { pattern => 'gentoo',          name => 'Gentoo' },
+        { pattern => 'openmandriva',    name => 'Mandriva' },
+    );
+
+    # Check /etc/os-release first (most modern distros)
+    if (open my $fh, '<', '/etc/os-release') {
+        while (my $line = <$fh>) {
+            foreach my $dist (@os_release_dists) {
+                if ($line =~ /^ID=$dist->{pattern}/) {
+                    return $dist->{name};
+                }
+            }
+        }
+    }
+
+    # Fallback to other common files
+    if (-e '/etc/lsb-release') {
+        if (open my $fh, '<', '/etc/lsb-release') {
+            while (my $line = <$fh>) {
+                foreach my $dist (@os_release_dists) {
+                    if ($line =~ /DISTRIB_ID=$dist->{name}/i) {
+                        return $dist->{name};
+                    }
+                }
+            }
+        }
+    }
+
+    if (-e '/etc/redhat-release') {
+        if (open my $fh, '<', '/etc/redhat-release') {
+            while (my $line = <$fh>) {
+                foreach my $dist (@os_release_dists) {
+                    if ($line =~ /$dist->{name}/i) {
+                        return $dist->{name};
+                    }
+                }
+            }
+        }
+    }
+
+    # Check /etc/debian_version for Debian-based distros
+    if (-e '/etc/debian_version') {
+        return 'Debian';
+    }
+
+    # Use uname as a last resort (generic fallback)
+    my $uname = `uname -a`;
+    foreach my $dist (@os_release_dists) {
+        if ($uname =~ /$dist->{name}/i) {
+            return $dist->{name};
+        }
+    }
+
+    # If no distribution was found, throw an error
+    die "Unable to determine Linux distribution.\n";
 }
 
 sub str_replace_in_file {
@@ -53,22 +121,22 @@ sub str_replace_in_file {
 
 sub read_file {
     my ($filename) = @_;
- 
+
     open my $in, '<:encoding(UTF-8)', $filename or die "Could not open '$filename' for reading $!";
     local $/ = undef;
     my $all = <$in>;
     close $in;
- 
+
     return $all;
 }
- 
+
 sub write_file {
     my ($filename, $content) = @_;
- 
+
     open my $out, '>:encoding(UTF-8)', $filename or die "Could not open '$filename' for writing $!";;
     print $out $content;
     close $out;
- 
+
     return;
 }
 
@@ -135,3 +203,5 @@ sub splash {
   print ('+--------------------------------------------------------------------------------------+'."\n");
   print (''."\n");
 }
+
+1;
