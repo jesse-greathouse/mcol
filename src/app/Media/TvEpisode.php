@@ -2,6 +2,12 @@
 
 namespace App\Media;
 
+/**
+ * Represents a TV episode with metadata like title, season, episode number, resolution, etc.
+ * This class processes filenames matching certain patterns and extracts relevant episode information.
+ *
+ * @package App\Media
+ */
 final class TvEpisode extends Media implements MediaTypeInterface
 {
     use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
@@ -15,84 +21,44 @@ final class TvEpisode extends Media implements MediaTypeInterface
     // https://www.phpliveregex.com/p/MDg
     const BY_DATE_MASK = '/^[\d{2}]*(.*)[\.|\-|\s](\d{2,4})[\.|\-|\s](\d{2})[\.|\-|\s](\d{2})[\.|\-|\s]?(.*)?[\.|\-\s](480[p]?|720[p]?|1080[p]?|2160[p]?)[\.|\-|\s]?(.*)?$/is';
 
-    /**
-     * Title of the series.
-     *
-     * @var string
-     */
-    private $title;
+    /** @var string Title of the series. */
+    private string $title;
 
-    /**
-     * Title of the episode.
-     *
-     * @var string
-     */
-    private $episode_title;
+    /** @var string Title of the episode. */
+    private string $episode_title;
 
-    /**
-     * Season number
-     *
-     * @var int
-     */
-    private $season;
+    /** @var int Season number. */
+    private int $season;
 
-    /**
-     * Episode Number
-     *
-     * @var int
-     */
-    private $episode;
+    /** @var int Episode number. */
+    private int $episode;
 
-    /**
-     * Video Resolution
-     *
-     * @var string
-     */
-    private $resolution;
+    /** @var string Video resolution. */
+    private ?string $resolution;
 
-    /**
-     * List of strings that describe various features of the media.
-     *
-     * @var array<string>
-     */
+    /** @var array<string> List of strings that describe various features of the media. */
     private array $tags = [];
 
-    /**
-     * File extension.
-     *
-     * @var string
-     */
-    private $extension;
+    /** @var string File extension. */
+    private string $extension;
 
-    /**
-     * Language.
-     *
-     * @var string
-     */
-    private $language;
+    /** @var string Language. */
+    private string $language;
 
-    /**
-     * Dynamic Range HDR.
-     *
-     * @var bool
-     */
-    private $isHdr;
+    /** @var bool Dynamic Range HDR. */
+    private bool $isHdr;
 
-    /**
-     * Dynamic Range Dolby Vision.
-     *
-     * @var bool
-     */
-    private $isDolbyVision;
+    /** @var bool Dynamic Range Dolby Vision. */
+    private bool $isDolbyVision;
 
     public function __construct(string $fileName)
     {
         $this->fileName = $fileName;
 
-        // Some TV episodes use a date format like: 2024.11.01 instead of the standard: S01E02
+        // Attempt to match the date format first.
         preg_match(self::BY_DATE_MASK, $this->fileName, $this->matches, PREG_UNMATCHED_AS_NULL);
 
-        if (8 == count($this->matches)) {
+        if (count($this->matches) === 8) {
             $this->mapDateFormat();
         } else {
             preg_match($this->getMask(), $this->fileName, $this->matches, PREG_UNMATCHED_AS_NULL);
@@ -102,35 +68,33 @@ final class TvEpisode extends Media implements MediaTypeInterface
 
     /**
      * Maps the result of match to properties.
+     * This method processes the extracted matches and sets object properties accordingly.
      *
      * @return void
      */
     public function map(): void
     {
         // Match including resolution.
-        if (6 < count($this->matches)) {
+        if (count($this->matches) > 6) {
             [, $title, $season, $episode, $episodeTitle, $resolution, $tags] = $this->matches;
         } else {
             // Try matching with no resolution.
             preg_match(self::NO_RESOLUTION_MASK, $this->fileName, $this->matches, PREG_UNMATCHED_AS_NULL);
 
-            if (5 > count($this->matches)) return;
+            if (count($this->matches) < 5) return;
 
             [, $title, $season, $episode, $tags] = $this->matches;
             $resolution = null;
             $episodeTitle = '';
         }
 
-        // sanity Check
-        $title = (null === $title) ? '' : trim($title);
-        $tags = (null === $title) ? '' : trim($tags);
-
-        $this->title = $this->formatTitle($title);
-        $this->season = intval($season);
-        $this->episode = intval($episode);
+        // Sanity Check for title and tags
+        $this->title = $this->formatTitle($title ?? '');
+        $this->tags = $this->formatTags($tags ?? '');
+        $this->season = (int) $season;
+        $this->episode = (int) $episode;
         $this->episode_title = $this->formatTitle($episodeTitle);
         $this->resolution = $resolution;
-        $this->tags = $this->formatTags($tags);
         $this->extension = $this->getExtension($this->fileName);
         $this->language = $this->getLanguage($this->fileName);
         $this->isHdr = $this->isHdr($this->fileName);
@@ -138,23 +102,25 @@ final class TvEpisode extends Media implements MediaTypeInterface
     }
 
     /**
-     * Maps the result of match to properties.
+     * Maps the result of a date-based filename match to properties.
+     * This method consolidates the episode number as a combination of month and day.
      *
      * @return void
      */
     public function mapDateFormat(): void
     {
-        // consolidate the episode number as month+day and then map.
+        // Extract month and day as episode number and map.
         [$month, $day] = array_slice($this->matches, 3, 2);
-        $episode = $month.$day;
+        $episode = $month . $day;
 
-        // Replace the month, day elements with episode.
+        // Replace month and day with the new episode number
         array_splice($this->matches, 3, 2, [$episode]);
         $this->map();
     }
 
     /**
      * Returns the mask with which to match the media.
+     * This method returns the default regex mask for matching TV episode filenames.
      *
      * @return string
      */
@@ -164,7 +130,8 @@ final class TvEpisode extends Media implements MediaTypeInterface
     }
 
     /**
-     * Returns the object as an array.
+     * Converts the object to an array representation.
+     * This method serializes the object's properties into an associative array for easy access.
      *
      * @return array
      */

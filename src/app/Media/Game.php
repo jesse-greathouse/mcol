@@ -4,17 +4,34 @@ namespace App\Media;
 
 use App\Exceptions\MediaMetadataUnableToMatchException;
 
+/**
+ * Class representing a game media object with metadata parsing capabilities.
+ *
+ * This class is responsible for extracting metadata (title, version, release type, etc.)
+ * from a string based on predefined patterns and formatting the data accordingly.
+ */
 final class Game extends Media implements MediaTypeInterface
 {
     use ExtensionMetaData, LanguageMetaData;
 
-    // https://www.phpliveregex.com/p/MxA
-    const MASK = '/^[\d{2,3}]*(.*)[\.|\-](.*)\..*$/i';
+    /**
+     * Regex pattern to match general media string (e.g., title and version).
+     * @see https://www.phpliveregex.com/p/MxA
+     */
+    private const MASK = '/^[\d{2,3}]*(.*)[\.|\-](.*)\..*$/i';
 
-    // https://www.phpliveregex.com/p/MxD
-    const VERSION_MASK = '/^(.*).*((v|version)\d{1,}[A-Za-z0-9\.\-]*)$/i';
+    /**
+     * Regex pattern to match version information in a media string.
+     * @see https://www.phpliveregex.com/p/MxD
+     */
+    private const VERSION_MASK = '/^(.*).*((v|version)\d{1,}[A-Za-z0-9\.\-]*)$/i';
 
-    const RELEASE_TYPES = [
+    /**
+     * Array of valid release types.
+     *
+     * @var array<string>
+     */
+    private const RELEASE_TYPES = [
         'update',
         'updated',
         'hotfix',
@@ -22,28 +39,28 @@ final class Game extends Media implements MediaTypeInterface
     ];
 
     /**
-     * Title of the Game.
+     * Title of the game.
      *
      * @var string
      */
-    private $title;
+    private string $title;
 
     /**
-     * Artist of the album.
+     * Version of the game.
+     *
+     * @var string|null
+     */
+    private ?string $version = null;
+
+    /**
+     * Release type (e.g., update, dlc).
      *
      * @var string
      */
-    private $version;
+    private string $release = '';
 
     /**
-     * Type of release Update, DLC, Hotfix, etc...
-     *
-     * @var string
-     */
-    private $release;
-
-    /**
-     * List of strings that describe various features of the media.
+     * Tags describing features of the media.
      *
      * @var array<string>
      */
@@ -54,62 +71,78 @@ final class Game extends Media implements MediaTypeInterface
      *
      * @var string
      */
-    private $extension;
+    private string $extension;
 
     /**
-     * Language.
+     * Language of the media.
      *
      * @var string
      */
-    private $language;
+    private string $language;
 
     /**
      * Maps the result of match to properties.
+     *
+     * This method processes the media string, extracting title, version, release type,
+     * tags, file extension, and language.
      *
      * @return void
      */
     public function map(): void
     {
-        if (1 > count($this->matches)) return;
-
-        $titleWords = [];
-        $release = '';
-        [, $gameStr ] = $this->matches;
-        $gameStr = (null === $gameStr) ? '' : trim($gameStr);
-
-        $cleaned = $gameStr;
-        // Find the version string and chop it from $gameStr
-        $version = $this->getVersionFromGameStr($gameStr);
-        if ('' !== $version && null !== $version) {
-            $i = strpos($gameStr, $version);
-            if ($i !== false) {
-                $cleaned = substr($gameStr, 0, $i);
-            }
+        if (empty($this->matches)) {
+            return;
         }
 
-        // Sometimes they're separated by underscores, other times by periods...
-        $separator = (false === strpos($cleaned, '.')) ? '_' : '.';
+        $gameStr = trim($this->matches[1] ?? '');
+        $cleaned = $gameStr;
+
+        // Extract version from the game string
+        $version = $this->getVersionFromGameStr($gameStr);
+        if ($version) {
+            $cleaned = strstr($gameStr, $version, true) ?: $gameStr;
+        }
+
+        // Split the cleaned string based on the separator (period or underscore)
+        $separator = strpos($cleaned, '.') === false ? '_' : '.';
         $parts = explode($separator, $cleaned);
 
-        // Extract the release types from the title.
-        forEach($parts as $word) {
-            $word = strtolower($word);
-            if (in_array($word, self::RELEASE_TYPES)) {
-                $release = $word;
-                break;
-            } else {
-                $titleWords[] = $word;
-            }
-        }
+        [
+            'title'     => $this->title,
+            'release'   => $this->release
+        ] = $this->extractTitleAndRelease($parts);
 
-        $title = (0 < count($titleWords)) ? implode(' ', $titleWords) : '';
-
-        $this->title = $this->formatTitle($title);
+        $this->title = $this->formatTitle($this->title);
         $this->version = $version;
-        $this->release = $release;
         $this->tags = $this->formatTags($gameStr);
         $this->extension = $this->getExtension($this->fileName);
         $this->language = $this->getLanguage($this->fileName);
+    }
+
+    /**
+     * Extracts the title and release type from a list of parts.
+     *
+     * @param array<string> $parts The split parts of the media string.
+     * @return array<string, string> The extracted title and release type.
+     */
+    private function extractTitleAndRelease(array $parts): array
+    {
+        $titleWords = [];
+        $release = '';
+
+        foreach ($parts as $word) {
+            $word = strtolower($word);
+            if (in_array($word, self::RELEASE_TYPES, true)) {
+                $release = $word;
+                break;
+            }
+            $titleWords[] = $word;
+        }
+
+        return [
+            'title' => implode(' ', $titleWords),
+            'release' => $release
+        ];
     }
 
     /**
@@ -125,7 +158,7 @@ final class Game extends Media implements MediaTypeInterface
     /**
      * Returns the object as an array.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -140,22 +173,20 @@ final class Game extends Media implements MediaTypeInterface
     }
 
     /**
-     * Undocumented function
+     * Extracts the version from the game string if available.
      *
-     * @param string $gameStr
-     * @return string|null
+     * @param string $gameStr The game string to search in.
+     * @return string|null The version string or null if not found.
+     * @throws MediaMetadataUnableToMatchException If no valid version is found.
      */
-    private function getVersionFromGameStr(string $gameStr): string|null
+    private function getVersionFromGameStr(string $gameStr): ?string
     {
-        $matches = [];
-        $matchResult = preg_match(self::VERSION_MASK, $gameStr, $matches, PREG_UNMATCHED_AS_NULL);
-        if (false === $matchResult) {
+        preg_match(self::VERSION_MASK, $gameStr, $matches);
+
+        if (count($matches) < 3) {
             throw new MediaMetadataUnableToMatchException("Unable to match media version to the metadata.");
         }
 
-        if (3 > count($matches)) return null;
-
-        return $matches[2];
+        return $matches[2] ?? null;
     }
-
 }

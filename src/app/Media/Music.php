@@ -4,75 +4,75 @@ namespace App\Media;
 
 use App\Exceptions\MediaMetadataUnableToMatchException;
 
+/**
+ * Class representing a music media object.
+ *
+ * This class handles metadata related to a music album, such as the title, artist,
+ * year of release, tags, file extension, and language. It uses regular expressions
+ * to match and extract relevant information from media filenames.
+ */
 final class Music extends Media implements MediaTypeInterface
 {
     use ExtensionMetaData, LanguageMetaData;
 
     // https://www.phpliveregex.com/p/MxT
+    // Regex pattern to match general music file naming convention.
     const MASK = '/^[\d{2}]*([A-Za-z0-9_\.]+)+\-([A-Za-z0-9_\.]+|Discography)?\-?(.*)\..*$/i';
 
     // https://www.phpliveregex.com/p/MxS
+    // Regex pattern to match the year in the filename or tags.
     const YEAR_MASK = '/(\d{4})/i';
 
     /**
-     * Title of the movie.
-     *
-     * @var string
+     * @var string Title of the music album.
      */
-    private $title;
+    private string $title;
 
     /**
-     * Artist of the album.
-     *
-     * @var string
+     * @var string Artist of the album.
      */
-    private $artist;
+    private string $artist;
 
     /**
-     * Year of the release.
-     *
-     * @var string
+     * @var string|null Year of the release, or null if not available.
      */
-    private $year;
+    private ?string $year = null;
 
     /**
-     * File extension.
-     *
-     * @var string
+     * @var string File extension of the media.
      */
-    private $extension;
+    private string $extension;
 
     /**
-     * Language.
-     *
-     * @var string
+     * @var string Language of the media file.
      */
-    private $language;
+    private string $language;
 
     /**
-     * List of strings that describe various features of the media.
-     *
-     * @var array<string>
+     * @var array<string> List of tags describing features of the media.
      */
     private array $tags = [];
 
     /**
      * Maps the result of match to properties.
      *
+     * This method processes the match result to extract and store metadata such as
+     * title, artist, year, tags, extension, and language.
+     *
      * @return void
      */
     public function map(): void
     {
-        if (4 > count($this->matches)) return;
+        if (count($this->matches) < 4) {
+            return; // Early exit for fewer matches
+        }
 
         [, $artist, $title, $tags] = $this->matches;
-        if (null === $title) $title = '';
-        if (null === $tags) $tags = '';
 
-        $this->title = $this->formatTitle($title);
-        $this->artist = $this->formatTitle($artist);
-        $this->year = $this->getYearFromTags($tags);
-        $this->tags = $this->formatTags($tags);
+        $this->title = $this->formatTitle($title ?? '');
+        $this->artist = $this->formatTitle($artist ?? '');
+        $this->year = $this->getYearFromTags($tags ?? '');
+        $this->tags = $this->formatTags($tags ?? '');
         $this->extension = $this->getExtension($this->fileName);
         $this->language = $this->getLanguage($this->fileName);
     }
@@ -80,7 +80,9 @@ final class Music extends Media implements MediaTypeInterface
     /**
      * Returns the mask with which to match the media.
      *
-     * @return string
+     * This is the regular expression pattern used to match and extract media metadata.
+     *
+     * @return string The regex pattern used for matching.
      */
     public function getMask(): string
     {
@@ -90,7 +92,9 @@ final class Music extends Media implements MediaTypeInterface
     /**
      * Returns the object as an array.
      *
-     * @return array
+     * This method returns a structured representation of the media metadata as an associative array.
+     *
+     * @return array The media metadata as an associative array.
      */
     public function toArray(): array
     {
@@ -105,46 +109,37 @@ final class Music extends Media implements MediaTypeInterface
     }
 
     /**
-     * Formats album title/artist into a readable string.
+     * Formats the album title or artist into a readable string.
      *
-     * @param string $title
-     * @return string
+     * This method replaces underscores and periods with spaces, then trims the result.
+     *
+     * @param string $title The title or artist name to format.
+     *
+     * @return string The formatted title or artist name.
      */
     public function formatTitle(string $title): string
     {
-        // Replace dots with spaces.
-        $title = str_replace('.', ' ', $title);
-
-        // Replace dots with spaces.
-        $title = str_replace('_', ' ', $title);
-
-        // Trim whitespace.
-        $title = trim($title);
-
-        return $title;
+        return trim(str_replace(['.', '_'], ' ', $title));
     }
 
     /**
-     * Extrapolates the year from the tag string.
+     * Extracts the year from the tags string.
      *
-     * @param string $tagStr
-     * @return string|null
+     * This method uses a regex pattern to search for a four-digit year within the tag string.
+     * If the year is found, it returns it. Otherwise, it throws an exception.
+     *
+     * @param string $tagStr The string containing tags, including potential year.
+     *
+     * @return string|null The year if found, or null if not.
+     *
+     * @throws MediaMetadataUnableToMatchException If no valid year is found.
      */
-    private function getYearFromTags(string $tagStr): string|null
+    private function getYearFromTags(string $tagStr): ?string
     {
-        $matches = [];
-        $year = null;
-
-        $result = preg_match(self::YEAR_MASK, $tagStr, $matches);
-
-        if (false === $result) {
+        if (preg_match(self::YEAR_MASK, $tagStr, $matches) === false) {
             throw new MediaMetadataUnableToMatchException("Unable to match Media year with: \"$tagStr\".");
         }
 
-        if (isset($matches[1])) {
-            $year = $matches[1];
-        }
-
-        return $year;
+        return $matches[1] ?? null;
     }
 }

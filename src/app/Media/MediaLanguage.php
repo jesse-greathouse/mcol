@@ -2,8 +2,18 @@
 
 namespace App\Media;
 
+/**
+ * Class MediaLanguage
+ *
+ * Provides constants and methods related to supported media languages.
+ * This class serves as a reference for media language codes and offers utility methods
+ * to retrieve lists of languages and their expanded variants.
+ *
+ * @package App\Media
+ */
 final class MediaLanguage
 {
+    // Language constants
     const CHINESE = 'chinese';
     const FRENCH = 'french';
     const GERMAN = 'german';
@@ -11,9 +21,9 @@ final class MediaLanguage
     const KOREAN = 'korean';
 
     /**
-     * Returns a list of a all the media languages.
+     * Retrieves a list of all available media languages.
      *
-     * @return array
+     * @return string[] A list of media language codes.
      */
     public static function getMediaLanguages(): array
     {
@@ -26,13 +36,17 @@ final class MediaLanguage
         ];
     }
 
+    /**
+     * Retrieves a list of expanded media languages, mapping a language to its variant.
+     *
+     * @return array<string, string[]> An associative array mapping a language to its expanded variant(s).
+     */
     public static function getExpandedLanguages(): array
     {
         return [
             self::KOREAN => [
-                'korsub',
+                'korsub', // Korean subtitle variant
             ],
         ];
     }
-
 }

@@ -2,49 +2,59 @@
 
 namespace App\Media;
 
-use Illuminate\Support\Facades\Log;
-
 use App\Exceptions\MediaMetadataUnableToMatchException;
 
 trait LanguageMetaData
 {
+    /** @var array<string> $expandedLanguages */
+    private array $expandedLanguages = [];
 
     /**
-     * Returns a language value from a fileName.
+     * Returns a language value extracted from the file name.
      *
-     * @param string $fileName
-     * @return string
+     * This method attempts to match a language pattern from the provided file name.
+     * If no match is found, an exception is thrown.
+     *
+     * @param string $fileName The file name to extract language from.
+     * @return string The matched language in lowercase, or an empty string if no match.
+     * @throws MediaMetadataUnableToMatchException If the file name does not match the expected language pattern.
      */
     public function getLanguage(string $fileName): string
     {
-        $matches = [];
+        // Get the regex mask to match languages
+        $languageMask = $this->getLanguageMask();
 
-        $matchResult = preg_match($this->getLanguageMask(), $fileName, $matches, PREG_UNMATCHED_AS_NULL);
-
-        if (false === $matchResult) {
-            throw new MediaMetadataUnableToMatchException("Unable to match language metadata for: $fileName.");
+        // Perform regex match
+        if (preg_match($languageMask, $fileName, $matches)) {
+            return strtolower($matches[0]);
         }
 
-        if (0 >= count($matches)) return '';
-
-        [$language] = $matches;
-
-        return strtolower($language);
+        // If no match, throw exception
+        throw new MediaMetadataUnableToMatchException("Unable to match language metadata for: $fileName.");
     }
 
     /**
-     * Converts the Languages in App\Media\MediaLanguage into a regex mask.
-     * https://www.phpliveregex.com/p/MDD
+     * Generates and returns a regular expression mask for all supported languages.
      *
-     * @return string
+     * This method dynamically generates a regex pattern based on the languages
+     * defined in the MediaLanguage class and any expanded languages.
+     *
+     * @return string The regex pattern that matches any supported language.
      */
     public function getLanguageMask(): string
     {
-        $languages = MediaLanguage::getMediaLanguages();
-        foreach(MediaLanguage::getExpandedLanguages() as $language => $list) {
-            $languages = array_merge($languages, $list);
+        // Load expanded languages once and store for reuse
+        if (empty($this->expandedLanguages)) {
+            $languages = MediaLanguage::getMediaLanguages();
+            foreach (MediaLanguage::getExpandedLanguages() as $language => $list) {
+                $languages = array_merge($languages, $list);
+            }
+
+            // Store the merged language list for future reuse
+            $this->expandedLanguages = $languages;
         }
 
-        return '/' . implode('|', $languages) . '/is';
+        // Return the compiled regex pattern
+        return '/^(' . implode('|', $this->expandedLanguages) . ')$/i';
     }
 }

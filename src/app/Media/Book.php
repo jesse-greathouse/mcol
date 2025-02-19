@@ -4,6 +4,25 @@ namespace App\Media;
 
 use App\Exceptions\MediaMetadataUnableToMatchException;
 
+/**
+ * Class representing a book within a media library.
+ *
+ * This class handles the extraction and management of metadata related to books, including
+ * the title, release year, volume (if applicable), tags, file extension, and language.
+ * It uses regular expressions to match specific patterns in the book's title to extract
+ * relevant information such as the year of release and volume in a series.
+ *
+ * The class provides methods for mapping the extracted metadata to properties,
+ * converting the object to an associative array, and retrieving the media's
+ * matching regex pattern.
+ *
+ * Regular expressions used:
+ * - MASK: Pattern for matching the file name and extracting the base title.
+ * - YEAR_MASK: Pattern for extracting the release year from the title.
+ * - VOLUME_MASK: Pattern for identifying the volume number in the title.
+ *
+ * @package App\Media
+ */
 final class Book extends Media implements MediaTypeInterface
 {
     use ExtensionMetaData, LanguageMetaData;
@@ -14,67 +33,72 @@ final class Book extends Media implements MediaTypeInterface
     const MASK = '/^(.*)\..*$/i';
 
     // https://www.phpliveregex.com/p/Mxu
+    // Pattern for matching a 4-digit year in the title
     const YEAR_MASK = '/^.*(\d{4}).*$/i';
 
-    //https://www.phpliveregex.com/p/Mxv
-    const VOLUME_MASK = '/^.*[book|volume|number][\.\-](\d{1,3})[\.\-].*$/';
+    // https://www.phpliveregex.com/p/Mxv
+    // Pattern to match book/volume/number and capture the volume number.
+    const VOLUME_MASK = '/^.*[book|volume|number][\.\-](\d{1,3})[\.\-].*$/i';
 
     /**
-     * Title of the movie.
+     * Title of the book.
      *
      * @var string
      */
-    private $title;
+    private string $title = '';
 
     /**
-     * Year of the release
+     * Year of the book's release.
      *
      * @var string
      */
-    private $year;
+    private string $year = '';
 
     /**
      * Book number in a series.
      *
-     * @var string
+     * @var string|null
      */
-    private $volume;
+    private ?string $volume = null;
 
     /**
-     * List of strings that describe various features of the media.
+     * List of tags describing various features of the media.
      *
      * @var array<string>
      */
     private array $tags = [];
 
     /**
-     * File extension.
+     * File extension of the book.
      *
      * @var string
      */
-    private $extension;
+    private string $extension = '';
 
     /**
-     * Language.
+     * Language of the book.
      *
      * @var string
      */
-    private $language;
+    private string $language = '';
 
     /**
-     * Maps the result of match to properties.
+     * Maps the result of a regex match to the object's properties.
      *
      * @return void
      */
     public function map(): void
     {
-        if (2 > count($this->matches)) return;
+        if (count($this->matches) < 2) {
+            return;
+        }
 
-        [, $title ] = $this->matches;
+        [, $title] = $this->matches;
 
-        // sanity Check
-        $title = (null === $title) ? '' : trim($title);
+        // Sanitize title to prevent issues if null or empty
+        $title = trim($title ?? '');
 
+        // Map metadata from the title
         $this->title = $this->formatTitle($title);
         $this->year = $this->getYearFromTitle($title);
         $this->volume = $this->getVolumeFromTitle($title);
@@ -84,7 +108,7 @@ final class Book extends Media implements MediaTypeInterface
     }
 
     /**
-     * Returns the mask with which to match the media.
+     * Returns the regex pattern to match the media file name.
      *
      * @return string
      */
@@ -94,9 +118,9 @@ final class Book extends Media implements MediaTypeInterface
     }
 
     /**
-     * Returns the object as an array.
+     * Converts the object to an associative array for easier handling.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -111,44 +135,38 @@ final class Book extends Media implements MediaTypeInterface
     }
 
     /**
-     * Extrapolate the release year from the title.
+     * Extracts the year from the book's title using a regex pattern.
      *
-     * @param string $title
-     * @return string
+     * @param string $title The title of the book.
+     * @return string The extracted year or an empty string if no match.
+     * @throws MediaMetadataUnableToMatchException If no year is found.
      */
     private function getYearFromTitle(string $title): string
     {
-        $matches = [];
-        $matchResult = preg_match(self::YEAR_MASK, $title, $matches, PREG_UNMATCHED_AS_NULL);
-        if (false === $matchResult) {
-            throw new MediaMetadataUnableToMatchException("Unable to match year from the title.");
+        // Try to match the year in the title using regex
+        if (preg_match(self::YEAR_MASK, $title, $matches) === 1) {
+            return $matches[1] ?? '';
         }
 
-        if (0 < count($matches)) {
-            return $matches[1];
-        } else {
-            return '';
-        }
+        // Throw exception if no match is found
+        throw new MediaMetadataUnableToMatchException("Unable to match year from the title.");
     }
 
     /**
-     * Extrapolate the volume from the title.
+     * Extracts the volume from the book's title using a regex pattern.
      *
-     * @param string $title
-     * @return string|null
+     * @param string $title The title of the book.
+     * @return string|null The extracted volume or null if no match.
+     * @throws MediaMetadataUnableToMatchException If no volume is found.
      */
-    private function getVolumeFromTitle(string $title): string|null
+    private function getVolumeFromTitle(string $title): ?string
     {
-        $matches = [];
-        $matchResult = preg_match(self::VOLUME_MASK, $title, $matches, PREG_UNMATCHED_AS_NULL);
-        if (false === $matchResult) {
-            throw new MediaMetadataUnableToMatchException("Unable to match volume from the title.");
+        // Try to match the volume in the title using regex
+        if (preg_match(self::VOLUME_MASK, $title, $matches) === 1) {
+            return $matches[1] ?? null;
         }
 
-        if (0 < count($matches)) {
-            return $matches[1];
-        } else {
-            return null;
-        }
+        // Throw exception if no match is found
+        throw new MediaMetadataUnableToMatchException("Unable to match volume from the title.");
     }
 }

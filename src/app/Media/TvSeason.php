@@ -2,90 +2,59 @@
 
 namespace App\Media;
 
+/**
+ * Class representing a TV season, including metadata such as title, season number, resolution, tags, and dynamic range information.
+ */
 final class TvSeason extends Media implements MediaTypeInterface
 {
     use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
 
     // https://www.phpliveregex.com/p/MxK
+    // Regular expression to match the format of a TV season filename
     const MASK = '/^[\d{2}]*(.*)[\.|\-|\s]S(\d{2})[\.|\-|\s](480[p]?|720[p]?|1080[p]?|2160[p]?)?(.+)$/i';
 
-    /**
-     * Title of the series.
-     *
-     * @var string
-     */
-    private $title;
+    /** @var string Title of the series */
+    private string $title;
 
-    /**
-     * Season number
-     *
-     * @var int
-     */
-    private $season;
+    /** @var int Season number */
+    private int $season;
 
-    /**
-     * Video Resolution
-     *
-     * @var string
-     */
-    private $resolution;
+    /** @var string Video resolution */
+    private string $resolution;
 
-    /**
-     * List of strings that describe various features of the media.
-     *
-     * @var array<string>
-     */
+    /** @var array<string> List of strings that describe various features of the media */
     private array $tags = [];
 
-    /**
-     * File extension.
-     *
-     * @var string
-     */
-    private $extension;
+    /** @var string File extension */
+    private string $extension;
+
+    /** @var string Language */
+    private string $language;
+
+    /** @var bool Dynamic Range HDR */
+    private bool $isHdr;
+
+    /** @var bool Dynamic Range Dolby Vision */
+    private bool $isDolbyVision;
 
     /**
-     * Language.
-     *
-     * @var string
-     */
-    private $language;
-
-    /**
-     * Dynamic Range HDR.
-     *
-     * @var bool
-     */
-    private $isHdr;
-
-    /**
-     * Dynamic Range Dolby Vision.
-     *
-     * @var bool
-     */
-    private $isDolbyVision;
-
-    /**
-     * Maps the result of match to properties.
+     * Maps the result of the regular expression match to the object's properties.
      *
      * @return void
      */
     public function map(): void
     {
-        if (5 > count($this->matches)) return;
+        if (count($this->matches) < 5) {
+            return;
+        }
 
+        // Destructure match groups with default fallbacks
         [, $title, $season, $resolution, $tags] = $this->matches;
-        if (null === $title) $title = '';
-        if (null === $tags) $tags = '';
 
-        // sanity Check
-        $title = (null === $title) ? '' : trim($title);
-        $tags = (null === $title) ? '' : trim($tags);
-
-        $this->title = $this->formatTitle($title);
-        $this->season = intval($season);
-        $this->resolution = $resolution;
-        $this->tags = $this->formatTags($tags);
+        $this->title = $this->formatTitle($title ?? '');
+        $this->season = (int) ($season ?? 0); // Explicit cast for clarity
+        $this->resolution = $resolution ?? '';
+        $this->tags = $this->formatTags($tags ?? '');
         $this->extension = $this->getExtension($this->fileName);
         $this->language = $this->getLanguage($this->fileName);
         $this->isHdr = $this->isHdr($this->fileName);
@@ -93,9 +62,9 @@ final class TvSeason extends Media implements MediaTypeInterface
     }
 
     /**
-     * Returns the mask with which to match the media.
+     * Returns the regular expression mask to match media filenames.
      *
-     * @return string
+     * @return string The regex mask used to identify TV season filenames.
      */
     public function getMask(): string
     {
@@ -103,9 +72,9 @@ final class TvSeason extends Media implements MediaTypeInterface
     }
 
     /**
-     * Returns the object as an array.
+     * Converts the object to an array representation.
      *
-     * @return array
+     * @return array The array representation of the TV season object.
      */
     public function toArray(): array
     {

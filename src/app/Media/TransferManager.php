@@ -9,10 +9,17 @@ use App\Exceptions\TransferFileDestinationPathException,
     App\FileSystem,
     App\Packet\File\FileExtension;
 
+/**
+ * Class responsible for managing file transfers, including archives and temporary directories.
+ *
+ * This class handles transferring files, including special cases for archive files (RAR, TAR, ZIP),
+ * and supports maintaining original files or deleting them based on options provided.
+ */
 class TransferManager
 {
     use Filesystem;
 
+    // Transfer agent constants
     const TRANSFER_AGENT_DEFAULT = '\App\Media\Transfer\CopyFile';
     const TRANSFER_AGENT_RAR = '\App\Media\Transfer\Rar';
     const TRANSFER_AGENT_TAR = '\App\Media\Transfer\Tar';
@@ -23,61 +30,70 @@ class TransferManager
      *
      * @var string
      */
-    protected $fileUri;
+    protected string $fileUri;
 
     /**
-     * The the path of where to transfer the file to.
+     * The path of where to transfer the file to.
      *
      * @var string
      */
-    protected $destinationPath;
+    protected string $destinationPath;
 
     /**
-     * An array to hold options for this operation.
+     * Options for this operation.
      *
      * @var array
      */
-    protected array $options = [];
+    protected array $options;
 
     /**
-     * The the temporary path for working with archives.
+     * The temporary path for working with archives.
      *
-     * @var string
+     * @var string|null
      */
-    protected $tmpPath;
+    protected ?string $tmpPath = null;
 
     /**
      * Directory of the file.
      *
      * @var string
      */
-    protected $fileDirName;
+    protected string $fileDirName;
 
     /**
      * Basename of the file.
      *
      * @var string
      */
-    protected $fileBaseName;
+    protected string $fileBaseName;
 
     /**
-     * File Extension of the file.
+     * File extension of the file.
      *
      * @var string
      */
-    protected $fileExtension;
+    protected string $fileExtension;
 
     /**
      * File name of the file.
      *
      * @var string
      */
-    protected $fileFileName;
+    protected string $fileFileName;
 
+    /**
+     * TransferManager constructor.
+     *
+     * Initializes the transfer manager with file URI, destination path, and options.
+     *
+     * @param string $fileUri        The file to transfer.
+     * @param string $destinationPath The destination path for the file.
+     * @param array  $options        Options for the transfer operation.
+     * @throws TransferFileUriNotFoundException
+     * @throws TransferFileDestinationPathException
+     */
     public function __construct(string $fileUri, string $destinationPath, array $options = [])
     {
-        // No file, no transfer...
-        // https://www.youtube.com/watch?v=iHSPf6x1Fdo
         if (!file_exists($fileUri)) {
             throw new TransferFileUriNotFoundException("File \"$fileUri\" could not be transferred because the file did not exist.");
         }
@@ -99,20 +115,20 @@ class TransferManager
     }
 
     /**
-     * Does the transfer.
+     * Executes the transfer.
+     *
+     * If the file is an archive, the corresponding transfer agent is used.
+     * After the transfer, the file is optionally deleted based on the 'keep_file' option.
      *
      * @return void
      */
     public function transfer(): void
     {
-        if ($this->isArchive()) {
-            $this->tmpPath = $this->getTemporaryDir();
-            $transferAgent = $this->getArchiveTransferAgent();
-        } else {
-            $transferAgent = self::TRANSFER_AGENT_DEFAULT;
-        }
+        $transferAgent = $this->isArchive()
+            ? $this->getArchiveTransferAgent()
+            : self::TRANSFER_AGENT_DEFAULT;
 
-        $agent = new $transferAgent($this, $this->getOptions());
+        $agent = new $transferAgent($this, $this->options);
         $agent->transfer();
         $agent->cleanup();
 
@@ -122,28 +138,24 @@ class TransferManager
     }
 
     /**
-     * Find the transfer adapter for a file archive.
+     * Finds the appropriate transfer agent for an archive file based on its extension.
      *
      * @return string
+     * @throws TransferIllegalArchiveException
      */
     public function getArchiveTransferAgent(): string
     {
         $ext = $this->getFileExtension();
-        switch($ext) {
-            case FileExtension::RAR:
-                return self::TRANSFER_AGENT_RAR;
-            case FileExtension::TAR:
-                return self::TRANSFER_AGENT_TAR;
-            case FileExtension::ZIP:
-                return self::TRANSFER_AGENT_ZIP;
-            default:
-                throw new TransferIllegalArchiveException("Unable to locate Transfer Agent for archive: $ext");
-                break;
-        }
+        return match ($ext) {
+            FileExtension::RAR => self::TRANSFER_AGENT_RAR,
+            FileExtension::TAR => self::TRANSFER_AGENT_TAR,
+            FileExtension::ZIP => self::TRANSFER_AGENT_ZIP,
+            default => throw new TransferIllegalArchiveException("Unable to locate Transfer Agent for archive: $ext"),
+        };
     }
 
     /**
-     * Returns a list of extensions that are archives.
+     * Returns a list of extensions recognized as archives.
      *
      * @return array
      */
@@ -157,34 +169,35 @@ class TransferManager
     }
 
     /**
-     * Tells if the file to be transferred is an archive.
+     * Determines if the file is an archive based on its extension.
      *
-     * @return boolean
+     * @return bool
      */
     public function isArchive(): bool
     {
-        return (in_array($this->fileExtension, $this->getArchiveExtensions()));
+        return in_array($this->fileExtension, $this->getArchiveExtensions(), true);
     }
 
     /**
-     * Returns true of the option to keep the original file has been set.
+     * Determines if the original file should be kept after transfer.
      *
-     * @return boolean
+     * @return bool
      */
     public function keepFile(): bool
     {
-        return (isset($this->options['keep_file']) && $this->options['keep_file']);
+        return (bool) ($this->options['keep_file'] ?? false);
     }
 
     /**
      * Provides a temporary directory path for working with archives.
      *
      * @return string
+     * @throws TransferFileInvalidTmpDirException
      */
     protected function getTemporaryDir(): string
     {
         if (!isset($this->options['tmp_dir'])) {
-            throw new TransferFileInvalidTmpDirException("Transfer Required a temporary directory, but a temporary root was not supplied.");
+            throw new TransferFileInvalidTmpDirException("Transfer required a temporary directory, but none was supplied.");
         }
 
         $tmpDir = $this->options['tmp_dir'] . $this->destinationPath;
@@ -197,9 +210,9 @@ class TransferManager
     }
 
     /**
-     * Get the file to be transferred.
+     * Retrieves the URI of the file to be transferred.
      *
-     * @return  string
+     * @return string
      */
     public function getFileUri(): string
     {
@@ -207,9 +220,9 @@ class TransferManager
     }
 
     /**
-     * Get the the path of where to transfer the file to.
+     * Retrieves the destination path of the file transfer.
      *
-     * @return  string
+     * @return string
      */
     public function getDestinationPath(): string
     {
@@ -217,9 +230,9 @@ class TransferManager
     }
 
     /**
-     * Get an array to hold options for this operation.
+     * Retrieves the options for this transfer operation.
      *
-     * @return  array
+     * @return array
      */
     public function getOptions(): array
     {
@@ -227,19 +240,19 @@ class TransferManager
     }
 
     /**
-     * Get the the temporary path for working with archives.
+     * Retrieves the temporary path used for archive transfers, if any.
      *
-     * @return  string|null
+     * @return string|null
      */
-    public function getTmpPath(): string|null
+    public function getTmpPath(): ?string
     {
         return $this->tmpPath;
     }
 
     /**
-     * Get directory of the file.
+     * Retrieves the directory name of the file.
      *
-     * @return  string
+     * @return string
      */
     public function getFileDirName(): string
     {
@@ -247,9 +260,9 @@ class TransferManager
     }
 
     /**
-     * Get basename of the file.
+     * Retrieves the basename of the file.
      *
-     * @return  string
+     * @return string
      */
     public function getFileBaseName(): string
     {
@@ -257,9 +270,9 @@ class TransferManager
     }
 
     /**
-     * Get file Extension of the file.
+     * Retrieves the file extension.
      *
-     * @return  string
+     * @return string
      */
     public function getFileExtension(): string
     {
@@ -267,9 +280,9 @@ class TransferManager
     }
 
     /**
-     * Get file name of the file.
+     * Retrieves the filename of the file.
      *
-     * @return  string
+     * @return string
      */
     public function getFileFileName(): string
     {

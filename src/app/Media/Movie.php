@@ -2,6 +2,10 @@
 
 namespace App\Media;
 
+/**
+ * Class representing a movie, implementing MediaTypeInterface.
+ * Provides functionality to extract metadata from a media file name such as title, year, resolution, and other features.
+ */
 final class Movie extends Media implements MediaTypeInterface
 {
     use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
@@ -13,90 +17,71 @@ final class Movie extends Media implements MediaTypeInterface
     const NO_RESOLUTION_MASK = '/^[\d{2}]*(.*)[\-|\.|\s|\(](\d{4})[\-|\.|\s|\)](.*)$/is';
 
     /**
-     * Title of the movie.
-     *
-     * @var string
+     * @var string Title of the movie.
      */
-    private $title;
+    private string $title;
 
     /**
-     * Year of the release
-     *
-     * @var string
+     * @var string Year of the release.
      */
-    private $year;
+    private string $year;
 
     /**
-     * Video Resolution
-     *
-     * @var string
+     * @var string|null Video resolution.
      */
-    private $resolution;
+    private ?string $resolution;
 
     /**
-     * List of strings that describe various features of the media.
-     *
-     * @var array<string>
+     * @var array<string> List of strings that describe various features of the media.
      */
     private array $tags = [];
 
     /**
-     * File extension.
-     *
-     * @var string
+     * @var string File extension.
      */
-    private $extension;
+    private string $extension;
 
     /**
-     * Language.
-     *
-     * @var string
+     * @var string Language.
      */
-    private $language;
+    private string $language;
 
     /**
-     * Dynamic Range HDR.
-     *
-     * @var bool
+     * @var bool Dynamic Range HDR.
      */
-    private $isHdr;
+    private bool $isHdr;
 
     /**
-     * Dynamic Range Dolby Vision.
-     *
-     * @var bool
+     * @var bool Dynamic Range Dolby Vision.
      */
-    private $isDolbyVision;
+    private bool $isDolbyVision;
 
     /**
-     * Maps the result of match to properties.
+     * Maps the result of regex matching to object properties.
+     * Attempts to match the media filename with the resolution mask or fallback to the no-resolution mask.
      *
      * @return void
      */
     public function map(): void
     {
-        // Match including resolution.
-        if (4 < count($this->matches)) {
-            [, $title, $year, $resolution, $tags] = $this->matches;
+        // Attempt to match with resolution.
+        if (preg_match(self::MASK, $this->fileName, $matches) && count($matches) > 4) {
+            [, $title, $year, $resolution, $tags] = $matches;
         } else {
-            // Try matching with no resolution.
-            preg_match(self::NO_RESOLUTION_MASK, $this->fileName, $this->matches, PREG_UNMATCHED_AS_NULL);
+            // Try matching without resolution.
+            if (!preg_match(self::NO_RESOLUTION_MASK, $this->fileName, $matches) || count($matches) < 4) {
+                return;
+            }
 
-            if (4 > count($this->matches)) return;
-
-            [, $title, $year, $tags] = $this->matches;
+            [, $title, $year, $tags] = $matches;
             $resolution = null;
         }
 
-        // sanity Check
-        $title = (null === $title) ? '' : trim($title);
-        $year = (null === $year) ? '' : trim($year);
-        $tags = (null === $title) ? '' : trim($tags);
-
-        $this->title = $this->formatTitle($title);
-        $this->year = $year;
-        $this->resolution = $resolution;
-        $this->tags = $this->formatTags($tags);
+        // Sanitize and assign values to properties.
+        $this->title = $this->formatTitle($title ?? '');
+        $this->year = trim($year ?? '');
+        $this->resolution = $resolution ? trim($resolution) : null;
+        $this->tags = $this->formatTags(trim($tags ?? ''));
         $this->extension = $this->getExtension($this->fileName);
         $this->language = $this->getLanguage($this->fileName);
         $this->isHdr = $this->isHdr($this->fileName);
@@ -104,9 +89,9 @@ final class Movie extends Media implements MediaTypeInterface
     }
 
     /**
-     * Returns the mask with which to match the media.
+     * Returns the mask used for regex matching the media file.
      *
-     * @return string
+     * @return string The regex mask for the media filename.
      */
     public function getMask(): string
     {
@@ -114,9 +99,9 @@ final class Movie extends Media implements MediaTypeInterface
     }
 
     /**
-     * Returns the object as an array.
+     * Converts the object properties to an associative array.
      *
-     * @return array
+     * @return array<string, mixed> Associative array of object properties.
      */
     public function toArray(): array
     {
