@@ -16,29 +16,38 @@ use App\Models\Bot,
     App\Models\Network,
     App\Packet\File\FileExtension;
 
-use \DateTime;
+use DateTime;
 
+/**
+ * Browse class is a comprehensive tool for creating SQL queries for the packets table.
+ */
 class Browse
 {
+    // Date format constant
     const MYSQL_TIMESTAMP_FORMAT = 'Y-m-d H:i:s';
 
+    // Order constants
     const ORDER_BY_PACKET_CREATED = 'p.created_at';
     const ORDER_BY_FILE_RELEASE = 'f.created_at';
     const ORDER_BY_GETS = 'p.gets';
     const ORDER_BY_FILE_NAME = 'p.file_name';
 
+    // Order option constants
     const ORDER_OPTION_CREATED = 'created';
     const ORDER_OPTION_RELEASE = 'release';
     const ORDER_OPTION_GETS = 'gets';
     const ORDER_OPTION_NAME = 'name';
     const ORDER_OPTION_DEFAULT = self::ORDER_OPTION_CREATED;
 
+    // Sort direction constants
     const ORDER_ASCENDING = 'asc';
     const ORDER_DESCENDING = 'desc';
 
+    // Default pagination constants
     const DEFAULT_RPP = 40;
     const DEFAULT_PAGE = 1;
 
+    // Filter constants
     const FILTER_END_DATE = 'endDate';
     const FILTER_START_DATE = 'startDate';
     const FILTER_SEARCH_STRING = 'searchString';
@@ -59,146 +68,148 @@ class Browse
     const FILTER_IN_FILE_EXTENSIONS = 'filterInFileExtensions';
     const FILTER_OUT_FILE_EXTENSIONS = 'filterOutFileExtensions';
 
-    // Lists of media types to filter in or out.
+    // Properties for filtering lists
     /**
+     * List of media types to filter in.
      * @var array
      */
     protected array $filterInMediaTypes = [];
 
     /**
+     * List of media types to filter out.
      * @var array
      */
     protected array $filterOutMediaTypes = [];
 
-    // Lists of bots to filter in or out.
     /**
+     * List of bots to filter in.
      * @var array
      */
     protected array $filterInBots = [];
 
     /**
+     * List of bots to filter out.
      * @var array
      */
     protected array $filterOutBots = [];
 
-    // Mask of a bot nick to filter in or out.
     /**
+     * List of bot nicks to filter in.
      * @var array
      */
     protected array $filterInNicks = [];
 
     /**
+     * List of bot nicks to filter out.
      * @var array
      */
     protected array $filterOutNicks = [];
 
-    // Lists of languages to filter in or out.
     /**
+     * List of languages to filter in.
      * @var array
      */
     protected array $filterInLanguages = [];
 
     /**
+     * List of languages to filter out.
      * @var array
      */
     protected array $filterOutLanguages = [];
 
-    // Lists of networks to filter in or out.
     /**
+     * List of networks to filter in.
      * @var array
      */
     protected array $filterInNetworks = [];
 
     /**
+     * List of networks to filter out.
      * @var array
      */
     protected array $filterOutNetworks = [];
 
-    // Lists of resolutions to filter in or out.
     /**
+     * List of resolutions to filter in.
      * @var array
      */
     protected array $filterInResolutions = [];
 
     /**
+     * List of resolutions to filter out.
      * @var array
      */
     protected array $filterOutResolutions = [];
 
-    // Lists of dynamic ranges to filter in or out.
     /**
+     * List of dynamic ranges to filter in.
      * @var array
      */
     protected array $filterInDynamicRange = [];
 
     /**
+     * List of dynamic ranges to filter out.
      * @var array
      */
     protected array $filterOutDynamicRange = [];
 
-    // Lists of file extensions to filter in or out.
     /**
+     * List of file extensions to filter in.
      * @var array
      */
     protected array $filterInFileExtensions = [];
 
     /**
+     * List of file extensions to filter out.
      * @var array
      */
     protected array $filterOutFileExtensions = [];
 
     /**
-     * String entered for search.
-     *
-     * @var string
+     * Search string entered by the user.
+     * @var string|null
      */
-    protected $searchString;
+    protected ?string $searchString = null;
 
     /**
-     * Earlist DateTime of query.
-     *
-     * @var DateTime
+     * Earliest DateTime of query.
+     * @var DateTime|null
      */
-    protected $startDate;
+    protected ?DateTime $startDate = null;
 
     /**
      * Latest DateTime of query.
-     *
-     * @var DateTime
+     * @var DateTime|null
      */
-    protected $endDate;
+    protected ?DateTime $endDate = null;
 
     /**
-     * Holds the value of the order.
-     *
-     * @var string
+     * The field by which to order results.
+     * @var string|null
      */
-    protected $order;
+    protected ?string $order = null;
 
     /**
-     * Direction of result order.
-     *
-     * @var string
+     * Direction of sorting (asc or desc).
+     * @var string|null
      */
-    protected $direction;
+    protected ?string $direction = null;
 
     /**
      * Records per page.
-     *
-     * @var int
+     * @var int|null
      */
-    protected $rpp;
+    protected ?int $rpp = null;
 
     /**
-     * Page of the recordset.
-     *
-     * @var int
+     * Page number of the result set.
+     * @var int|null
      */
-    protected $page;
+    protected ?int $page = null;
 
     /**
-     * Instansiates a Browse object.
-     * Browse is a comprehensive tool for creating SQL queries for the packets table.
+     * Instantiates a new Browse object with default values.
+     * Sets default order, records per page (rpp), and page number.
      */
     public function __construct()
     {
@@ -208,7 +219,7 @@ class Browse
     }
 
     /**
-     * Returns a list of available order directions.
+     * Returns a list of available sorting directions.
      *
      * @return array
      */
@@ -236,133 +247,189 @@ class Browse
     }
 
     /**
-     * A shortcut function to make downstream logic a little bit more terse.
-     * There is a lot of this checking happening in a lot of these methods.
-     * This should enable it to be easier to read.
+     * Checks whether the given filter is active (i.e., not empty or null).
      *
-     * @param string
-     * @return bool
+     * This method checks if the property corresponding to the filter is a non-empty array
+     * or if it is not null, returning true if the filter is active, otherwise false.
+     *
+     * @param string $filter The name of the filter property to check.
+     * @return bool True if the filter is active, false otherwise.
      */
     public function isFiltering(string $filter): bool
     {
-        if ('array' === gettype($this->$filter)) {
-            return (0 < count($this->$filter)) ? true : false;
+        $property = $this->$filter;
+
+        // If the property is an array and has elements, it's considered active.
+        if (is_array($property)) {
+            return !empty($property);
         }
 
-        if (null !== $this->$filter) return true;
-
-        return false;
+        // If the property is not null, it's considered active.
+        return $property !== null;
     }
 
     /**
-     * Run the Query and return the result.
+     * Executes the query and returns the result as an array.
      *
-     * @return array
+     * This method constructs the query using the `makeQuery` method and executes it
+     * using the database connection to retrieve the results. It is optimized to directly
+     * return the results without unnecessary steps.
+     *
+     * @return array The result of the query execution as an array of records.
      */
     public function get(): array
     {
-        return DB::select($this->makeQuery());
+        return (array) DB::select($this->makeQuery());
     }
 
     /**
-     * Run the Query and return paginated results.
+     * Executes the query and returns a paginated result.
      *
-     * @return LengthAwarePaginator
+     * This method runs two queries: one to get the total number of items (`makeCountQuery`)
+     * and another to fetch the items with pagination (`makeOffsetQuery`). The results are
+     * then wrapped in a `LengthAwarePaginator` to provide easy pagination functionality.
+     *
+     * @param array $options Additional pagination options (e.g., custom page name).
+     * @return LengthAwarePaginator The paginated results.
      */
     public function paginate(array $options = []): LengthAwarePaginator
     {
+        // Retrieve total number of items using a scalar query (count).
         $total = DB::scalar($this->makeCountQuery());
+
+        // Fetch the items for the current page.
         $items = DB::select($this->makeOffsetQuery());
-        $paginator = new LengthAwarePaginator($items, $total, $this->rpp, $this->page, $options);
-        return $paginator;
+
+        return new LengthAwarePaginator($items, $total, $this->rpp, $this->page, $options);
     }
 
     /**
-     * Creates a query based on all the search and filtering criteria.
+     * Builds and returns a complete SQL query string based on the search and filtering criteria.
      *
-     * @return string
+     * This method constructs the query in a step-by-step manner by appending the select,
+     * from, filter, and order clauses. The final query string is then returned.
+     *
+     * @return string The constructed SQL query string.
      */
     public function makeQuery(): string
     {
-        $query = $this->getQuerySelect();
-        $query .= $this->getQueryFrom();
-        $query .= $this->getQueryFilters();
-        $query .= $this->getQueryOrder();
+        $queryParts = [
+            $this->getQuerySelect(),
+            $this->getQueryFrom(),
+            $this->getQueryFilters(),
+            $this->getQueryOrder()
+        ];
 
-        return $query;
+        // Join and return the parts as a single query string
+        return implode(' ', $queryParts);
     }
 
     /**
-     * Creates a query based on all the search and filtering criteria.
+     * Builds and returns a SQL query string for pagination based on the search and filtering criteria.
      *
-     * @return string
+     * This method constructs the offset-based query in a step-by-step manner by appending the select,
+     * from, filter, order, and offset clauses. The final query string is then returned.
+     *
+     * @return string The constructed SQL offset query string.
      */
     public function makeOffsetQuery(): string
     {
-        $query = $this->getQuerySelect();
-        $query .= $this->getQueryFrom();
-        $query .= $this->getQueryFilters();
-        $query .= $this->getQueryOrder();
-        $query .= $this->getQueryOffset();
+        $queryParts = [
+            $this->getQuerySelect(),
+            $this->getQueryFrom(),
+            $this->getQueryFilters(),
+            $this->getQueryOrder(),
+            $this->getQueryOffset()
+        ];
 
-        return $query;
+        // Return the query by joining the array elements into a single string
+        return implode(' ', $queryParts);
     }
 
     /**
-     * Creates a query that calcuates the maximum number of records.
+     * Builds and returns a SQL query string to calculate the total count of records based on the search and filtering criteria.
      *
-     * @return string
+     * This method constructs a query for counting the records, appending the necessary select,
+     * from, and filter clauses. The final query string is then returned.
+     *
+     * @return string The constructed count query string.
      */
     public function makeCountQuery(): string
     {
-        $query = $this->getQueryCount();
-        $query .= $this->getQueryFrom();
-        $query .= $this->getQueryFilters();
+        $queryParts = [
+            $this->getQueryCount(),
+            $this->getQueryFrom(),
+            $this->getQueryFilters()
+        ];
 
-        return $query;
+        // Return the query by joining the array elements into a single string
+        return implode(' ', $queryParts);
     }
 
     /**
      * Returns a string that composes all the filters for the query.
      *
-     * @return string
+     * This method consolidates all individual query filters into a single query string.
+     * Each filter is added sequentially and concatenated into a final string, which will be used to refine
+     * the query in the database query builder.
+     *
+     * @return string The query string with all applied filters.
      */
-    protected function getQueryFilters(): string {
-        $query = $this->filterSearchString();
-        $query .= $this->filterDateRange();
-        $query .= $this->filterDynamicRange();
-        $query .= $this->filterMediaTypes();
-        $query .= $this->filterColumn('p.resolution', self::FILTER_IN_RESOLUTIONS, self::FILTER_OUT_RESOLUTIONS);
-        $query .= $this->filterColumn('n.name', self::FILTER_IN_NETWORKS, self::FILTER_OUT_NETWORKS);
-        $query .= $this->filterColumn('p.language', self::FILTER_IN_LANGUAGES, self::FILTER_OUT_LANGUAGES);
-        $query .= $this->filterFileExtensions();
-        $query .= $this->filterColumn('b.id', self::FILTER_IN_BOTS, self::FILTER_OUT_BOTS);
-        $query .= $this->filterColumn('b.nick', self::FILTER_IN_NICKS, self::FILTER_OUT_NICKS);
+    protected function getQueryFilters(): string
+    {
+        // Collecting all filters in an array for efficient concatenation
+        $filters = [
+            $this->filterSearchString(),
+            $this->filterDateRange(),
+            $this->filterDynamicRange(),
+            $this->filterMediaTypes(),
+            $this->filterColumn('p.resolution', self::FILTER_IN_RESOLUTIONS, self::FILTER_OUT_RESOLUTIONS),
+            $this->filterColumn('n.name', self::FILTER_IN_NETWORKS, self::FILTER_OUT_NETWORKS),
+            $this->filterColumn('p.language', self::FILTER_IN_LANGUAGES, self::FILTER_OUT_LANGUAGES),
+            $this->filterFileExtensions(),
+            $this->filterColumn('b.id', self::FILTER_IN_BOTS, self::FILTER_OUT_BOTS),
+            $this->filterColumn('b.nick', self::FILTER_IN_NICKS, self::FILTER_OUT_NICKS),
+        ];
 
-        return $query;
+        // Using implode to join all filters into a single string
+        return implode('', $filters);
     }
 
     /**
-     * Calculates the query offset based on the page number and rpp.
+     * Calculates the offset for the SQL query based on the current page number and records per page (RPP).
+     * The offset is used to determine the starting point of the result set for pagination purposes.
      *
-     * @return integer
+     * The offset is calculated using the formula: (page - 1) * rpp.
+     * Wrapping the result in max() so the calculated offset doesn't result in a negative value.
+     *
+     * @return int The calculated offset for the query.
      */
     protected function getOffset(): int
     {
-        return ($this->page * $this->rpp) - $this->rpp;
+        return max(0, ($this->page - 1) * $this->rpp);
     }
 
     /**
-     * Combines lists where a value does not already exist.
+     * Combines two lists by adding elements from the new list to the old list,
+     * but only if those elements are not already present.
      *
-     * @param array $oldList
-     * @param array $newList
-     * @return array
+     * This version uses a set-based approach to optimize checking for existence
+     * and avoid repeated traversals of the old list for each element in the new list.
+     *
+     * @param array $oldList The existing list to which new elements may be added.
+     * @param array $newList The list of new elements to combine with the old list.
+     * @return array The combined list, with no duplicates.
      */
-    protected function combineList(array $oldList, array $newList): array {
-        foreach($newList as $el) {
-            if (!in_array($el, $oldList)) {
+    protected function combineList(array $oldList, array $newList): array
+    {
+        // Convert old list to a set (unique values only) for faster lookup
+        $oldSet = array_flip($oldList);
+
+        // Merge elements from the new list, checking if they already exist in the old set
+        foreach ($newList as $el) {
+            if (!isset($oldSet[$el])) {
                 $oldList[] = $el;
+                $oldSet[$el] = true; // Mark as seen
             }
         }
 
@@ -370,141 +437,153 @@ class Browse
     }
 
     /**
-     * Maps order options to order values
+     * Maps order options to their corresponding order values.
      *
-     * @return array
+     * This method returns a predefined mapping between order options (e.g.,
+     * 'created', 'release', 'gets', 'name') and their respective database or query
+     * order values. The mapping is static and does not depend on dynamic conditions.
+     *
+     * @return array The order map, where keys are order options and values are
+     *               corresponding order values.
      */
     protected function getOrderMap(): array
     {
+        // Use a static array for fast retrieval of order options
         return [
-            self::ORDER_OPTION_CREATED  => self::ORDER_BY_PACKET_CREATED,
-            self::ORDER_OPTION_RELEASE  => self::ORDER_BY_FILE_RELEASE,
-            self::ORDER_OPTION_GETS     => self::ORDER_BY_GETS,
-            self::ORDER_OPTION_NAME     => self::ORDER_BY_FILE_NAME,
+            self::ORDER_OPTION_CREATED => self::ORDER_BY_PACKET_CREATED,
+            self::ORDER_OPTION_RELEASE => self::ORDER_BY_FILE_RELEASE,
+            self::ORDER_OPTION_GETS    => self::ORDER_BY_GETS,
+            self::ORDER_OPTION_NAME    => self::ORDER_BY_FILE_NAME,
         ];
     }
 
     /**
-     * figures out a default order by direction.
+     * Determines the default order direction based on the order option.
      *
-     * @return string
+     * This method returns the default sorting direction (ascending or descending)
+     * depending on the current order option.
+     *
+     * @return string The default sorting direction, either `ORDER_ASCENDING` or `ORDER_DESCENDING`.
      */
     protected function getDefaultDirection(): string
     {
-        switch($this->order) {
-            case self::ORDER_OPTION_NAME:
-                return self::ORDER_ASCENDING;
-            default:
-                return self::ORDER_DESCENDING;
-        }
+        // Return the default direction based on the order option.
+        return $this->order === self::ORDER_OPTION_NAME ? self::ORDER_ASCENDING : self::ORDER_DESCENDING;
     }
 
     /**
      * Generic column filtering method.
-     * Use this only when the column query fits the common pattern.
-     * e.g.: "AND p.language IN ('german,','korean','spanish')";
      *
-     * @param string $column
-     * @param string $filter
-     * @param string $negativeFilter
-     * @return string
+     * This method applies a filter on a specified column, either by using the `IN` clause or the `NOT IN` clause,
+     * depending on the filtering state. The method should be used when the column query follows a standard pattern.
+     * For example, applying filters like `AND p.language IN ('german', 'korean', 'spanish')`.
+     *
+     * @param string $column The column to apply the filter on.
+     * @param string $filter The filter condition to include in the query.
+     * @param string|null $negativeFilter The filter condition to exclude from the query, if any.
+     * @return string The SQL query snippet for the specified column filter.
      */
     protected function filterColumn(string $column, string $filter, ?string $negativeFilter): string
     {
-        $query = '';
-        $state = 'IN';
-        $list  = null;
-
+        // Check if the positive filter is active
         if ($this->isFiltering($filter)) {
-            $list = $this->makeListStr($this->$filter);
-        } else if (null !== $negativeFilter &&  $this->isFiltering($negativeFilter)) {
-            $list = $this->makeListStr($this->$negativeFilter);
-            $state = 'NOT IN';
+            return "AND $column IN (" . $this->makeListStr($this->$filter) . ")\n";
         }
 
-        if (null !== $list) {
-            $query = "AND $column $state ($list)\n";
+        // Check if the negative filter is active
+        if ($negativeFilter !== null && $this->isFiltering($negativeFilter)) {
+            return "AND $column NOT IN (" . $this->makeListStr($this->$negativeFilter) . ")\n";
         }
 
-        return $query;
+        // Return an empty string if no valid filters are found
+        return '';
     }
 
     /**
-     * Creates a SQL filter clause for a user provided search string.
+     * Generates a SQL filter clause for a user-provided search string.
      *
-     * @return string
+     * Checks if a search string filter is applied and, if so, creates a
+     * SQL `MATCH` clause to filter results based on the provided search string.
+     * The query uses the `BOOLEAN MODE` to perform full-text search matching
+     * on the `file_name` column.
+     *
+     * @return string The SQL filter clause or an empty string if no search filter is applied.
      */
     protected function filterSearchString(): string
     {
-        $query = '';
-
-        if ($this->isFiltering(self::FILTER_SEARCH_STRING)) {
-            $searchString = $this->getSearchString();
-            $query = "AND MATCH (p.file_name) AGAINST ('$searchString' IN BOOLEAN MODE)\n";
+        if (!$this->isFiltering(self::FILTER_SEARCH_STRING)) {
+            return '';
         }
 
-        return $query;
+        // Get the search string and return the formatted SQL filter clause
+        $searchString = $this->getSearchString();
+        return "AND MATCH (p.file_name) AGAINST ('$searchString' IN BOOLEAN MODE)\n";
     }
 
     /**
-     * Formats a search string to match all words.
+     * Formats a search string to match all words by adding a plus sign before each word.
      *
-     * @param string $searchString
-     * @return string
+     * This method splits the input string into individual words and prepends a `+` sign
+     * to each word, which is commonly used in full-text search queries to indicate a
+     * match for all words (i.e., a logical AND).
+     *
+     * @param string $searchString The search string to format.
+     * @return string The formatted search string where each word is prefixed with a `+` symbol.
      */
     protected function formatSearchMatchAll(string $searchString): string
     {
-        $formatted = [];
-        $words = explode(' ', $searchString);
-
-        foreach($words as $word) {
-            $formatted[] = "+$word";
-        }
-
-        return implode(' ', $formatted);
+        // Split the search string into words and add '+' to each word using array_map for efficiency
+        return implode(' ', array_map(fn($word) => "+$word", explode(' ', $searchString)));
     }
 
     /**
-     * Returns a string that filters results with date.
+     * Returns a SQL filter clause for filtering results by a date range.
      *
-     * @return string
+     * This method constructs a SQL query fragment based on the provided date range filter.
+     * It supports filtering by both start and end dates, start date only, or end date only.
+     *
+     * @return string The SQL filter clause for date range, or an empty string if no filtering is applied.
      */
     protected function filterDateRange(): string
     {
+        // Initialize the query as an empty string
         $query = '';
-        $start = null;
-        $end = null;
 
-        if ($this->isFiltering(self::FILTER_START_DATE)) {
-            $start = $this->startDate->format(self::MYSQL_TIMESTAMP_FORMAT);
+        // Check if both start and end date filters are set
+        if ($this->isFiltering(self::FILTER_START_DATE) && $this->isFiltering(self::FILTER_END_DATE)) {
+            // Format the start and end dates and construct the BETWEEN query
+            $query = sprintf(
+                "AND f.created_at BETWEEN '%s' AND '%s'\n",
+                $this->startDate->format(self::MYSQL_TIMESTAMP_FORMAT),
+                $this->endDate->format(self::MYSQL_TIMESTAMP_FORMAT)
+            );
         }
-
-        if ($this->isFiltering(self::FILTER_END_DATE)) {
-            $end = $this->endDate->format(self::MYSQL_TIMESTAMP_FORMAT);
+        // Check if only the start date filter is set
+        elseif ($this->isFiltering(self::FILTER_START_DATE)) {
+            $query = sprintf(
+                "AND f.created_at >= '%s'\n",
+                $this->startDate->format(self::MYSQL_TIMESTAMP_FORMAT)
+            );
         }
-
-        // If Filtering both by Start and End Dates.
-        if (null !== $start && null !== $end) {
-            $query = "AND (f.created_at BETWEEN '$start' AND '$end')\n";
-        }
-
-        // If Filtering Start Date Only.
-        if (null !== $start && null === $end) {
-            $query = "AND f.created_at >= '$start'\n";
-        }
-
-        // If Filtering End Date Only.
-        if (null === $start && null !== $end) {
-            $query = "AND f.created_at <= '$end'\n";
+        // Check if only the end date filter is set
+        elseif ($this->isFiltering(self::FILTER_END_DATE)) {
+            $query = sprintf(
+                "AND f.created_at <= '%s'\n",
+                $this->endDate->format(self::MYSQL_TIMESTAMP_FORMAT)
+            );
         }
 
         return $query;
     }
 
     /**
-     * Returns a string that only includes certain media types.
+     * Constructs a SQL filter clause for media types based on filtering conditions.
      *
-     * @return string
+     * This method returns a query fragment that filters results based on selected or excluded media types.
+     * If media types are filtered in, it uses those directly. If media types are filtered out, it excludes them
+     * from the default list of media types.
+     *
+     * @return string The SQL filter clause for media types, or an empty string if no filtering is applied.
      */
     protected function filterMediaTypes(): string
     {
@@ -512,14 +591,18 @@ class Browse
         $state = 'IN';
         $selectedMediaTypes = MediaType::getMediaTypes();
 
+        // Check if filtering for included media types
         if ($this->isFiltering(self::FILTER_IN_MEDIA_TYPES)) {
             $selectedMediaTypes = $this->getFilterInMediaTypes();
-        } else if ($this->isFiltering(self::FILTER_OUT_MEDIA_TYPES)) {
+        }
+        // Check if filtering for excluded media types
+        elseif ($this->isFiltering(self::FILTER_OUT_MEDIA_TYPES)) {
             $state = 'NOT IN';
             $selectedMediaTypes = array_diff($selectedMediaTypes, $this->getFilterOutMediaTypes());
         }
 
-        if (0 < count($selectedMediaTypes)) {
+        // Only build the query if there are selected media types after filtering
+        if (!empty($selectedMediaTypes)) {
             $listStr = $this->makeListStr($selectedMediaTypes);
             $query = "AND p.media_type $state ($listStr)\n";
         }
@@ -528,9 +611,13 @@ class Browse
     }
 
     /**
-     * Returns a string to only include certain dynamic range values.
+     * Constructs a SQL filter clause based on dynamic range values (HDR, Dolby Vision).
      *
-     * @return string
+     * This method checks whether the dynamic range values are being filtered for inclusion or exclusion
+     * and returns the corresponding SQL query fragment.
+     * If HDR or Dolby Vision is included or excluded, the query is adjusted accordingly.
+     *
+     * @return string The SQL filter clause for dynamic range values, or an empty string if no filtering is applied.
      */
     protected function filterDynamicRange(): string
     {
@@ -538,6 +625,7 @@ class Browse
 
         if ($this->isFiltering(self::FILTER_IN_DYNAMIC_RANGE)) {
             $filterInDynamicRange = $this->getFilterInDynamicRange();
+
             if (in_array(MediaDynamicRange::HDR, $filterInDynamicRange)) {
                 $query .= "AND p.is_hdr = 1\n";
             }
@@ -545,8 +633,11 @@ class Browse
             if (in_array(MediaDynamicRange::DOLBY_VISION, $filterInDynamicRange)) {
                 $query .= "AND p.is_dolby_vision = 1\n";
             }
-        } else if ($this->isFiltering(self::FILTER_OUT_DYNAMIC_RANGE)) {
+        }
+        // Check for exclusion of dynamic range values
+        else if ($this->isFiltering(self::FILTER_OUT_DYNAMIC_RANGE)) {
             $filterOutDynamicRange = $this->getFilterOutDynamicRange();
+
             if (in_array(MediaDynamicRange::HDR, $filterOutDynamicRange)) {
                 $query .= "AND p.is_hdr = 0\n";
             }
@@ -560,136 +651,175 @@ class Browse
     }
 
     /**
-     * Returns a string to only include certain dynamic range values.
+     * Constructs a SQL filter clause based on selected file extensions.
      *
-     * @return string
+     * This method checks if file extensions are being filtered for inclusion or exclusion.
+     * It returns a corresponding SQL query fragment with optimized checks and string formatting.
+     *
+     * @return string The SQL filter clause for file extensions, or an empty string if no filtering is applied.
      */
     protected function filterFileExtensions(): string
     {
-        $query = '';
+        // Initialize variables
         $state = 'IN';
-        $selectedFileExtensions = FileExtension::getFileExtensions();
+        $selectedFileExtensions = $this->isFiltering(self::FILTER_IN_FILE_EXTENSIONS)
+            ? $this->getFilterInFileExtensions()
+            : FileExtension::getFileExtensions();
 
-        if ($this->isFiltering(self::FILTER_IN_FILE_EXTENSIONS)) {
-            $selectedFileExtensions = $this->getFilterInFileExtensions();
-        } else if ($this->isFiltering(self::FILTER_OUT_FILE_EXTENSIONS)) {
+        // Handle exclusion of file extensions
+        if ($this->isFiltering(self::FILTER_OUT_FILE_EXTENSIONS)) {
             $state = 'NOT IN';
             $selectedFileExtensions = array_diff($selectedFileExtensions, $this->getFilterOutFileExtensions());
         }
 
-        if (0 < count($selectedFileExtensions)) {
+        // Generate the query only if there are selected file extensions
+        if (!empty($selectedFileExtensions)) {
             $listStr = $this->makeListStr($selectedFileExtensions);
-            $query = "AND p.extension $state ($listStr)\n";
+            return "AND p.extension $state ($listStr)\n";
         }
 
-        return $query;
+        return ''; // Return an empty string if no filtering is applied
     }
 
     /**
-     * Returns the component of the query that does the From and Joins of the tables.
+     * Constructs the FROM and JOIN components of the SQL query.
      *
-     * @return string
+     * This method returns the base query structure with the necessary table joins.
+     * It conditionally adds an additional join if date filters are applied.
+     *
+     * @return string The SQL query fragment for the FROM clause and table joins.
      */
     protected function getQueryFrom(): string
     {
-        $query = 'FROM mcol.packets p' . "\n";
-        $query .= 'JOIN mcol.bots b on p.bot_id = b.id' . "\n";
-        $query .= 'JOIN mcol.networks n on p.network_id = n.id' . "\n";
+        // Initialize an array to hold parts of the query
+        $queryParts = [
+            'FROM mcol.packets p',
+            'JOIN mcol.bots b ON p.bot_id = b.id',
+            'JOIN mcol.networks n ON p.network_id = n.id'
+        ];
 
+        // Conditionally add INNER JOIN for file_first_appearances if date filters are applied
         if ($this->isFiltering(self::FILTER_START_DATE) || $this->isFiltering(self::FILTER_END_DATE)) {
-            $query .= 'INNER JOIN mcol.file_first_appearances f on p.file_name = f.file_name' . "\n";
+            $queryParts[] = 'INNER JOIN mcol.file_first_appearances f ON p.file_name = f.file_name';
         }
 
-        $query .= 'WHERE 1' . "\n";
+        // Add the WHERE clause with a trailing space for future concatenation
+        $queryParts[] = 'WHERE 1';
 
-        return $query;
+        // Use implode to join the query parts with a space separator
+        return implode(' ', $queryParts);
     }
 
     /**
-     * Returns the select line of the SQL query.
+     * Constructs the SELECT line of the SQL query.
      *
-     * @return string
+     * This method generates the SELECT clause, listing all the fields to be retrieved
+     * from the database. If date filters are applied, it includes the 'first_appearance'
+     * field as well.
+     *
+     * @return string The SELECT clause of the SQL query.
      */
     protected function getQuerySelect(): string
     {
-        $query = 'SELECT p.id';
-        $query .= ', p.created_at';
-        $query .= ', p.updated_at';
-        $query .= ', p.language';
-        $query .= ', p.gets';
-        $query .= ', p.size';
-        $query .= ', p.media_type';
-        $query .= ', p.file_name';
-        $query .= ', p.extension';
-        $query .= ', p.resolution';
-        $query .= ', p.is_hdr';
-        $query .= ', p.is_dolby_vision';
-        $query .= ', p.number';
-        $query .= ', p.meta';
-        $query .= ', b.id as bot_id';
-        $query .= ', b.nick';
-        $query .= ', n.name as network';
+        // Initialize an array with the static query parts
+        $queryParts = [
+            'SELECT p.id',
+            'p.created_at',
+            'p.updated_at',
+            'p.language',
+            'p.gets',
+            'p.size',
+            'p.media_type',
+            'p.file_name',
+            'p.extension',
+            'p.resolution',
+            'p.is_hdr',
+            'p.is_dolby_vision',
+            'p.number',
+            'p.meta',
+            'b.id as bot_id',
+            'b.nick',
+            'n.name as network'
+        ];
 
+        // Conditionally add 'first_appearance' field if date filters are applied
         if ($this->isFiltering(self::FILTER_START_DATE) || $this->isFiltering(self::FILTER_END_DATE)) {
-            $query .= ', f.created_at as first_appearance';
+            $queryParts[] = 'f.created_at as first_appearance';
         }
 
-        $query .= "\n";
-
-        return $query;
+        // Join the query parts with a comma separator and add a newline at the end
+        return implode(', ', $queryParts);
     }
 
     /**
-     * Returns the select line of the SQL query.
+     * Constructs the COUNT line of the SQL query.
      *
-     * @return string
+     * Generates the SELECT clause for counting the total number of rows.
+     *
+     * @return string The SELECT COUNT query part.
      */
     protected function getQueryCount(): string
     {
-        return "SELECT count(*)\n";
+        return 'SELECT count(*)';
     }
 
     /**
-     * Returns the order line of the SQL query.
+     * Constructs the ORDER BY clause for the SQL query.
      *
-     * @return string
+     * Generates the ORDER BY part of the SQL query, determining the column
+     * to order by and the direction (ASC or DESC).
+     *
+     * @return string The ORDER BY clause of the SQL query.
      */
     protected function getQueryOrder(): string
     {
-        $orderMap = $this->getOrderMap();
-        $orderColumn = $orderMap[$this->order];
-        $direction = $this->getDirection();
-        return "ORDER BY $orderColumn $direction ";
+        // Retrieve the order column based on the current order setting
+        $orderColumn = $this->getOrderMap()[$this->order] ?? 'p.created_at';  // Default to 'p.created_at' if not found
+        $direction = $this->getDirection();  // Get the order direction (ASC or DESC)
+
+        return "ORDER BY $orderColumn $direction";
     }
 
     /**
-     * Returns the limit and offset line of the SQL query.
+     * Constructs the LIMIT and OFFSET clause for the SQL query.
      *
-     * @return string
+     * Generates the LIMIT and OFFSET part of the SQL query. The LIMIT
+     * defines the maximum number of records to return, and the OFFSET determines
+     * the starting point for the query..
+     *
+     * @return string The LIMIT and OFFSET clause of the SQL query.
      */
     protected function getQueryOffset(): string
     {
-        $offset = $this->getOffset();
-        $limit = $this->getRpp();
-        return "LIMIT $limit offset $offset";
+        return sprintf('LIMIT %d OFFSET %d', $this->getRpp(), $this->getOffset());
     }
 
     /**
-     * Expands the Media Language List
-     * Some languages are represented in multiple ways.
-     * The expanded language list adds all the ways that each language is represented.
+     * Expands the Media Language List.
      *
-     * @param array $mediaLanguageList
-     * @return array
+     * Some languages are represented in multiple ways. The expanded language list
+     * adds all the ways that each language is represented by looking up
+     * language mappings from a predefined set of expanded languages.
+     *
+     * @param array $mediaLanguageList A list of media languages to be expanded.
+     * @return array The expanded list of media languages.
      */
     protected function expandMediaLanguageList(array $mediaLanguageList): array
     {
+        // Retrieve the expanded language mappings once to avoid unnecessary calls
         $expanded = MediaLanguage::getExpandedLanguages();
-        $expandedMediaLanguageList = $mediaLanguageList;
 
-        foreach($mediaLanguageList as $language) {
+        // Initialize an empty array to hold the final expanded list
+        $expandedMediaLanguageList = [];
+
+        // Loop through the media language list and merge expanded languages where applicable
+        foreach ($mediaLanguageList as $language) {
             if (isset($expanded[$language])) {
+                // Merge the expanded languages efficiently
                 $expandedMediaLanguageList = array_merge($expandedMediaLanguageList, $expanded[$language]);
+            } else {
+                // If no expansion exists for the language, add it directly
+                $expandedMediaLanguageList[] = $language;
             }
         }
 
@@ -697,21 +827,25 @@ class Browse
     }
 
     /**
-     * Expands the Dynamic Range List
+     * Expands the Dynamic Range List.
      * Some dynamic ranges are represented in multiple ways.
-     * The expanded dynamic range list adds all the ways that each dynamic range is represented.
+     * This method expands each dynamic range in the list by adding all possible representations.
      *
-     * @param array $mediaDynamicRangeList
-     * @return array
+     * @param array $mediaDynamicRangeList The list of dynamic ranges to expand.
+     * @return array The expanded list of dynamic ranges, including all their representations.
      */
     protected function expandMediaDynamicRangeList(array $mediaDynamicRangeList): array
     {
         $expanded = MediaDynamicRange::getExpandedDynamicRanges();
-        $expandedMediaDynamicRangeList = $mediaDynamicRangeList;
+        $expandedMediaDynamicRangeList = [];
 
-        foreach($mediaDynamicRangeList as $dynamicRange) {
+        // Collect all expanded dynamic ranges
+        foreach ($mediaDynamicRangeList as $dynamicRange) {
             if (isset($expanded[$dynamicRange])) {
                 $expandedMediaDynamicRangeList = array_merge($expandedMediaDynamicRangeList, $expanded[$dynamicRange]);
+            } else {
+                // Include the dynamic range itself if no expansion is needed
+                $expandedMediaDynamicRangeList[] = $dynamicRange;
             }
         }
 
@@ -720,129 +854,172 @@ class Browse
 
     /**
      * Ensures the value of direction is within the list of available direction options.
+     * If the direction is valid, it returns the sanitized value. Otherwise, it returns the default direction.
      *
-     * @param $direction
-     * @return string
+     * @param string $direction The direction value to be sanitized.
+     * @return string The sanitized direction value, either the input direction or the default.
      */
     protected function sanitizeDirection(string $direction): string
     {
-        $direction = strtolower($direction);
-        $options = self::getDirectionOptions();
-        return (in_array($direction, $options)) ? $direction : $this->getDefaultDirection();
+        return in_array($normalizedDirection = strtolower($direction), self::getDirectionOptions(), true)
+            ? $normalizedDirection
+            : $this->getDefaultDirection();
     }
 
     /**
      * Ensures the value of order is within the list of available order options.
+     * If the order is valid, it returns the sanitized value. Otherwise, it returns the default order option.
      *
-     * @param $order
-     * @return string
+     * @param string $order The order value to be sanitized.
+     * @return string The sanitized order value, either the input order or the default.
      */
     protected function sanitizeOrder(string $order): string
     {
-        $order = strtolower($order);
-        $options = self::getOrderOptions();
-        return (in_array($order, $options)) ? $order : self::ORDER_OPTION_DEFAULT;
+        return in_array($normalizedOrder = strtolower($order), self::getOrderOptions(), true)
+            ? $normalizedOrder
+            : self::ORDER_OPTION_DEFAULT;
     }
 
     /**
-     * With a list of bot ID's filter it through a query and only return the id's that exist.
+     * Filters a list of bot IDs through a query and returns only the IDs that exist in the database.
+     * Ensures that only valid bot IDs are included in the result by querying the database.
      *
-     * @param array $botList
-     * @return array
+     * @param array $botList An array of bot IDs to be filtered.
+     * @return array An array of existing bot IDs found in the database.
      */
     protected function sanitizeBotList(array $botList): array
     {
-        return Bot::whereIn('id', $botList)->pluck('id')->toArray();
+        // Ensure botList is not empty before performing the query to avoid unnecessary database access
+        return empty($botList) ? [] : Bot::whereIn('id', $botList)->pluck('id')->toArray();
     }
 
     /**
-     * With a list of File Extension ID's filter it through a query and only return the id's that exist.
+     * Filters a list of file extension IDs through a query and returns only the ones that exist.
+     * Checks the provided list of file extension IDs against a pre-existing list of valid file extensions.
+     * Only the valid file extensions are returned.
      *
-     * @param array $fileExtensionList
-     * @return array
+     * @param array $fileExtensionList An array of file extension IDs to be filtered.
+     * @return array An array containing only the valid file extension IDs that exist.
      */
     protected function sanitizeFileExtensionList(array $fileExtensionList): array
     {
+        if (empty($fileExtensionList)) {
+            return [];
+        }
+
         $fileExtensions = FileExtension::getFileExtensions();
-        return array_intersect($fileExtensions, $fileExtensionList);
+
+        // Return only the file extensions that exist in both the valid list and the provided list
+        return array_intersect($fileExtensionList, $fileExtensions);
     }
 
     /**
-     * With a list of Dynamic Range strings, only return the ones that are valid.
+     * Filters a list of media dynamic range strings and returns only the valid ones.
+     * Checks the provided list of dynamic ranges against a pre-existing list of valid dynamic ranges.
+     * Only the valid dynamic range strings are returned.
      *
-     * @param array $mediaDynamicRangeList
-     * @return array
+     * @param array $mediaDynamicRangeList An array of media dynamic range strings to be filtered.
+     * @return array An array containing only the valid dynamic range strings that exist.
      */
     protected function sanitizeMediaDynamicRangeList(array $mediaDynamicRangeList): array
     {
-        $intersection = array_intersect($mediaDynamicRangeList, MediaDynamicRange::getMediaDynamicRanges());
-        return $intersection;
+        if (empty($mediaDynamicRangeList)) {
+            return [];
+        }
+
+        $validDynamicRanges = MediaDynamicRange::getMediaDynamicRanges();
+
+        // Return only the dynamic ranges that exist in both the provided list and the valid dynamic range list
+        return array_intersect($mediaDynamicRangeList, $validDynamicRanges);
     }
 
     /**
-     * With a list of Media Language strings, only return the ones that are valid.
+     * Filters a list of media language strings and returns only the valid ones.
+     * This method checks the provided list of media languages against a pre-existing list of valid languages.
+     * Only the valid media language strings are returned.
      *
-     * @param array $mediaLanguageList
-     * @return array
+     * @param array $mediaLanguageList An array of media language strings to be filtered.
+     * @return array An array containing only the valid media language strings that exist.
      */
     protected function sanitizeMediaLanguageList(array $mediaLanguageList): array
     {
-        $intersection = array_intersect($mediaLanguageList, MediaLanguage::getMediaLanguages());
-        return $intersection;
+        if (empty($mediaLanguageList)) {
+            return [];
+        }
+
+        $validLanguages = MediaLanguage::getMediaLanguages();
+
+        // Return only the media languages that exist in both the provided list and the valid media language list
+        return array_intersect($mediaLanguageList, $validLanguages);
     }
 
     /**
-     * With a list of network ID's filter it through a query and only return the id's that exist.
+     * Checks the provided list of network names against the database.
+     * Only the names that exist in the database are returned.
      *
-     * @param array $networkList
-     * @return array
+     * @param array $networkList An array of network names to be filtered.
+     * @return array An array containing only the network names that exist in the database.
      */
     protected function sanitizeNetworkList(array $networkList): array
     {
-        return Network::whereIn('name', $networkList)->pluck('name')->toArray();
+        // Ensure networkList is not empty before performing the query to avoid unnecessary database access
+        return empty($networkList) ? [] : Network::whereIn('name', $networkList)->pluck('name')->toArray();
     }
 
     /**
-     * With a list of Media Resolution strings, only return the ones that are valid.
+     * Filters a list of media resolution strings and returns only the valid ones.
      *
-     * @param array $mediaResolutionList
-     * @return array
+     * @param array $mediaResolutionList An array of media resolution strings to be filtered.
+     * @return array An array containing only the valid media resolution strings.
      */
     protected function sanitizeMediaResolutionList(array $mediaResolutionList): array
     {
-        $intersection = array_intersect($mediaResolutionList, MediaResolution::getMediaResolutions());
-        return $intersection;
+        if (empty($mediaResolutionList)) {
+            return [];
+        }
+
+        // Perform an intersection with valid resolutions and return the result
+        return array_intersect($mediaResolutionList, MediaResolution::getMediaResolutions());
     }
 
     /**
-     * With a list of Media Type strings, only return the ones that are valid.
+     * Filters a list of media type strings and returns only the valid ones.
      *
-     * @param array $mediaTypeList
-     * @return array
+     * @param array $mediaTypeList An array of media type strings to be filtered.
+     * @return array An array containing only the valid media type strings.
      */
     protected function sanitizeMediaTypeList(array $mediaTypeList): array
     {
-        $intersection = array_intersect($mediaTypeList, MediaType::getMediaTypes());
-        return $intersection;
+        if (empty($mediaTypeList)) {
+            return [];
+        }
+
+        // Perform an intersection with valid media types and return the result
+        return array_intersect($mediaTypeList, MediaType::getMediaTypes());
     }
 
     /**
-     * Turns an array list into a string that is useable in a SQL: "WHERE IN" clause.
+     * Converts an array of values into a string formatted for use in a SQL "WHERE IN" clause.
+     * The values in the list are enclosed in single quotes and separated by commas.
      *
-     * @param array $list
-     * @return string
+     * @param array $list An array of values to be formatted into a string.
+     * @return string A string of values suitable for inclusion in a SQL "WHERE IN" clause.
      */
     protected function makeListStr(array $list): string
     {
+        if (empty($list)) {
+            return '';
+        }
+
         return '\'' . implode('\',\'', $list) . '\'';
     }
 
     /**
      * Get the value of filterInBots
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterInBots()
+    public function getFilterInBots(): array
     {
         return $this->filterInBots;
     }
@@ -850,9 +1027,8 @@ class Browse
     /**
      * Set the value of filterInBots
      *
-     * @param  array  $filterInBots
-     *
-     * @return  void
+     * @param array $filterInBots
+     * @return void
      */
     public function setFilterInBots(array $filterInBots): void
     {
@@ -862,9 +1038,9 @@ class Browse
     /**
      * Get the value of filterOutBots
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterOutBots()
+    public function getFilterOutBots(): array
     {
         return $this->filterOutBots;
     }
@@ -872,9 +1048,8 @@ class Browse
     /**
      * Set the value of filterOutBots
      *
-     * @param  array  $filterOutBots
-     *
-     * @return  void
+     * @param array $filterOutBots
+     * @return void
      */
     public function setFilterOutBots(array $filterOutBots): void
     {
@@ -884,9 +1059,9 @@ class Browse
     /**
      * Get the value of filterInLanguages
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterInLanguages()
+    public function getFilterInLanguages(): array
     {
         return $this->filterInLanguages;
     }
@@ -894,9 +1069,8 @@ class Browse
     /**
      * Set the value of filterInLanguages
      *
-     * @param  array  $filterInLanguages
-     *
-     * @return  void
+     * @param array $filterInLanguages
+     * @return void
      */
     public function setFilterInLanguages(array $filterInLanguages): void
     {
@@ -908,9 +1082,9 @@ class Browse
     /**
      * Get the value of filterOutLanguages
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterOutLanguages()
+    public function getFilterOutLanguages(): array
     {
         return $this->filterOutLanguages;
     }
@@ -918,9 +1092,8 @@ class Browse
     /**
      * Set the value of filterOutLanguages
      *
-     * @param  array  $filterOutLanguages
-     *
-     * @return  void
+     * @param array $filterOutLanguages
+     * @return void
      */
     public function setFilterOutLanguages(array $filterOutLanguages): void
     {
@@ -932,9 +1105,9 @@ class Browse
     /**
      * Get the value of filterInResolutions
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterInResolutions()
+    public function getFilterInResolutions(): array
     {
         return $this->filterInResolutions;
     }
@@ -942,9 +1115,8 @@ class Browse
     /**
      * Set the value of filterInResolutions
      *
-     * @param  array  $filterInResolutions
-     *
-     * @return  void
+     * @param array $filterInResolutions
+     * @return void
      */
     public function setFilterInResolutions(array $filterInResolutions): void
     {
@@ -954,9 +1126,9 @@ class Browse
     /**
      * Get the value of filterOutResolutions
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterOutResolutions()
+    public function getFilterOutResolutions(): array
     {
         return $this->filterOutResolutions;
     }
@@ -964,9 +1136,8 @@ class Browse
     /**
      * Set the value of filterOutResolutions
      *
-     * @param  array  $filterOutResolutions
-     *
-     * @return  void
+     * @param array $filterOutResolutions
+     * @return void
      */
     public function setFilterOutResolutions(array $filterOutResolutions): void
     {
@@ -976,9 +1147,9 @@ class Browse
     /**
      * Get the value of filterInNetworks
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterInNetworks()
+    public function getFilterInNetworks(): array
     {
         return $this->filterInNetworks;
     }
@@ -986,9 +1157,8 @@ class Browse
     /**
      * Set the value of filterInNetworks
      *
-     * @param  array  $filterInNetworks
-     *
-     * @return  void
+     * @param array $filterInNetworks
+     * @return void
      */
     public function setFilterInNetworks(array $filterInNetworks): void
     {
@@ -998,9 +1168,9 @@ class Browse
     /**
      * Get the value of filterOutNetworks
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterOutNetworks()
+    public function getFilterOutNetworks(): array
     {
         return $this->filterOutNetworks;
     }
@@ -1008,9 +1178,8 @@ class Browse
     /**
      * Set the value of filterOutNetworks
      *
-     * @param  array  $filterOutNetworks
-     *
-     * @return  void
+     * @param array $filterOutNetworks
+     * @return void
      */
     public function setFilterOutNetworks(array $filterOutNetworks): void
     {
@@ -1020,9 +1189,9 @@ class Browse
     /**
      * Get the value of filterInDynamicRange
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterInDynamicRange()
+    public function getFilterInDynamicRange(): array
     {
         return $this->filterInDynamicRange;
     }
@@ -1030,24 +1199,22 @@ class Browse
     /**
      * Set the value of filterInDynamicRange
      *
-     * @param  array  $filterInDynamicRange
-     *
-     * @return  void
+     * @param array $filterInDynamicRange
+     * @return void
      */
     public function setFilterInDynamicRange(array $filterInDynamicRange): void
     {
         $sanitizedDynamicRanges = $this->sanitizeMediaDynamicRangeList($filterInDynamicRange);
         $expandedDynamicRanges = $this->expandMediaDynamicRangeList($sanitizedDynamicRanges);
         $this->filterInDynamicRange = $expandedDynamicRanges;
-
     }
 
     /**
      * Get the value of filterOutDynamicRange
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterOutDynamicRange()
+    public function getFilterOutDynamicRange(): array
     {
         return $this->filterOutDynamicRange;
     }
@@ -1055,9 +1222,8 @@ class Browse
     /**
      * Set the value of filterOutDynamicRange
      *
-     * @param  array  $filterOutDynamicRange
-     *
-     * @return  void
+     * @param array $filterOutDynamicRange
+     * @return void
      */
     public function setFilterOutDynamicRange(array $filterOutDynamicRange): void
     {
@@ -1069,9 +1235,9 @@ class Browse
     /**
      * Get the value of filterInFileExtensions
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterInFileExtensions()
+    public function getFilterInFileExtensions(): array
     {
         return $this->filterInFileExtensions;
     }
@@ -1079,9 +1245,8 @@ class Browse
     /**
      * Set the value of filterInFileExtensions
      *
-     * @param  array  $filterInFileExtensions
-     *
-     * @return  void
+     * @param array $filterInFileExtensions
+     * @return void
      */
     public function setFilterInFileExtensions(array $filterInFileExtensions): void
     {
@@ -1091,9 +1256,9 @@ class Browse
     /**
      * Get the value of filterOutFileExtensions
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterOutFileExtensions()
+    public function getFilterOutFileExtensions(): array
     {
         return $this->filterOutFileExtensions;
     }
@@ -1101,9 +1266,8 @@ class Browse
     /**
      * Set the value of filterOutFileExtensions
      *
-     * @param  array  $filterOutFileExtensions
-     *
-     * @return  void
+     * @param array $filterOutFileExtensions
+     * @return void
      */
     public function setFilterOutFileExtensions(array $filterOutFileExtensions): void
     {
@@ -1111,103 +1275,11 @@ class Browse
     }
 
     /**
-     * Get the value of searchString
-     *
-     * @return  string|null
-     */
-    public function getSearchString(): string|null
-    {
-        return $this->searchString;
-    }
-
-    /**
-     * Set the value of searchString
-     *
-     * @param  string  $searchString
-     *
-     * @return  void
-     */
-    public function setSearchString(string $searchString): void
-    {
-        $this->searchString = $searchString;
-    }
-
-    /**
-     * Get earlist DateTime of query.
-     *
-     * @return  DateTime
-     */
-    public function getStartDate()
-    {
-        return $this->startDate;
-    }
-
-    /**
-     * Set earlist DateTime of query.
-     *
-     * @param  DateTime  $startDate  Earlist DateTime of query.
-     *
-     * @return  void
-     */
-    public function setStartDate(DateTime $startDate): void
-    {
-        $this->startDate = $startDate;
-    }
-
-    /**
-     * Get latest DateTime of query.
-     *
-     * @return  DateTime
-     */
-    public function getEndDate()
-    {
-        return $this->endDate;
-    }
-
-    /**
-     * Set latest DateTime of query.
-     *
-     * @param  DateTime  $endDate  Latest DateTime of query.
-     *
-     * @return  void
-     */
-    public function setEndDate(DateTime $endDate):void
-    {
-        $this->endDate = $endDate;
-    }
-
-    /**
-     * Get direction of result order
-     *
-     * @return  string
-     */
-    public function getDirection(): string
-    {
-        if (null === $this->direction) {
-            return $this->getDefaultDirection();
-        }
-
-        return $this->direction;
-    }
-
-    /**
-     * Set direction of result order
-     *
-     * @param  string  $direction  Direction of result order
-     *
-     * @return  void
-     */
-    public function setDirection(string $direction):void
-    {
-        $this->direction = $direction;
-    }
-
-    /**
      * Get the value of filterInMediaTypes
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterInMediaTypes()
+    public function getFilterInMediaTypes(): array
     {
         return $this->filterInMediaTypes;
     }
@@ -1215,9 +1287,8 @@ class Browse
     /**
      * Set the value of filterInMediaTypes
      *
-     * @param  array  $filterInMediaTypes
-     *
-     * @return  void
+     * @param array $filterInMediaTypes
+     * @return void
      */
     public function setFilterInMediaTypes(array $filterInMediaTypes): void
     {
@@ -1227,9 +1298,9 @@ class Browse
     /**
      * Get the value of filterOutMediaTypes
      *
-     * @return  array
+     * @return array
      */
-    public function getFilterOutMediaTypes()
+    public function getFilterOutMediaTypes(): array
     {
         return $this->filterOutMediaTypes;
     }
@@ -1237,9 +1308,8 @@ class Browse
     /**
      * Set the value of filterOutMediaTypes
      *
-     * @param  array  $filterOutMediaTypes
-     *
-     * @return  void
+     * @param array $filterOutMediaTypes
+     * @return void
      */
     public function setFilterOutMediaTypes(array $filterOutMediaTypes): void
     {
@@ -1247,85 +1317,9 @@ class Browse
     }
 
     /**
-     * Get holds the value of the order.
-     *
-     * @return  string
-     */
-    public function getOrder(): string|null
-    {
-        return $this->order;
-    }
-
-    /**
-     * Set holds the value of the order.
-     *
-     * @param  string  $order  Holds the value of the order.
-     *
-     * @return  void
-     */
-    public function setOrder(string $order): void
-    {
-        $this->order = $this->sanitizeOrder($order);
-    }
-
-    /**
-     * Get records per page.
-     *
-     * @return  int
-     */
-    public function getRpp(): int
-    {
-        return $this->rpp;
-    }
-
-    /**
-     * Set records per page.
-     *
-     * @param  int  $rpp  Records per page.
-     *
-     * @return  void
-     */
-    public function setRpp(int $rpp): void
-    {
-        // Prevent Rpp from being a funky number.
-        if ($rpp < 1) {
-            throw new IllegalRppException("Records Per Page (Rpp) value: $rpp is not valid.");
-        }
-
-        $this->rpp = $rpp;
-    }
-
-    /**
-     * Get page of the recordset.
-     *
-     * @return  int
-     */
-    public function getPage(): int
-    {
-        return $this->page;
-    }
-
-    /**
-     * Set page of the recordset.
-     *
-     * @param  int  $page  Page of the recordset.
-     *
-     * @return  void
-     */
-    public function setPage(int $page): void
-    {
-        // Prevent Page from being a funky number.
-        if ($page < 1) {
-            throw new IllegalPageException("Page value: $page is not valid.");
-        }
-
-        $this->page = $page;
-    }
-
-    /**
      * Get the value of filterInNicks
      *
-     * @return  array
+     * @return array
      */
     public function getFilterInNicks(): array
     {
@@ -1335,19 +1329,19 @@ class Browse
     /**
      * Set the value of filterInNicks
      *
-     * @param  array  $filterInNicks
-     *
-     * @return  self
+     * @param array $filterInNicks
+     * @return self
      */
-    public function setFilterInNicks(array $filterInNicks): void
+    public function setFilterInNicks(array $filterInNicks): self
     {
         $this->filterInNicks = $filterInNicks;
+        return $this;
     }
 
     /**
      * Get the value of filterOutNicks
      *
-     * @return  array
+     * @return array
      */
     public function getFilterOutNicks(): array
     {
@@ -1357,12 +1351,167 @@ class Browse
     /**
      * Set the value of filterOutNicks
      *
-     * @param  array  $filterOutNicks
-     *
-     * @return  self
+     * @param array $filterOutNicks
+     * @return self
      */
-    public function setFilterOutNicks(array $filterOutNicks): void
+    public function setFilterOutNicks(array $filterOutNicks): self
     {
         $this->filterOutNicks = $filterOutNicks;
+        return $this;
+    }
+
+    /**
+     * Get the value of searchString
+     *
+     * @return string|null
+     */
+    public function getSearchString(): ?string
+    {
+        return $this->searchString;
+    }
+
+    /**
+     * Set the value of searchString
+     *
+     * @param string|null $searchString
+     * @return void
+     */
+    public function setSearchString(?string $searchString): void
+    {
+        $this->searchString = $searchString;
+    }
+
+    /**
+     * Get the earliest DateTime of query.
+     *
+     * @return DateTime|null
+     */
+    public function getStartDate(): ?DateTime
+    {
+        return $this->startDate;
+    }
+
+    /**
+     * Set the earliest DateTime of query.
+     *
+     * @param DateTime|null $startDate
+     * @return void
+     */
+    public function setStartDate(?DateTime $startDate): void
+    {
+        $this->startDate = $startDate;
+    }
+
+    /**
+     * Get the latest DateTime of query.
+     *
+     * @return DateTime|null
+     */
+    public function getEndDate(): ?DateTime
+    {
+        return $this->endDate;
+    }
+
+    /**
+     * Set the latest DateTime of query.
+     *
+     * @param DateTime|null $endDate
+     * @return void
+     */
+    public function setEndDate(?DateTime $endDate): void
+    {
+        $this->endDate = $endDate;
+    }
+
+    /**
+     * Get the direction of result order.
+     *
+     * @return string|null
+     */
+    public function getDirection(): ?string
+    {
+        return $this->direction ?? $this->getDefaultDirection();
+    }
+
+    /**
+     * Set the direction of result order.
+     *
+     * @param string|null $direction
+     * @return void
+     */
+    public function setDirection(?string $direction): void
+    {
+        $this->direction = $direction;
+    }
+
+    /**
+     * Get the value of the order.
+     *
+     * @return string|null
+     */
+    public function getOrder(): ?string
+    {
+        return $this->order;
+    }
+
+    /**
+     * Set the value of the order.
+     *
+     * @param string|null $order
+     * @return void
+     */
+    public function setOrder(?string $order): void
+    {
+        $this->order = $this->sanitizeOrder($order);
+    }
+
+    /**
+     * Get records per page.
+     *
+     * @return int|null
+     */
+    public function getRpp(): ?int
+    {
+        return $this->rpp;
+    }
+
+    /**
+     * Set records per page.
+     *
+     * @param int|null $rpp
+     * @return void
+     * @throws IllegalRppException
+     */
+    public function setRpp(?int $rpp): void
+    {
+        if ($rpp !== null && $rpp < 1) {
+            throw new IllegalRppException("Records Per Page (Rpp) value: $rpp is not valid.");
+        }
+        $this->rpp = $rpp;
+    }
+
+    /**
+     * Get page of the recordset.
+     *
+     * @return int|null
+     */
+    public function getPage(): ?int
+    {
+        return $this->page;
+    }
+
+    /**
+     * Set page of the recordset.
+     *
+     * @param int|null $page
+     * @return void
+     * @throws IllegalPageException
+     */
+    public function setPage(?int $page): void
+    {
+        if ($page !== null && $page < 1) {
+            throw new IllegalPageException("Page value: $page is not valid.");
+        }
+        $this->page = $page;
     }
 }
