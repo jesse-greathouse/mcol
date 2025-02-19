@@ -2,8 +2,7 @@
 
 namespace App\Providers;
 
-use Illuminate\Contracts\Foundation\Application,
-    Illuminate\Support\ServiceProvider;
+use Illuminate\Support\ServiceProvider;
 
 use App\Media\Service\Plex,
     App\Settings;
@@ -15,16 +14,8 @@ class PlexServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(Plex::class, function (Settings $settings) {
-            return new Plex($settings);
+        $this->app->singleton(Plex::class, function ($app) {
+            return new Plex($app->make(Settings::class));
         });
-    }
-
-    /**
-     * Bootstrap services.
-     */
-    public function boot(): void
-    {
-        //
     }
 }

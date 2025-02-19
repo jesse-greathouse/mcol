@@ -2,9 +2,17 @@
 
 namespace App\Media\Transfer;
 
-use App\Media\TransferManager,
-    App\FileSystem;
+use App\FileSystem,
+    App\Media\TransferManager;
 
+// Define DS constant for cross-platform compatibility if not already defined
+if (!defined('DS')) {
+    define('DS', DIRECTORY_SEPARATOR);
+}
+
+/**
+ * Abstract class for handling file transfers with a manifest and options.
+ */
 abstract class Transfer
 {
     use FileSystem;
@@ -14,10 +22,10 @@ abstract class Transfer
      *
      * @var TransferManager
      */
-    protected $manager;
+    protected TransferManager $manager;
 
     /**
-     * Array of options
+     * Array of options.
      *
      * @var array
      */
@@ -33,10 +41,16 @@ abstract class Transfer
     /**
      * Tracks whether the transfer is completed.
      *
-     * @var boolean
+     * @var bool
      */
     protected bool $completed = false;
 
+    /**
+     * Transfer constructor.
+     *
+     * @param TransferManager $manager
+     * @param array $options
+     */
     public function __construct(TransferManager $manager, array $options = [])
     {
         $this->manager = $manager;
@@ -49,19 +63,19 @@ abstract class Transfer
      * @param string $uri
      * @return void
      */
-    public function addToManifest(string $uri)
+    public function addToManifest(string $uri): void
     {
         clearstatcache(true, $uri);
         $size = filesize($uri);
         $fileName = basename($uri);
 
         $tmpPath = $this->manager->getTmpPath();
-        if (null !== $tmpPath) {
-            $fileName = (str_replace($tmpPath, '', $uri));
+        if ($tmpPath !== null) {
+            $fileName = str_replace($tmpPath, '', $uri);
 
-            // Remove the slash if it starts with one.
-            if (0 === strpos($fileName, DIRECTORY_SEPARATOR)) {
-                $fileName = ltrim($fileName, $fileName[0]);
+            // Remove the leading slash if it starts with one.
+            if (strpos($fileName, DIRECTORY_SEPARATOR) === 0) {
+                $fileName = ltrim($fileName, DIRECTORY_SEPARATOR);
             }
         }
 
@@ -72,34 +86,26 @@ abstract class Transfer
     }
 
     /**
-     * If manifiest is not verified, runs through all the files in the manifest to see if they're finished.
+     * Checks if the transfer is completed by verifying file existence and size.
      *
-     * @return boolean
+     * @return bool
      */
     public function isCompleted(): bool
     {
-        if (!$this->completed) {
-            $this->completed = true;
+        if ($this->completed) {
+            return true;
+        }
 
-            foreach ($this->manifest as $file) {
-                $uri = $this->manager->getDestinationPath() . DIRECTORY_SEPARATOR . $file['name'];
+        foreach ($this->manifest as $file) {
+            $uri = $this->manager->getDestinationPath() . DS . $file['name'];
 
-                if (!file_exists($uri)) {
-                    $this->completed = false;
-                    break;
-                }
-
-                clearstatcache(true, $uri); // clears the caching of filesize
-                $destinationSize = fileSize($uri);
-
-                if ($file['size'] !== $destinationSize) {
-                    $this->completed = false;
-                    break;
-                }
+            if (!file_exists($uri) || filesize($uri) !== $file['size']) {
+                return false;
             }
         }
 
-        return $this->completed;
+        $this->completed = true;
+        return true;
     }
 
     /**
@@ -109,7 +115,7 @@ abstract class Transfer
      */
     public function cleanup(): void
     {
-        $tmpPath = $tmpPath = $this->manager->getTmpPath();
+        $tmpPath = $this->manager->getTmpPath();
         $this->rmContents($tmpPath);
     }
 }

@@ -33,6 +33,7 @@ my @perlModules = (
     'File::HomeDir',
     'File::Find::Rule',
     'File::Touch',
+    'Sys::Info',
     'Term::ANSIScreen',
     'Term::Menus',
     'Term::Prompt',

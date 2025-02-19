@@ -5,58 +5,72 @@ namespace App\Media\Transfer;
 use App\Exceptions\TransferFileCopyException,
     App\FileSystem;
 
+/**
+ * Class responsible for transferring files by copying.
+ */
 final class CopyFile extends Transfer implements TransferInterface
 {
     use Filesystem;
 
+    /** @var string|null File URI to be transferred */
+    private ?string $uri;
+
+    /** @var string|null Temporary path for file processing */
+    private ?string $tmpPath;
+
     /**
-     * Transfers a file by copy
+     * Transfers a file by copying it to a new location.
      *
-     * @param string|null $uri
-     * @param string|null $tmpPath
+     * @param string|null $uri URI of the file to be transferred
+     * @param string|null $tmpPath Temporary path to adjust the file name if necessary
      * @return void
+     * @throws TransferFileCopyException If the copy operation fails
      */
-    public function transfer(string $uri = null, $tmpPath = null): void
+    public function transfer(?string $uri = null, ?string $tmpPath = null): void
     {
-        $uri = (null !== $uri) ? $uri : $this->manager->getFileUri();
-        $fileName = basename($uri);
+        $this->uri = $uri ?? $this->manager->getFileUri();
+        $fileName = basename($this->uri);
 
-        if (null !== $tmpPath) {
-            $fileName = (str_replace($tmpPath, '', $uri));
+        if ($tmpPath !== null) {
+            $fileName = str_replace($tmpPath, '', $this->uri);
 
-            // Remove the slash if it starts with one.
-            if (0 === strpos($fileName, DIRECTORY_SEPARATOR)) {
+            // Remove leading slash if present
+            if (str_starts_with($fileName, DIRECTORY_SEPARATOR)) {
                 $fileName = ltrim($fileName, $fileName[0]);
             }
         }
 
         $newFile = $this->prepareNewFile($fileName);
-        $this->addToManifest($uri);
-        if (!copy($uri, $newFile)) {
-            throw new TransferFileCopyException("failed to copy \"$uri\" to \"$newFile\".");
+        $this->addToManifest($this->uri);
+
+        if (!copy($this->uri, $newFile)) {
+            throw new TransferFileCopyException("Failed to copy \"$this->uri\" to \"$newFile\".");
         }
     }
 
     /**
-     * Handles new file path and making sure the directory structure exists.
+     * Prepares the new file path and ensures the directory exists.
      *
-     * @param string $fileName
-     * @return string
+     * @param string $fileName The file name to be copied
+     * @return string The full path to the new file
      */
     private function prepareNewFile(string $fileName): string
     {
         $newPath = $this->manager->getDestinationPath();
         $newFile = $newPath . DIRECTORY_SEPARATOR . $fileName;
-        ['dirname' => $newDir] = pathInfo($newFile);
+        $newDir = pathinfo($newFile, PATHINFO_DIRNAME);
         $this->preparePath($newDir);
+
         return $newFile;
     }
 
     /**
+     * Cleanup method, currently not implemented.
      *
+     * @return void
      */
     public function cleanup(): void
     {
-        return;
+        // No cleanup is needed as of now
     }
 }

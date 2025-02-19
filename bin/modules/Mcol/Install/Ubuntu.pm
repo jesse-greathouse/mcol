@@ -6,6 +6,7 @@ use Cwd qw(getcwd abs_path);
 use File::Basename;
 use lib dirname(abs_path(__FILE__)) . "/modules";
 use Mcol::Utility qw(command_result);
+use Mcol::System qw(how_many_threads_should_i_use);
 use Exporter 'import';
 
 our @EXPORT_OK = qw(install_system_dependencies install_php);
@@ -41,6 +42,7 @@ sub install_system_dependencies {
 # Installs PHP.
 sub install_php {
     my ($dir) = @_;
+    my $threads = how_many_threads_should_i_use();
 
     my @configurePhp = (
         './configure',
@@ -71,7 +73,7 @@ sub install_php {
     command_result($?, $!, 'Configured PHP...', \@configurePhp);
 
     # Make and Install PHP
-    system('make');
+    system('make', "-j$threads");
     command_result($?, $!, 'Made PHP...', 'make');
 
     system('make install');

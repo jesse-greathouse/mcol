@@ -7,9 +7,7 @@ use Illuminate\Support\ServiceProvider,
     Illuminate\Support\Facades\Event,
     Illuminate\Support\Facades\Redis;
 
-use App\Events\PacketSearchResult,
-    App\Events\PacketSearchSummary,
-    App\Listeners\SendPacketSearchResultMessage,
+use App\Events\PacketSearchSummary,
     App\Listeners\SendPacketSearchSummaryMessage;
 
 
@@ -40,11 +38,6 @@ class AppServiceProvider extends ServiceProvider
                 return Cache::store('file');
             });
         }
-
-        Event::listen(
-            PacketSearchResult::class,
-            SendPacketSearchResultMessage::class,
-        );
 
         Event::listen(
             PacketSearchSummary::class,

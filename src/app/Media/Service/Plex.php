@@ -11,24 +11,28 @@ use App\Exceptions\PlexServiceBadConfigurationException,
     App\Media\MediaType,
     App\Settings;
 
+use SimpleXMLElement;
+
 final class Plex
 {
-    const PLEX_MOVIE_MEDIA_TYPE = 'movie';
-    const PLEX_TV_MEDIA_TYPE = 'show';
-    const PLEX_MUSIC_MEDIA_TYPE = 'artist';
+    // Media type constants
+    public const PLEX_MOVIE_MEDIA_TYPE = 'movie';
+    public const PLEX_TV_MEDIA_TYPE = 'show';
+    public const PLEX_MUSIC_MEDIA_TYPE = 'artist';
 
-    const PLEX_SECTIONS_ENDPOINT = '/library/sections';
-    const PLEX_SCAN_ENDPOINT = '/library/sections/%s/refresh';
+    // API endpoints
+    public const PLEX_SECTIONS_ENDPOINT = '/library/sections';
+    public const PLEX_SCAN_ENDPOINT = '/library/sections/%s/refresh';
 
     /**
      * Holds the settings for the Plex Media Server service.
      *
-     * @var PlexMediaServerSettings
+     * @var PlexMediaServerSettings|null
      */
-    private $settings;
+    private ?PlexMediaServerSettings $settings;
 
     /**
-     * Maps Mcol Media Types to plex Media Types
+     * Maps Mcol Media Types to Plex Media Types.
      *
      * @var array
      */
@@ -48,23 +52,22 @@ final class Plex
 
     public function __construct(Settings $settings)
     {
-        if (isset($settings->plex_media_server)) {
-            $this->settings = $settings->plex_media_server;
-        }
+        // Set Plex Media Server settings
+        $this->settings = $settings->plex_media_server ?? null;
     }
 
     /**
-     * Returns true if there is a configuration for Plex.
+     * Checks if the Plex service is configured.
      *
-     * @return boolean
+     * @return bool
      */
     public function isConfigured(): bool
     {
-        return (null !== $this->settings);
+        return $this->settings !== null;
     }
 
     /**
-     * Gets a list of all available MediaType.
+     * Returns a list of enabled media types.
      *
      * @return array
      */
@@ -74,98 +77,102 @@ final class Plex
     }
 
     /**
-     * Scans the plex media library based on the media type.
+     * Scans the Plex media library based on the provided media type.
      *
      * @param string $type
      * @return void
+     *
+     * @throws PlexServiceBadConfigurationException
+     * @throws PlexServiceIllegalMediaTypeException
      */
     public function scanMediaLibrary(string $type): void
     {
         if (!$this->isConfigured()) {
-            throw new PlexServiceBadConfigurationException("Attempted to use the Plex Service but it is not configured correctly.");
+            throw new PlexServiceBadConfigurationException("Plex service is not configured.");
         }
 
         if (!isset($this->mcolToPlexMediaTypeMap[$type])) {
-            throw new PlexServiceIllegalMediaTypeException("Scan Media Library chosen type: \"$type\" is not available.");
+            throw new PlexServiceIllegalMediaTypeException("Invalid media type: \"$type\".");
         }
 
         $plexType = $this->mcolToPlexMediaTypeMap[$type];
-        $index = $this->getPlexMediaTypeIndex();
-        $id = $index[$plexType];
+        $id = $this->getPlexMediaTypeIndex()[$plexType];
         $this->rpcScanMediaLibrary($id);
     }
 
     /**
-     * Dynamically populates the mediaTypeIndex
+     * Retrieves and caches the Plex Media Type index.
      *
      * @return array
+     *
+     * @throws PlexServiceBadConfigurationException
      */
     public function getPlexMediaTypeIndex(): array
     {
         if (!$this->isConfigured()) {
-            throw new PlexServiceBadConfigurationException("Attempted to use the Plex Service but it is not configured correctly.");
+            throw new PlexServiceBadConfigurationException("Plex service is not configured.");
         }
 
-        if (0 >= count($this->plexMediaTypeIndex)) {
-            $sections = $this->fetchSections();
-            foreach($sections['Directory'] as $directory) {
-                ['key' => $key, 'type' => $type] = $directory['@attributes'];
-                $this->plexMediaTypeIndex[$type] = $key;
-            }
+        // If index is empty, fetch and cache it
+        if (empty($this->plexMediaTypeIndex)) {
+            $this->plexMediaTypeIndex = collect($this->fetchSections()['Directory'])
+                ->pluck('@attributes.key', '@attributes.type')
+                ->toArray();
         }
 
         return $this->plexMediaTypeIndex;
     }
 
     /**
-     * Remote call to the sessions endpoint.
+     * Fetches sections from the Plex API.
      *
      * @return array
+     *
+     * @throws PlexServiceBadResponseException
      */
     private function fetchSections(): array
     {
-        $url = sprintf('%s%s?X-Plex-Token=%s',
-            $this->settings->host,
-            self::PLEX_SECTIONS_ENDPOINT,
-            $this->settings->token
-        );
-
+        $url = sprintf('%s%s?X-Plex-Token=%s', $this->settings->host, self::PLEX_SECTIONS_ENDPOINT, $this->settings->token);
         $response = Http::get($url);
 
         if ($response->failed()) {
-            throw new PlexServiceBadResponseException(sprintf('Plex Response: %s -- %s',
-                $response->status(),
-                $response->reason()
-            ));
+            throw new PlexServiceBadResponseException(
+                sprintf('Plex Response: %s -- %s', $response->status(), $response->reason())
+            );
         }
 
+        // Load XML and convert it to an array directly
         $xml = simplexml_load_string($response->getBody(), 'SimpleXMLElement', LIBXML_NOCDATA);
-        $json = json_encode($xml);
-        return json_decode($json, true);
+        return $this->xmlToArray($xml);
     }
 
     /**
-     * Remote Call to the Scan endpoint.
+     * Converts SimpleXMLElement to an associative array.
      *
-     * @param integer $id
+     * @param SimpleXMLElement $xml
+     * @return array
+     */
+    private function xmlToArray(SimpleXMLElement $xml): array
+    {
+        return json_decode(json_encode($xml), true);
+    }
+
+    /**
+     * Triggers a media library scan via the Plex API.
+     *
+     * @param int $id
      * @return void
+     *
+     * @throws PlexServiceBadResponseException
      */
     private function rpcScanMediaLibrary(int $id): void
     {
         $endpoint = sprintf(self::PLEX_SCAN_ENDPOINT, $id);
-        $url = sprintf('%s%s?X-Plex-Token=%s',
-            $this->settings->host,
-            $endpoint,
-            $this->settings->token
-        );
-
+        $url = sprintf('%s%s?X-Plex-Token=%s', $this->settings->host, $endpoint, $this->settings->token);
         $response = Http::get($url);
 
         if ($response->failed()) {
-            throw new PlexServiceBadResponseException(sprintf('Plex Response: %s -- %s',
-                $response->status(),
-                $response->reason()
-            ));
+            throw new PlexServiceBadResponseException(sprintf('Plex Response: %s -- %s', $response->status(), $response->reason()));
         }
     }
 }
