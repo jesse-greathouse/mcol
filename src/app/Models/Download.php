@@ -7,32 +7,47 @@ use Illuminate\Database\Eloquent\Factories\HasFactory,
     Illuminate\Database\Eloquent\Relations\BelongsTo,
     Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * Class Download
+ *
+ * @package App\Models
+ *
+ * @property string $status
+ * @property array $meta
+ * @property \App\Models\Packet $packet
+ * @property \App\Models\DownloadDestination $destination
+ */
 class Download extends Model
 {
     use HasFactory;
 
+    // Guard all attributes except the ones that are explicitly set in the fillable property
     protected $guarded = [];
 
+    // Casts attributes to specific data types
     protected $casts = [
-        'meta' => 'array'
+        'meta' => 'array',
     ];
 
-    const STATUS_INCOMPLETE = 'incomplete';
-    const STATUS_COMPLETED = 'completed';
-    const STATUS_QUEUED = 'queued';
+    // Define constants for status types
+    public const STATUS_INCOMPLETE = 'incomplete';
+    public const STATUS_COMPLETED = 'completed';
+    public const STATUS_QUEUED = 'queued';
 
     /**
-     * Creates a boolean that designates this attr as queued or not queued.
+     * Determine if the download status is "queued".
      *
-     * @return boolean
+     * @return bool
      */
     public function isQueued(): bool
     {
-        return ($this->status === Download::STATUS_QUEUED) ? true : false;
+        return $this->status === self::STATUS_QUEUED;
     }
 
     /**
-     * Get the instance of the Packet.
+     * Get the associated Packet for this Download.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function packet(): BelongsTo
     {
@@ -40,7 +55,9 @@ class Download extends Model
     }
 
     /**
-     * Get the Download Destination.
+     * Get the associated DownloadDestination for this Download.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function destination(): HasOne
     {

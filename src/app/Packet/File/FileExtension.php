@@ -2,38 +2,51 @@
 
 namespace App\Packet\File;
 
+/**
+ * Class FileExtension
+ *
+ * This class defines constants for various file extensions and provides a method to retrieve a list of them.
+ * It is used for identifying or validating file types based on their extensions.
+ *
+ * @package App\Packet\File
+ */
 final class FileExtension
 {
-    const AVI = 'avi';
-    const DLL = 'dll';
-    const DMG = 'dmg';
-    const EPUB = 'epub';
-    const EXE = 'exe';
-    const FLAC = 'flac';
-    const ISO = 'iso';
-    const M4A = 'm4a';
-    const M4B = 'm4b';
-    const M4V = 'm4v';
-    const MKV = 'mkv';
-    const MOBI = 'mobi';
-    const MP3 = 'mp3';
-    const MP4 = 'mp4';
-    const NSP = 'nsp';
-    const PDF = 'pdf';
-    const PKG = 'pkg';
-    const RAR = 'rar';
-    const TAR = 'tar';
-    const TXT = 'txt';
-    const WAV = 'wav';
-    const ZIP = 'zip';
+    // Define constants for various file extensions
+    public const AVI = 'avi';  // Audio/Video Interleave
+    public const DLL = 'dll';  // Dynamic-Link Library
+    public const DMG = 'dmg';  // Disk Image (Apple macOS)
+    public const EPUB = 'epub'; // Electronic Publication
+    public const EXE = 'exe';  // Executable file
+    public const FLAC = 'flac'; // Free Lossless Audio Codec
+    public const ISO = 'iso';  // ISO Disk Image
+    public const M4A = 'm4a'; // MPEG-4 Audio
+    public const M4B = 'm4b'; // MPEG-4 Audio with Bookmarks (Audiobook)
+    public const M4V = 'm4v'; // MPEG-4 Video
+    public const MKV = 'mkv'; // Matroska Video
+    public const MOBI = 'mobi'; // Mobipocket eBook
+    public const MP3 = 'mp3'; // MPEG Audio Layer 3
+    public const MP4 = 'mp4'; // MPEG-4 Video
+    public const NSP = 'nsp'; // Nintendo Switch Package
+    public const PDF = 'pdf'; // Portable Document Format
+    public const PKG = 'pkg'; // Package File
+    public const RAR = 'rar'; // Roshal Archive
+    public const TAR = 'tar'; // Tape Archive
+    public const TXT = 'txt'; // Plain Text
+    public const WAV = 'wav'; // Waveform Audio File Format
+    public const ZIP = 'zip'; // ZIP Compressed Archive
 
     /**
-     * Returns a list of a all the media types.
+     * Returns a list of all the media types (file extensions).
      *
-     * @return array
+     * The returned list is an array containing common file extensions used for multimedia files and documents.
+     * This method is designed for efficiency, returning a simple array of constants.
+     *
+     * @return string[] List of file extensions.
      */
     public static function getFileExtensions(): array
     {
+        // Return an array of constants directly for computational efficiency
         return [
             self::AVI,
             self::DLL,
@@ -56,6 +69,7 @@ final class FileExtension
             self::TAR,
             self::TXT,
             self::WAV,
+            self::ZIP,
         ];
     }
 }

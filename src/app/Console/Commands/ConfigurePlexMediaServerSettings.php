@@ -19,10 +19,10 @@ class ConfigurePlexMediaServerSettings extends Command
     const DEFAULT_UNIX_LIKE_VAR_DIR = '$HOME' .  DS . 'var';
 
     /** @var string Command signature */
-    protected string $signature = 'mcol:plex-media-server-settings';
+    protected $signature = 'mcol:plex-media-server-settings';
 
     /** @var string Command description */
-    protected string $description = 'Attempts to configure values for Plex Media Server.';
+    protected $description = 'Attempts to configure values for Plex Media Server.';
 
     /**
      * Execute the console command.

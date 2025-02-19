@@ -2,24 +2,43 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Laravel\Scout\Searchable;
-use Laravel\Scout\Attributes\SearchUsingFullText;
+use Illuminate\Database\Eloquent\Factories\HasFactory,
+    Illuminate\Database\Eloquent\Model;
 
+use Laravel\Scout\Searchable,
+    Laravel\Scout\Attributes\SearchUsingFullText;
+
+/**
+ * Class DownloadHistory
+ *
+ * @package App\Models
+ * @property string $file_name The name of the downloaded file
+ * @property array $meta Meta data associated with the download
+ */
 class DownloadHistory extends Model
 {
-    use HasFactory;
-    use Searchable;
+    use HasFactory, Searchable;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $guarded = [];
 
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
-        'meta' => 'array'
+        'meta' => 'array',
     ];
 
     /**
      * Get the name of the index associated with the model.
+     *
+     * @return string
      */
     public function searchableAs(): string
     {

@@ -2,25 +2,42 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory,
+    Illuminate\Database\Eloquent\Model,
+    Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use App\Models\Download; // Grouped for future expansion
+
+/**
+ * Class DownloadDestination
+ *
+ * Represents a destination for download status management.
+ *
+ * @package App\Models
+ */
 class DownloadDestination extends Model
 {
     use HasFactory;
 
+    /** @var array */
     protected $guarded = [];
 
+    /** @const string Status constant for incomplete downloads */
     const STATUS_INCOMPLETE = 'incomplete';
+
+    /** @const string Status constant for completed downloads */
     const STATUS_COMPLETED = 'completed';
+
+    /** @const string Status constant for queued downloads */
     const STATUS_QUEUED = 'queued';
+
+    /** @const string Status constant for waiting downloads */
     const STATUS_WAITING = 'waiting';
 
     /**
-     * Returns a list of all available statuses.
+     * Get all available download statuses.
      *
-     * @return array
+     * @return string[] List of all available statuses
      */
     public static function getStatusOptions(): array
     {
@@ -33,27 +50,29 @@ class DownloadDestination extends Model
     }
 
     /**
-     * Creates a boolean that designates this attr as queued or not queued.
+     * Check if the download destination status is "queued".
      *
-     * @return boolean
+     * @return bool True if the status is "queued", false otherwise
      */
     public function isQueued(): bool
     {
-        return ($this->status === self::STATUS_QUEUED) ? true : false;
+        return $this->status === self::STATUS_QUEUED;
     }
 
     /**
-     * Creates a boolean that designates this attr as queued or not queued.
+     * Check if the download destination status is "waiting".
      *
-     * @return boolean
+     * @return bool True if the status is "waiting", false otherwise
      */
     public function isWaiting(): bool
     {
-        return ($this->status === self::STATUS_WAITING) ? true : false;
+        return $this->status === self::STATUS_WAITING;
     }
 
     /**
-     * Get the instance of the Download.
+     * Get the associated Download model.
+     *
+     * @return BelongsTo Relationship between DownloadDestination and Download
      */
     public function download(): BelongsTo
     {

@@ -2,17 +2,29 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory,
+    Illuminate\Database\Eloquent\Model,
+    Illuminate\Database\Eloquent\Relations\HasMany,
+    Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Class HotReport
+ *
+ * @property int $id
+ * @property Channel $channel
+ * @property HotReportLine[] $hotReportLines
+ */
 class HotReport extends Model
 {
+    use HasFactory;
+
+    /** @var array The attributes that are mass assignable. */
     protected $guarded = [];
 
     /**
-     * Get the hotReportLines of this search.
+     * Get the hotReportLines associated with this report.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function hotReportLines(): HasMany
     {
@@ -20,12 +32,12 @@ class HotReport extends Model
     }
 
     /**
-     * Get get the channel of this report.
+     * Get the channel associated with this report.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function channel(): BelongsTo
     {
         return $this->belongsTo(Channel::class);
     }
-
-    use HasFactory;
 }

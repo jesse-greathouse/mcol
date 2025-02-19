@@ -24,10 +24,10 @@ class ConfigureMediaStoreSettings extends Command
     const DEFAULT_UNIX_LIKE_VAR_DIR = '$HOME' .  DS . 'var';
 
     /** @var string The command signature. */
-    protected string $signature = 'mcol:media-store-settings';
+    protected $signature = 'mcol:media-store-settings';
 
     /** @var string The command description. */
-    protected string $description = 'Attempts to configure values for the media store.';
+    protected $description = 'Attempts to configure values for the media store.';
 
     /**
      * Execute the console command.

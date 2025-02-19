@@ -16,10 +16,10 @@ class Download extends Command
     protected ?Packet $packet = null;
 
     /** @var string The name and signature of the console command. */
-    protected string $signature = 'mcol:download {id}';
+    protected $signature = 'mcol:download {id}';
 
     /** @var string The console command description. */
-    protected string $description = 'Queue downloading a packet based on the ID';
+    protected $description = 'Queue downloading a packet based on the ID';
 
     /**
      * Execute the console command.

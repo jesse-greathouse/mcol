@@ -2,21 +2,26 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Fortify\TwoFactorAuthenticatable;
-use Laravel\Jetstream\HasProfilePhoto;
-use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Factories\HasFactory,
+    Illuminate\Foundation\Auth\User as Authenticatable,
+    Illuminate\Notifications\Notifiable;
 
+use Laravel\Fortify\TwoFactorAuthenticatable,
+    Laravel\Jetstream\HasProfilePhoto,
+    Laravel\Sanctum\HasApiTokens;
+
+/**
+ * Class User
+ *
+ * The User model represents an authenticated user in the system.
+ * It includes authentication, notifications, profile photo handling,
+ * and two-factor authentication features.
+ *
+ * @package App\Models
+ */
 class User extends Authenticatable
 {
-    use HasApiTokens;
-    use HasFactory;
-    use HasProfilePhoto;
-    use Notifiable;
-    use TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, HasProfilePhoto, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -24,9 +29,9 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'name', // User's name
+        'email', // User's email address
+        'password', // User's password
     ];
 
     /**
@@ -35,10 +40,10 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $hidden = [
-        'password',
-        'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
+        'password', // Hide password during serialization
+        'remember_token', // Hide remember token
+        'two_factor_recovery_codes', // Hide two-factor recovery codes
+        'two_factor_secret', // Hide two-factor secret key
     ];
 
     /**
@@ -47,7 +52,7 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $appends = [
-        'profile_photo_url',
+        'profile_photo_url', // Append the user's profile photo URL
     ];
 
     /**
@@ -58,8 +63,8 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'email_verified_at' => 'datetime', // Cast the email verification date to datetime
+            'password'          => 'hashed', // Ensure password is hashed
         ];
     }
 }

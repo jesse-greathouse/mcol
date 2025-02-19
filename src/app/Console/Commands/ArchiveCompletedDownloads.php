@@ -10,10 +10,10 @@ use App\Jobs\ArchiveDownload,
 class ArchiveCompletedDownloads extends Command
 {
     /** @var string The name and signature of the console command. */
-    protected string $signature = 'mcol:archive-downloads';
+    protected $signature = 'mcol:archive-downloads';
 
     /** @var string The console command description. */
-    protected string $description = 'Moves completed download records into the download_histories table.';
+    protected $description = 'Moves completed download records into the download_histories table.';
 
     /**
      * Execute the console command.

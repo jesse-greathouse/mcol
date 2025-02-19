@@ -18,10 +18,10 @@ class BotList extends Command
     protected ?Network $network = null;
 
     /** The name and signature of the console command. */
-    protected string $signature = 'mcol:bot-list {network} {nick}';
+    protected $signature = 'mcol:bot-list {network} {nick}';
 
     /** The console command description. */
-    protected string $description = 'Queue downloading of a list of packets from a bot';
+    protected $description = 'Queue downloading of a list of packets from a bot';
 
     /**
      * Execute the console command.

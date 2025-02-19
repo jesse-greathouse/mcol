@@ -12,10 +12,10 @@ use App\Jobs\GenerateFileFirstAppearance as GenerateFileFirstAppearanceJob;
 class GenerateFirstAppearance extends Command
 {
     /** @var string The name and signature of the console command. */
-    protected string $signature = 'mcol:generate-first-appearance';
+    protected $signature = 'mcol:generate-first-appearance';
 
     /** @var string The console command description. */
-    protected string $description = 'Populates the first appearances table with information from the Packets table.';
+    protected $description = 'Populates the first appearances table with information from the Packets table.';
 
     /**
      * Execute the console command.

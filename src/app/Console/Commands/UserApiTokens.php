@@ -20,14 +20,14 @@ class UserApiTokens extends Command
      *
      * @var string
      */
-    protected string $signature = 'mcol:tokens {email}';
+    protected $signature = 'mcol:tokens {email}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected string $description = 'Lists User API tokens for a user by a given email address.';
+    protected $description = 'Lists User API tokens for a user by a given email address.';
 
     /**
      * Execute the console command.

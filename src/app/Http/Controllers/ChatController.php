@@ -20,7 +20,7 @@ class ChatController
      *
      * @var Collection
      */
-    private Collection $networkList;
+    private ?Collection $networkList = null;
 
     /**
      * Main view for the Chat page.

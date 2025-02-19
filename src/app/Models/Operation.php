@@ -2,22 +2,34 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory,
+    Illuminate\Database\Eloquent\Model,
+    Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Class Operation
+ *
+ * This model represents the operations that can be performed within the system.
+ * It includes the statuses and a relationship to the Instance model.
+ *
+ * @property string $status The current status of the operation.
+ */
 class Operation extends Model
 {
     use HasFactory;
 
+    // Status constants
     const STATUS_PENDING = 'PENDING';
     const STATUS_COMPLETED = 'COMPLETED';
     const STATUS_FAILED = 'FAILED';
 
+    /** @var array The attributes that are not mass assignable */
     protected $guarded = [];
 
     /**
-     * Get the content for the nick.
+     * Define the relationship between Operation and Instance.
+     *
+     * @return BelongsTo
      */
     public function instance(): BelongsTo
     {
