@@ -1,55 +1,92 @@
 <?php
 namespace App\Packet;
 
-use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Http\Request,
+    Illuminate\Pagination\LengthAwarePaginator;
 
-use \DateTime;
+use DateTime;
 
+/**
+ * BrowseRequestHandler is responsible for processing and handling incoming web request parameters
+ * related to browsing and filtering search results. The primary purpose of this class is to act as
+ * a mediator between the HTTP request layer and the database query layer, ensuring a clean separation
+ * of concerns.
+ *
+ * It takes care of interpreting the request input, such as page numbers, filters, and other options,
+ * and configures the `Browse` object accordingly. While this class is aware of both HTTP request
+ * handling and database filtering, it ensures that the concerns of the Request are kept separate,
+ * allowing the database-related logic to remain isolated within the `Browse` class.
+ *
+ * By using this class, the application can easily handle web requests without mixing database query
+ * logic into the HTTP layer, promoting maintainability and clarity in the codebase.
+ *
+ */
 class BrowseRequestHandler
 {
 
-    const PAGE_KEY = 'page';
-    const RPP_KEY = 'rpp';
-    const ORDER_KEY = 'order';
-    const DIRECTION_KEY = 'direction';
-    const START_DATE_KEY = 'start_date';
-    const END_DATE_KEY = 'end_date';
-    const IN_BOTS_KEY = 'in_bots';
-    const OUT_BOTS_KEY = 'out_bots';
-    const IN_NICK_KEY = 'in_nick';
-    const OUT_NICK_KEY = 'out_nick';
-    const IN_NETWORK_KEY = 'in_network';
-    const OUT_NETWORK_KEY = 'out_network';
-    const IN_LANGUAGE_KEY = 'in_language';
-    const OUT_LANGUAGE_KEY = 'out_language';
-    const SEARCH_STRING_KEY = 'search_string';
-    const IN_MEDIA_TYPE_KEY = 'in_media_type';
-    const OUT_MEDIA_TYPE_KEY = 'out_media_type';
-    const IN_RESOLUTIONS_KEY = 'in_resolution';
-    const OUT_RESOLUTIONS_KEY = 'out_resolution';
-    const IN_DYNAMIC_RANGE_KEY = 'in_dynamic_range';
-    const OUT_DYNAMIC_RANGE_KEY = 'out_dynamic_range';
-    const IN_FILE_EXTENSION_KEY = 'in_file_extension';
-    const OUT_FILE_EXTENSION_KEY = 'out_file_extension';
+    // Pagination and sorting parameters
+    const PAGE_KEY = 'page'; // Represents the current page in pagination
+    const RPP_KEY = 'rpp'; // Number of results per page
+    const ORDER_KEY = 'order'; // Specifies the field by which to order results
+    const DIRECTION_KEY = 'direction'; // Defines the sorting direction (ascending/descending)
+
+    // Date filtering parameters
+    const START_DATE_KEY = 'start_date'; // Start date for filtering results
+    const END_DATE_KEY = 'end_date'; // End date for filtering results
+
+    // Bot-specific filtering parameters
+    const IN_BOTS_KEY = 'in_bots'; // List of incoming bots to filter by
+    const OUT_BOTS_KEY = 'out_bots'; // List of outgoing bots to filter by
+
+    // Nickname-specific filtering parameters
+    const IN_NICK_KEY = 'in_nick'; // List of incoming nicks to filter by
+    const OUT_NICK_KEY = 'out_nick'; // List of outgoing nicks to filter by
+
+    // Network-specific filtering parameters
+    const IN_NETWORK_KEY = 'in_network'; // List of incoming networks to filter by
+    const OUT_NETWORK_KEY = 'out_network'; // List of outgoing networks to filter by
+
+    // Language-specific filtering parameters
+    const IN_LANGUAGE_KEY = 'in_language'; // List of incoming languages to filter by
+    const OUT_LANGUAGE_KEY = 'out_language'; // List of outgoing languages to filter by
+
+    // Search string parameter
+    const SEARCH_STRING_KEY = 'search_string'; // The search string for querying data
+
+    // Media type-specific filtering parameters
+    const IN_MEDIA_TYPE_KEY = 'in_media_type'; // List of incoming media types to filter by
+    const OUT_MEDIA_TYPE_KEY = 'out_media_type'; // List of outgoing media types to filter by
+
+    // Resolution-specific filtering parameters
+    const IN_RESOLUTIONS_KEY = 'in_resolution'; // List of incoming resolutions to filter by
+    const OUT_RESOLUTIONS_KEY = 'out_resolution'; // List of outgoing resolutions to filter by
+
+    // Dynamic range-specific filtering parameters
+    const IN_DYNAMIC_RANGE_KEY = 'in_dynamic_range'; // List of incoming dynamic ranges to filter by
+    const OUT_DYNAMIC_RANGE_KEY = 'out_dynamic_range'; // List of outgoing dynamic ranges to filter by
+
+    // File extension-specific filtering parameters
+    const IN_FILE_EXTENSION_KEY = 'in_file_extension'; // List of incoming file extensions to filter by
+    const OUT_FILE_EXTENSION_KEY = 'out_file_extension'; // List of outgoing file extensions to filter by
 
     /**
-     * A Web Request
+     * A Web Request instance.
      *
      * @var Request
      */
     protected Request $request;
 
     /**
-     * A Browse object
+     * A Browse instance.
      *
      * @var Browse
      */
     protected Browse $browse;
 
     /**
-     * Instansiates a Browse object.
-     * Browse is a comprehensive tool for creating SQL queries for the packets table.
+     * Constructor to initialize the request and browse objects.
+     *
+     * @param Request $request The request instance.
      */
     public function __construct(Request $request)
     {
@@ -143,8 +180,8 @@ class BrowseRequestHandler
      */
     protected function page(): void
     {
-        if ($this->request->has(self::PAGE_KEY) && null !== $this->request->input(self::PAGE_KEY)) {
-            $this->browse->setPage($this->request->input(self::PAGE_KEY));
+        if ($page = $this->request->input(self::PAGE_KEY)) {
+            $this->browse->setPage($page);
         }
     }
 
@@ -155,8 +192,8 @@ class BrowseRequestHandler
      */
     protected function rpp(): void
     {
-        if ($this->request->has(self::RPP_KEY) && null !== $this->request->input(self::RPP_KEY)) {
-            $this->browse->setRpp($this->request->input(self::RPP_KEY));
+        if ($rpp = $this->request->input(self::RPP_KEY)) {
+            $this->browse->setRpp($rpp);
         }
     }
 
@@ -167,8 +204,7 @@ class BrowseRequestHandler
      */
     protected function order(): void
     {
-        if ($this->request->has(self::ORDER_KEY) && null !== $this->request->input(self::ORDER_KEY)) {
-            $order = strtolower($this->request->input(self::ORDER_KEY));
+        if ($order = strtolower($this->request->input(self::ORDER_KEY))) {
             if (in_array($order, Browse::getOrderOptions())) {
                 $this->browse->setOrder($order);
             }
@@ -176,14 +212,13 @@ class BrowseRequestHandler
     }
 
     /**
-     * Handle direction input.
+     * Handle Direction input.
      *
      * @return void
      */
     protected function direction(): void
     {
-        if ($this->request->has(self::DIRECTION_KEY) && null !== $this->request->input(self::DIRECTION_KEY)) {
-            $direction = strtolower($this->request->input(self::DIRECTION_KEY));
+        if ($direction = strtolower($this->request->input(self::DIRECTION_KEY))) {
             if (in_array($direction, Browse::getDirectionOptions())) {
                 $this->browse->setDirection($direction);
             }
@@ -191,14 +226,14 @@ class BrowseRequestHandler
     }
 
     /**
-     * Handle search string input.
+     * Handle Search String input.
      *
      * @return void
      */
     protected function search(): void
     {
-        if ($this->request->has(self::SEARCH_STRING_KEY) && null !== $this->request->input(self::SEARCH_STRING_KEY)) {
-            $this->browse->setSearchString($this->request->input(self::SEARCH_STRING_KEY));
+        if ($searchString = $this->request->input(self::SEARCH_STRING_KEY)) {
+            $this->browse->setSearchString($searchString);
         }
     }
 
@@ -209,10 +244,8 @@ class BrowseRequestHandler
      */
     protected function startDate(): void
     {
-        if ($this->request->has(self::START_DATE_KEY) && null !== $this->request->input(self::START_DATE_KEY)) {
-            $dateStr = $this->request->input(self::START_DATE_KEY);
-            $startDate = new DateTime($dateStr);
-            $this->browse->setStartDate($startDate);
+        if ($dateStr = $this->request->input(self::START_DATE_KEY)) {
+            $this->browse->setStartDate(new DateTime($dateStr));
         }
     }
 
@@ -223,15 +256,11 @@ class BrowseRequestHandler
      */
     protected function endDate(): void
     {
-        if ($this->request->has(self::END_DATE_KEY) && null !== $this->request->input(self::END_DATE_KEY)) {
-            $dateStr = $this->request->input(self::END_DATE_KEY);
-
+        if ($dateStr = $this->request->input(self::END_DATE_KEY)) {
             // If no time is given, increment by one day.
-            if (!$this->containsTimeString($dateStr)) {
-                $endDate = new DateTime("$dateStr +1 day");
-            } else {
-                $endDate = new DateTime($dateStr);
-            }
+            $endDate = $this->containsTimeString($dateStr)
+                ? new DateTime($dateStr)
+                : new DateTime("$dateStr +1 day");
 
             $this->browse->setEndDate($endDate);
         }
@@ -244,80 +273,80 @@ class BrowseRequestHandler
      */
     protected function bots(): void
     {
-        if ($this->request->has(self::IN_BOTS_KEY)) {
-            $this->browse->setFilterInBots($this->request->input(self::IN_BOTS_KEY));
-        } else if ($this->request->has(self::OUT_BOTS_KEY)) {
-            $this->browse->setFilterOutBots($this->request->input(self::OUT_BOTS_KEY));
+        if ($inBots = $this->request->input(self::IN_BOTS_KEY)) {
+            $this->browse->setFilterInBots($inBots);
+        } elseif ($outBots = $this->request->input(self::OUT_BOTS_KEY)) {
+            $this->browse->setFilterOutBots($outBots);
         }
     }
 
     /**
-     * Handle Bots input.
+     * Handle Nicks input.
      *
      * @return void
      */
     protected function nicks(): void
     {
-        if ($this->request->has(self::IN_NICK_KEY)) {
-            $this->browse->setFilterInNicks($this->request->input(self::IN_NICK_KEY));
-        } else if ($this->request->has(self::OUT_NICK_KEY)) {
-            $this->browse->setFilterOutNicks($this->request->input(self::OUT_NICK_KEY));
+        if ($inNicks = $this->request->input(self::IN_NICK_KEY)) {
+            $this->browse->setFilterInNicks($inNicks);
+        } elseif ($outNicks = $this->request->input(self::OUT_NICK_KEY)) {
+            $this->browse->setFilterOutNicks($outNicks);
         }
     }
 
     /**
-     * Handle Bots input.
+     * Handle Networks input.
      *
      * @return void
      */
     protected function networks(): void
     {
-        if ($this->request->has(self::IN_NETWORK_KEY)) {
-            $this->browse->setFilterInNetworks($this->request->input(self::IN_NETWORK_KEY));
-        } else if ($this->request->has(self::OUT_NETWORK_KEY)) {
-            $this->browse->setFilterOutNetworks($this->request->input(self::OUT_NETWORK_KEY));
+        if ($inNetworks = $this->request->input(self::IN_NETWORK_KEY)) {
+            $this->browse->setFilterInNetworks($inNetworks);
+        } elseif ($outNetworks = $this->request->input(self::OUT_NETWORK_KEY)) {
+            $this->browse->setFilterOutNetworks($outNetworks);
         }
     }
 
     /**
-     * Handle MediaTypes input.
+     * Handle Media Types input.
      *
      * @return void
      */
     protected function mediaTypes(): void
     {
-        if ($this->request->has(self::IN_MEDIA_TYPE_KEY)) {
-            $this->browse->setFilterInMediaTypes($this->request->input(self::IN_MEDIA_TYPE_KEY));
-        } else if ($this->request->has(self::OUT_MEDIA_TYPE_KEY)) {
-            $this->browse->setFilterOutMediaTypes($this->request->input(self::OUT_MEDIA_TYPE_KEY));
+        if ($inMediaTypes = $this->request->input(self::IN_MEDIA_TYPE_KEY)) {
+            $this->browse->setFilterInMediaTypes($inMediaTypes);
+        } elseif ($outMediaTypes = $this->request->input(self::OUT_MEDIA_TYPE_KEY)) {
+            $this->browse->setFilterOutMediaTypes($outMediaTypes);
         }
     }
 
     /**
-     * Handle Language input.
+     * Handle Languages input.
      *
      * @return void
      */
     protected function languages(): void
     {
-        if ($this->request->has(self::IN_LANGUAGE_KEY)) {
-            $this->browse->setFilterInLanguages($this->request->input(self::IN_LANGUAGE_KEY));
-        } else if ($this->request->has(self::OUT_LANGUAGE_KEY)) {
-            $this->browse->setFilterOutLanguages($this->request->input(self::OUT_LANGUAGE_KEY));
+        if ($inLanguages = $this->request->input(self::IN_LANGUAGE_KEY)) {
+            $this->browse->setFilterInLanguages($inLanguages);
+        } elseif ($outLanguages = $this->request->input(self::OUT_LANGUAGE_KEY)) {
+            $this->browse->setFilterOutLanguages($outLanguages);
         }
     }
 
     /**
-     * Handle File Extension input.
+     * Handle File Extensions input.
      *
      * @return void
      */
     protected function fileExtensions(): void
     {
-        if ($this->request->has(self::IN_FILE_EXTENSION_KEY)) {
-            $this->browse->setFilterInFileExtensions($this->request->input(self::IN_FILE_EXTENSION_KEY));
-        } else if ($this->request->has(self::OUT_FILE_EXTENSION_KEY)) {
-            $this->browse->setFilterOutFileExtensions($this->request->input(self::OUT_FILE_EXTENSION_KEY));
+        if ($inFileExtensions = $this->request->input(self::IN_FILE_EXTENSION_KEY)) {
+            $this->browse->setFilterInFileExtensions($inFileExtensions);
+        } elseif ($outFileExtensions = $this->request->input(self::OUT_FILE_EXTENSION_KEY)) {
+            $this->browse->setFilterOutFileExtensions($outFileExtensions);
         }
     }
 
@@ -328,10 +357,10 @@ class BrowseRequestHandler
      */
     protected function resolutions(): void
     {
-        if ($this->request->has(self::IN_RESOLUTIONS_KEY)) {
-            $this->browse->setFilterInResolutions($this->request->input(self::IN_RESOLUTIONS_KEY));
-        } else if ($this->request->has(self::OUT_RESOLUTIONS_KEY)) {
-            $this->browse->setFilterOutResolutions($this->request->input(self::OUT_RESOLUTIONS_KEY));
+        if ($inResolutions = $this->request->input(self::IN_RESOLUTIONS_KEY)) {
+            $this->browse->setFilterInResolutions($inResolutions);
+        } elseif ($outResolutions = $this->request->input(self::OUT_RESOLUTIONS_KEY)) {
+            $this->browse->setFilterOutResolutions($outResolutions);
         }
     }
 
@@ -342,10 +371,10 @@ class BrowseRequestHandler
      */
     protected function dynamicRanges(): void
     {
-        if ($this->request->has(self::IN_DYNAMIC_RANGE_KEY)) {
-            $this->browse->setFilterInDynamicRange($this->request->input(self::IN_DYNAMIC_RANGE_KEY));
-        } else if ($this->request->has(self::OUT_DYNAMIC_RANGE_KEY)) {
-            $this->browse->setFilterOutDynamicRange($this->request->input(self::OUT_DYNAMIC_RANGE_KEY));
+        if ($inDynamicRange = $this->request->input(self::IN_DYNAMIC_RANGE_KEY)) {
+            $this->browse->setFilterInDynamicRange($inDynamicRange);
+        } elseif ($outDynamicRange = $this->request->input(self::OUT_DYNAMIC_RANGE_KEY)) {
+            $this->browse->setFilterOutDynamicRange($outDynamicRange);
         }
     }
 
@@ -353,14 +382,12 @@ class BrowseRequestHandler
      * Checks a date format string to see if it includes time.
      *
      * @param string $dateStr
-     * @return boolean
+     * @return bool
      */
     protected function containsTimeString(string $dateStr): bool
     {
-        $matches = [];
-        preg_match('/\d+\:\d+(\:\d+)?/', $dateStr, $matches);
-
-        return 0 < count($matches);
+        // Match any string containing a time format (HH:MM or HH:MM:SS)
+        return preg_match('/\d{1,2}:\d{2}(:\d{2})?/', $dateStr) === 1;
     }
 
 }

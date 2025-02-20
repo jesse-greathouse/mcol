@@ -754,10 +754,18 @@ class Client
             // Update the Channel Metadata.
             $channel = $this->getChannelFromClient($channel);
 
-            $this->logDiverter->log(LogMapper::EVENT_MESSAGE, "$from: $message", $channel->getName());
+            try {
+                $this->logDiverter->log(LogMapper::EVENT_MESSAGE, "$from: $message", $channel->getName());
 
-            // Parse the message for Packet offering data.
-            $this->parsePacketMessage($from, $channel, $message);
+                // Parse the message for Packet offering data.
+                $this->parsePacketMessage($from, $channel, $message);
+            } catch (UnmappedChatLogEventException) {
+                $this->console->error(
+                    sprintf("Unmapped %s event for channel: \"%s\" (This usually happens due to a truncated UDP packet.)",
+                        LogMapper::EVENT_MESSAGE, $channel->getName()
+                    )
+                );
+            }
 
             // Do any pending operations.
             $this->operationManager->doOperations();

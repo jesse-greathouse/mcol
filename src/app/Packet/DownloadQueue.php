@@ -12,7 +12,7 @@ use App\Exceptions\IllegalPageException,
 use App\Models\Instance,
     App\Models\Download;
 
-use \DateTime;
+use DateTime;
 
 class DownloadQueue
 {
