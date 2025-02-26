@@ -6,6 +6,10 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
 
 trait DynamicRangeMetaData
 {
+    const TYPE_HDR = 'HDR';
+
+    const TYPE_DOLBY = 'Dolby Vision';
+
     /**
      * @var string The regex pattern for HDR matching.
      */
@@ -18,7 +22,8 @@ trait DynamicRangeMetaData
 
     /**
      * Returns boolean if the file name indicates this file is HDR.
-     * Throws an exception if matching fails.
+     * Returns false if matching fails.
+     * Throws an exception if matching fails due to preg_match failure.
      *
      * @param string $fileName
      * @return bool
@@ -26,12 +31,13 @@ trait DynamicRangeMetaData
      */
     public function isHdr(string $fileName): bool
     {
-        return $this->isMatching($fileName, $this->getHdrMask(), 'HDR');
+        return $this->isMatching($fileName, $this->getHdrMask(), self::TYPE_HDR);
     }
 
     /**
      * Returns boolean if the file name indicates this file is Dolby Vision.
-     * Throws an exception if matching fails.
+     * Returns false if matching fails.
+     * Throws an exception if matching fails due to preg_match failure.
      *
      * @param string $fileName
      * @return bool
@@ -39,12 +45,12 @@ trait DynamicRangeMetaData
      */
     public function isDolbyVision(string $fileName): bool
     {
-        return $this->isMatching($fileName, $this->getDolbyVisionMask(), 'Dolby Vision');
+        return $this->isMatching($fileName, $this->getDolbyVisionMask(), self::TYPE_DOLBY);
     }
 
     /**
      * Generalized method to check if a file name matches a dynamic range pattern.
-     * Throws an exception if matching fails.
+     * Returns false if matching fails, throws exception on preg_match failure.
      *
      * @param string $fileName
      * @param string $mask The regex mask to use for matching.
@@ -54,10 +60,13 @@ trait DynamicRangeMetaData
      */
     private function isMatching(string $fileName, string $mask, string $type): bool
     {
-        if (!preg_match($mask, $fileName)) {
-            throw new MediaMetadataUnableToMatchException("Unable to match $type metadata for: $fileName.");
+        $result = preg_match($mask, $fileName);
+
+        if ($result === false) {
+            throw new MediaMetadataUnableToMatchException("Preg_match failed when checking $type metadata from: $fileName.");
         }
-        return true;
+
+        return $result === 1; // If preg_match returns 1, it's a match. If 0, no match.
     }
 
     /**
@@ -94,7 +103,7 @@ trait DynamicRangeMetaData
             MediaDynamicRange::getExpandedDynamicRanges()[$filter] ?? []
         );
 
-        return '/' . $this->regexSafeDots(implode('|', $dynamicRanges)) . '/is';
+        return '/(?<!\w)(' . implode('|', array_map([$this, 'regexSafe'], $dynamicRanges)) . ')(?!\w)/i';
     }
 
     /**
@@ -103,8 +112,8 @@ trait DynamicRangeMetaData
      * @param string $value The string to escape.
      * @return string The escaped string.
      */
-    public function regexSafeDots(string $value): string
+    public function regexSafe(string $value): string
     {
-        return str_replace('.', '\.', $value);
+        return preg_quote($value, '/');
     }
 }

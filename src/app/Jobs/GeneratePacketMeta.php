@@ -9,7 +9,8 @@ use Illuminate\Contracts\Queue\ShouldQueue,
     Illuminate\Queue\SerializesModels,
     Illuminate\Support\Facades\Log;
 
-use App\Media\Application,
+use App\Exceptions\MediaMetadataUnableToMatchException,
+    App\Media\Application,
     App\Media\Book,
     App\Media\Game,
     App\Media\MediaType,
@@ -134,6 +135,9 @@ class GeneratePacketMeta implements ShouldQueue
             try {
                 $media = new $mediaClass($packet->file_name);
                 $meta = $media->toArray();
+            } catch(MediaMetadataUnableToMatchException $e) {
+                // Use custom reporting on MediaMetadataUnableToMatchException
+                $e->report();
             } catch (Exception $e) {
                 Log::warning($e);
             }

@@ -2,8 +2,6 @@
 
 namespace App\Media;
 
-use App\Exceptions\MediaMetadataUnableToMatchException;
-
 trait ExtensionMetaData
 {
     /**
@@ -14,17 +12,16 @@ trait ExtensionMetaData
      * 8 characters to ensure it fits within the database limits.
      *
      * @param string $fileName The full file name (e.g., 'example.txt').
-     * @return string The file extension, truncated to a maximum of 8 characters.
-     * @throws MediaMetadataUnableToMatchException If the filename doesn't have an extension.
+     * @return string|null The file extension, truncated to a maximum of 8 characters, or null if no extension exists.
      */
-    public function getExtension(string $fileName): string
+    public function getExtension(string $fileName): ?string
     {
-        // Split the filename by periods (.)
+        // Split the filename by periods (.).
         $parts = explode('.', $fileName);
 
-        // If the filename doesn't contain a period or there are no parts after it, throw an exception.
+        // If the filename doesn't contain a period or there are no parts after it, return null.
         if (count($parts) < 2) {
-            throw new MediaMetadataUnableToMatchException("Unable to match extension metadata for: $fileName.");
+            return null;
         }
 
         // Get the last part of the split string as the extension.

@@ -23,7 +23,7 @@ final class Application extends Media implements MediaTypeInterface
      *
      * @var string
      */
-    private const MASK = '/^[\d{2,3}]*(.*)[\.|\-](.*)\..*$/i';
+    private const STANDARD_MASK = '/^[\d{2,3}]*(.*)[\.|\-\_](.*)\..*$/i';
 
     /**
      * Regular expression mask for extracting the version of the application.
@@ -58,7 +58,7 @@ final class Application extends Media implements MediaTypeInterface
      *
      * @var string
      */
-    private string $title;
+    private string $title = '';
 
     /**
      * Version of the Application.
@@ -95,9 +95,9 @@ final class Application extends Media implements MediaTypeInterface
      *
      * This property holds the file extension (e.g., `.exe`, `.apk`) extracted from the file name.
      *
-     * @var string
+     * @var string|null extension.
      */
-    private string $extension;
+    private ?string $extension = null;
 
     /**
      * Language of the media.
@@ -106,7 +106,23 @@ final class Application extends Media implements MediaTypeInterface
      *
      * @var string
      */
-    private string $language;
+    private string $language = '';
+
+    /**
+     * Matches the media metadata from the file name.
+     *
+     * @param string $fileName The name of the file to extract metadata from.
+     * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
+     */
+    public function match(string $fileName): void
+    {
+        $this->fileName = $fileName;
+
+        match (true) {
+            $this->tryMatchWithStandardMask() => null,
+            default => $this->throwMediaMetadataException(),
+        };
+    }
 
     /**
      * Maps the result of a match to class properties.
@@ -122,14 +138,11 @@ final class Application extends Media implements MediaTypeInterface
      */
     public function map(): void
     {
-        // Exit early if no matches are found.
-        if (empty($this->matches)) {
+        if (null === $this->metaData) {
             return;
         }
 
-        // Extract the application media name and trim any extra spaces.
-        [, $applicationStr] = $this->matches;
-        $applicationStr = trim($applicationStr ?? '');
+        $applicationStr = trim($this->metaData->getApplicationStr() ?? '');
 
         // Extract version and clean the application string.
         $version = $this->getVersionFromApplicationStr($applicationStr);
@@ -195,19 +208,6 @@ final class Application extends Media implements MediaTypeInterface
     }
 
     /**
-     * Returns the regular expression mask used to match the media.
-     *
-     * This method returns the mask pattern that is used to extract media metadata
-     * from the media file name (e.g., for title and version matching).
-     *
-     * @return string
-     */
-    public function getMask(): string
-    {
-        return self::MASK;
-    }
-
-    /**
      * Returns the object as an associative array.
      *
      * This method converts the object properties into a structured array
@@ -246,10 +246,48 @@ final class Application extends Media implements MediaTypeInterface
 
         // If matching fails or no version is found, throw an exception.
         if (count($matches) < 3) {
-            throw new MediaMetadataUnableToMatchException("Unable to match media version to the metadata.");
+            throw new MediaMetadataUnableToMatchException("Unable to match Application version to the metadata from: $applicationStr.");
         }
 
         // Return the second match as the version, or `null` if not available.
         return $matches[2] ?? null;
+    }
+
+    /**
+     * Attempts to match the file name against the standard mask.
+     *
+     * If the file name matches the expected pattern, a `MetaData` object is created
+     * and populated with the extracted values. The `metaData` property is then assigned this object.
+     *
+     * @return bool Returns true if a match was found and metadata was successfully set, otherwise false.
+     */
+    private function tryMatchWithStandardMask(): bool
+    {
+        if (preg_match(self::STANDARD_MASK, $this->fileName, $match, PREG_UNMATCHED_AS_NULL) && count($match) >= 2) {
+            $this->metaData = MetaData::build()
+                ->withApplicationStr($match[1]); // Extracted Application String.
+
+            return true; // Matching was successful.
+        }
+
+        return false; // No match found.
+    }
+
+    /**
+     * Throws an exception indicating that the file name could not be matched with any of the patterns.
+     *
+     * Constructs an exception message that includes the file name and the patterns attempted.
+     *
+     * @throws MediaMetadataUnableToMatchException The exception indicating the failure to match the media metadata.
+     */
+    private function throwMediaMetadataException(): void
+    {
+        $message = sprintf(
+            "Unable to match Application metadata for file: %s \nTried matching with the following patterns: \n%s",
+            $this->fileName,
+            self::STANDARD_MASK
+        );
+
+        throw new MediaMetadataUnableToMatchException($message);
     }
 }

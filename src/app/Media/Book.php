@@ -30,7 +30,7 @@ final class Book extends Media implements MediaTypeInterface
     // https://www.phpliveregex.com/p/Mxt
     // It's incredibly difficult to find a common pattern among ebook file names.
     // Very little can be done to get more metadata out of the file name.
-    const MASK = '/^(.*)\..*$/i';
+    const STANDARD_MASK = '/^(.*)\..*$/i';
 
     // https://www.phpliveregex.com/p/Mxu
     // Pattern for matching a 4-digit year in the title
@@ -50,9 +50,9 @@ final class Book extends Media implements MediaTypeInterface
     /**
      * Year of the book's release.
      *
-     * @var string
+     * @var string|null
      */
-    private string $year = '';
+    private ?string $year = null;
 
     /**
      * Book number in a series.
@@ -71,9 +71,9 @@ final class Book extends Media implements MediaTypeInterface
     /**
      * File extension of the book.
      *
-     * @var string
+     * @var string|null extension.
      */
-    private string $extension = '';
+    private ?string $extension = null;
 
     /**
      * Language of the book.
@@ -83,20 +83,34 @@ final class Book extends Media implements MediaTypeInterface
     private string $language = '';
 
     /**
+     * Matches the media metadata from the file name.
+     *
+     * @param string $fileName The name of the file to extract metadata from.
+     * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
+     */
+    public function match(string $fileName): void
+    {
+        $this->fileName = $fileName;
+
+        match (true) {
+            $this->tryMatchWithStandardMask() => null,
+            default => $this->throwMediaMetadataException(),
+        };
+    }
+
+    /**
      * Maps the result of a regex match to the object's properties.
      *
      * @return void
      */
     public function map(): void
     {
-        if (count($this->matches) < 2) {
+        if (null === $this->metaData) {
             return;
         }
 
-        [, $title] = $this->matches;
-
         // Sanitize title to prevent issues if null or empty
-        $title = trim($title ?? '');
+        $title = trim($this->metaData->getTitle() ?? '');
 
         // Map metadata from the title
         $this->title = $this->formatTitle($title);
@@ -114,7 +128,7 @@ final class Book extends Media implements MediaTypeInterface
      */
     public function getMask(): string
     {
-        return self::MASK;
+        return self::STANDARD_MASK;
     }
 
     /**
@@ -138,18 +152,20 @@ final class Book extends Media implements MediaTypeInterface
      * Extracts the year from the book's title using a regex pattern.
      *
      * @param string $title The title of the book.
-     * @return string The extracted year or an empty string if no match.
-     * @throws MediaMetadataUnableToMatchException If no year is found.
+     * @return string|null The extracted year or an empty string if no match.
+     * @throws MediaMetadataUnableToMatchException If a regex error occurs.
      */
-    private function getYearFromTitle(string $title): string
+    private function getYearFromTitle(string $title): string|null
     {
-        // Try to match the year in the title using regex
-        if (preg_match(self::YEAR_MASK, $title, $matches) === 1) {
-            return $matches[1] ?? '';
+        $matches = [];
+
+        $result = preg_match(self::YEAR_MASK, $title, $matches);
+
+        if ($result === false) {
+            throw new MediaMetadataUnableToMatchException("Regex error while extracting year from Book title: $title.");
         }
 
-        // Throw exception if no match is found
-        throw new MediaMetadataUnableToMatchException("Unable to match year from the title.");
+        return $result === 0 ? null : ($matches[1] ?? '');
     }
 
     /**
@@ -157,16 +173,56 @@ final class Book extends Media implements MediaTypeInterface
      *
      * @param string $title The title of the book.
      * @return string|null The extracted volume or null if no match.
-     * @throws MediaMetadataUnableToMatchException If no volume is found.
+     * @throws MediaMetadataUnableToMatchException If a regex error occurs.
      */
     private function getVolumeFromTitle(string $title): ?string
     {
-        // Try to match the volume in the title using regex
-        if (preg_match(self::VOLUME_MASK, $title, $matches) === 1) {
-            return $matches[1] ?? null;
+        $matches = [];
+
+        $result = preg_match(self::VOLUME_MASK, $title, $matches);
+
+        if ($result === false) {
+            throw new MediaMetadataUnableToMatchException("Regex error while extracting volume from Book title: $title.");
         }
 
-        // Throw exception if no match is found
-        throw new MediaMetadataUnableToMatchException("Unable to match volume from the title.");
+        return $result === 0 ? null : ($matches[1] ?? null);
+    }
+
+    /**
+     * Attempts to match the file name against the standard mask.
+     *
+     * If the file name matches the expected pattern, a `MetaData` object is created
+     * and populated with the extracted values. The `metaData` property is then assigned this object.
+     *
+     * @return bool Returns true if a match was found and metadata was successfully set, otherwise false.
+     */
+    private function tryMatchWithStandardMask(): bool
+    {
+        if (preg_match(self::STANDARD_MASK, $this->fileName, $match, PREG_UNMATCHED_AS_NULL) && count($match) >= 2) {
+            $this->metaData = MetaData::build()
+                ->withTitle($match[1]); // Extracted Title String.
+
+            return true; // Matching was successful.
+        }
+
+        return false; // No match found.
+    }
+
+    /**
+     * Throws an exception indicating that the file name could not be matched with any of the patterns.
+     *
+     * Constructs an exception message that includes the file name and the patterns attempted.
+     *
+     * @throws MediaMetadataUnableToMatchException The exception indicating the failure to match the media metadata.
+     */
+    private function throwMediaMetadataException(): void
+    {
+        $message = sprintf(
+            "Unable to match Book metadata for file: %s \nTried matching with the following patterns: \n%s",
+            $this->fileName,
+            self::STANDARD_MASK
+        );
+
+        throw new MediaMetadataUnableToMatchException($message);
     }
 }

@@ -16,11 +16,12 @@ interface MediaTypeInterface
     public function toArray(): array;
 
     /**
-     * Retrieves the associated mask as a string.
+     * Matches the media metadata from the file name.
      *
-     * @return string The mask.
+     * @param string $fileName the name of the file with which to perform the data extraction.
+     * @return void.
      */
-    public function getMask(): string;
+    public function match(string $fileName): void;
 
     /**
      * Maps the media type to a specific transformation or logic.

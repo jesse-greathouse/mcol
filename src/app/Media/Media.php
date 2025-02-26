@@ -33,6 +33,16 @@ abstract class Media
     protected array $matches = [];
 
     /**
+     * The metadata object containing additional media details.
+     *
+     * This property holds an instance of the MetaData class, providing structured information
+     * about the media file. It is nullable and defaults to null.
+     *
+     * @var ?MetaData
+     */
+    protected ?MetaData $metaData = null;
+
+    /**
      * The file name from which the metadata was derived.
      *
      * @var string
@@ -42,20 +52,20 @@ abstract class Media
     /**
      * Constructor to initialize the media object.
      *
-     * @param string $fileName The name of the file to extract metadata from.
+     * @param ?string $fileName The name of the file to extract metadata from.
      * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
      */
-    public function __construct(string $fileName)
+    public function __construct(?string $fileName = null)
     {
         $this->fileName = $fileName;
 
-        // Perform regex match and check for failure
-        if (!preg_match($this->getMask(), $this->fileName, $this->matches)) {
-            throw new MediaMetadataUnableToMatchException("Unable to match media to the metadata for: $fileName.");
-        }
+        if (null !== $fileName) {
+            // Extract the metadata from the file name.
+            $this->match($fileName);
 
-        // Map the match result to properties
-        $this->map();
+            // Map the match result to properties
+            $this->map();
+        }
     }
 
     /**
@@ -65,14 +75,15 @@ abstract class Media
      *
      * @return void
      */
-    public abstract function map(): void;
+    public abstract function match(string $fileName): void;
 
     /**
-     * Abstract method to return the regex mask to use for matching media metadata.
+     * Abstract method to matches the media metadata from the file name.
      *
-     * @return string The regular expression mask.
+     * @param string $fileName the name of the file with which to perform the data extraction.
+     * @return void.
      */
-    public abstract function getMask(): string;
+    public abstract function map(): void;
 
     /**
      * Formats a title into a readable string.
@@ -90,34 +101,36 @@ abstract class Media
         }
 
         // Replace dots with spaces and trim whitespace
-        $title = trim(str_replace('.', ' ', $title));
+        $title = trim(str_replace(['.', '_'], ' ', $title));
 
         // Convert to title case
         return S::create($title)->toTitleCase();
     }
 
-    /**
+/**
      * Formats a string of tags into a list of normalized tags.
      *
      * The tags are extracted using a regular expression, and all extracted tags are converted to lowercase.
      *
      * @param string $tagStr The string containing the tags to format.
      * @return array The list of formatted tags.
-     * @throws MediaMetadataUnableToMatchException If the tags cannot be matched using the regex mask.
      */
     public function formatTags(string $tagStr): array
     {
         // Return an empty array if the input string is empty
-        if ($tagStr === '') {
+        if (empty($tagStr)) {
             return [];
         }
 
         // Perform regex match to extract tags
-        if (!preg_match_all(self::TAG_MASK, $tagStr, $matches)) {
-            throw new MediaMetadataUnableToMatchException("Unable to match Media metadata with: \"$tagStr\".");
+        preg_match_all(self::TAG_MASK, $tagStr, $matches);
+
+        // If no tags are found, return an empty array
+        if (empty($matches[1])) {
+            return [];
         }
 
         // Extract tags from the first capture group, convert to lowercase
-        return isset($matches[1]) ? array_map('strtolower', $matches[1]) : [];
+        return array_map('strtolower', $matches[1]);
     }
 }

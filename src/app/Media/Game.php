@@ -18,13 +18,13 @@ final class Game extends Media implements MediaTypeInterface
      * Regex pattern to match general media string (e.g., title and version).
      * @see https://www.phpliveregex.com/p/MxA
      */
-    private const MASK = '/^[\d{2,3}]*(.*)[\.|\-](.*)\..*$/i';
+    private const STANDARD_MASK = '/^[\d{2,3}]*(.*)[\.|\-](.*)\..*$/i';
 
     /**
      * Regex pattern to match version information in a media string.
      * @see https://www.phpliveregex.com/p/MxD
      */
-    private const VERSION_MASK = '/^(.*).*((v|version)\d{1,}[A-Za-z0-9\.\-]*)$/i';
+    private const VERSION_MASK = '/^(.*?)(?:[^\w]*(v|version)[^\w\s\.\-_]*)([\d]+(?:[\.\-_]*[\dA-Za-z\-]*)*)$/i';
 
     /**
      * Array of valid release types.
@@ -43,7 +43,7 @@ final class Game extends Media implements MediaTypeInterface
      *
      * @var string
      */
-    private string $title;
+    private string $title = '';
 
     /**
      * Version of the game.
@@ -69,16 +69,32 @@ final class Game extends Media implements MediaTypeInterface
     /**
      * File extension.
      *
-     * @var string
+     * @var string|null extension.
      */
-    private string $extension;
+    private ?string $extension = null;
 
     /**
      * Language of the media.
      *
-     * @var string
+     * @var string Language.
      */
-    private string $language;
+    private string $language = '';
+
+    /**
+     * Matches the media metadata from the file name.
+     *
+     * @param string $fileName The name of the file to extract metadata from.
+     * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
+     */
+    public function match(string $fileName): void
+    {
+        $this->fileName = $fileName;
+
+        match (true) {
+            $this->tryMatchWithStandardMask() => null,
+            default => $this->throwMediaMetadataException(),
+        };
+    }
 
     /**
      * Maps the result of match to properties.
@@ -90,15 +106,16 @@ final class Game extends Media implements MediaTypeInterface
      */
     public function map(): void
     {
-        if (empty($this->matches)) {
+        if (null === $this->metaData) {
             return;
         }
 
-        $gameStr = trim($this->matches[1] ?? '');
+        $gameStr = trim($this->metaData->getGameStr() ?? '');
         $cleaned = $gameStr;
 
         // Extract version from the game string
         $version = $this->getVersionFromGameStr($gameStr);
+
         if ($version) {
             $cleaned = strstr($gameStr, $version, true) ?: $gameStr;
         }
@@ -152,7 +169,7 @@ final class Game extends Media implements MediaTypeInterface
      */
     public function getMask(): string
     {
-        return self::MASK;
+        return self::STANDARD_MASK;
     }
 
     /**
@@ -177,16 +194,54 @@ final class Game extends Media implements MediaTypeInterface
      *
      * @param string $gameStr The game string to search in.
      * @return string|null The version string or null if not found.
-     * @throws MediaMetadataUnableToMatchException If no valid version is found.
+     * @throws MediaMetadataUnableToMatchException If an error occurs during matching.
      */
     private function getVersionFromGameStr(string $gameStr): ?string
     {
-        preg_match(self::VERSION_MASK, $gameStr, $matches);
+        $result = preg_match(self::VERSION_MASK, $gameStr, $matches);
 
-        if (count($matches) < 3) {
-            throw new MediaMetadataUnableToMatchException("Unable to match media version to the metadata.");
+        if ($result === false) {
+            throw new MediaMetadataUnableToMatchException("Unable to match Game version to the metadata from: $gameStr.");
         }
 
-        return $matches[2] ?? null;
+        return $matches[3] ?? null;
+    }
+
+    /**
+     * Attempts to match the file name against the standard mask.
+     *
+     * If the file name matches the expected pattern, a `MetaData` object is created
+     * and populated with the extracted values. The `metaData` property is then assigned this object.
+     *
+     * @return bool Returns true if a match was found and metadata was successfully set, otherwise false.
+     */
+    private function tryMatchWithStandardMask(): bool
+    {
+        if (preg_match(self::STANDARD_MASK, $this->fileName, $match, PREG_UNMATCHED_AS_NULL) && count($match) >= 2) {
+            $this->metaData = MetaData::build()
+                ->withGameStr($match[1]); // Extracted Game String.
+
+            return true; // Matching was successful.
+        }
+
+        return false; // No match found.
+    }
+
+    /**
+     * Throws an exception indicating that the file name could not be matched with any of the patterns.
+     *
+     * Constructs an exception message that includes the file name and the patterns attempted.
+     *
+     * @throws MediaMetadataUnableToMatchException The exception indicating the failure to match the media metadata.
+     */
+    private function throwMediaMetadataException(): void
+    {
+        $message = sprintf(
+            "Unable to match Game metadata for file: %s \nTried matching with the following patterns: \n%s",
+            $this->fileName,
+            self::STANDARD_MASK
+        );
+
+        throw new MediaMetadataUnableToMatchException($message);
     }
 }
