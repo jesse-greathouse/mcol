@@ -35,7 +35,7 @@ class GeneratePacketMeta implements ShouldQueue
      *
      * @var string[]
      */
-    private const PACKET_OPTIMIZATION_PROPERTIES = [
+    const PACKET_OPTIMIZATION_PROPERTIES = [
         'resolution',
         'extension',
         'language',
@@ -48,7 +48,7 @@ class GeneratePacketMeta implements ShouldQueue
      *
      * @var array
      */
-    private const MEDIA_MAP = [
+    const MEDIA_MAP = [
         MediaType::APPLICATION  => Application::class,
         MediaType::BOOK         => Book::class,
         MediaType::GAME         => Game::class,

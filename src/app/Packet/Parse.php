@@ -104,80 +104,73 @@ class Parse {
     }
 
     /**
-     * Retreives a Packet object from cache or database
-     * or creates it if it doesn't exist.
+     * Retrieves a Packet object from cache or database or creates it if it doesn't exist.
      *
      * @param int $number The packet number.
-     * @param int $gets The amount of time the packet has been downloaded.
-     * @param string $size The file size of the packets.
-     * @param string fileName The name of the file.
+     * @param int $gets The number of times the packet has been downloaded.
+     * @param string $size The file size of the packet.
+     * @param string $fileName The name of the file.
      * @param Bot $bot The bot that reported the packet.
-     * @param Channel $channel The channel associated with the bot, if available.
-     * @param ?Repository $cache An optional cache repository for performance optimization.
-     * @return void
+     * @param Channel $channel The associated channel.
+     * @param ?Repository $cache Optional cache repository for performance optimization.
      */
-    private static function retrieveOrCreatePacket(int $number, int $gets, string $size, string $fileName, Bot $bot, Channel $channel, ?Repository $cache): void
-    {
+    private static function retrieveOrCreatePacket(
+        int $number,
+        int $gets,
+        string $size,
+        string $fileName,
+        Bot $bot,
+        Channel $channel,
+        ?Repository $cache
+    ): void {
         $packetCacheKey = self::makePacketCacheKey($number, $fileName, $bot, $channel);
-        if ($cache && (null !== $cache->get($packetCacheKey))) {
-            // If packet object is already cached, there is nothing left to do.
-            return;
+
+        if ($cache?->get($packetCacheKey)) {
+            return; // Packet already cached.
         }
 
-        $packet = Packet::updateOrCreate(
-            ['number' => $number, 'network_id' => $bot->network->id, 'channel_id' => $channel->id, 'bot_id' => $bot->id],
-            self::getDataToUpdate($fileName, $size, $gets, $number, $bot, $channel)
-        );
+        $packet = Packet::where('number', $number)
+                    ->where('network_id', $bot->network->id)
+                    ->where('channel_id', $channel->id)
+                    ->where('channel_id', $channel->id)
+                    ->where('bot_id', $bot->id)
+                    ->first();
 
-        if (count($packet->meta) === 0) {
-            // If meta is empty this packet object was just created.
-            // Tag the file in the first appearance table.
+        if (!$packet) {
+            $packet = new Packet();
+            $packet->fill([
+                'number'        => $number,
+                'network_id'    => $bot->network->id,
+                'channel_id'    => $channel->id,
+                'bot_id'        => $bot->id,
+            ]);
+        }
+
+        // If file name is new or missing, reset metadata.
+        if (null === $packet->file_name || trim($packet->file_name) !== trim($fileName)) {
+            $packet->fill([
+                'created_at' => now(),
+                'file_name' => trim($fileName),
+                'media_type' => (new MediaTypeGuesser($fileName))->guess(),
+                'meta' => []
+            ]);
+
             FileFirstAppearance::firstOrCreate(
                 ['file_name' => $packet->file_name],
                 ['created_at' => $packet->created_at]
             );
+        }
 
-            // Run a job to generate the metadata
+        $packet->fill([
+            'gets' => $gets,
+            'size' => $size
+        ])->save();
+
+        if (empty($packet->meta)) {
             GeneratePacketMeta::dispatch($packet)->onQueue('meta');
         } else {
             $cache?->put($packetCacheKey, self::serialize($packet->toArray()), self::PACKET_CACHE_TTL);
         }
-    }
-
-    /**
-     * Determines the data fields that need to be updated for a packet.
-     *
-     * @param string $fileName
-     * @param string $size
-     * @param int $gets
-     * @param int $number
-     * @param Bot $bot
-     * @param ?Channel $channel
-     * @return array The data fields to be updated in the packet.
-     */
-    private static function getDataToUpdate(string $fileName, string $size, int $gets, int $number, Bot $bot, ?Channel $channel): array
-    {
-        $existingPacket = Packet::where([
-            ['number', '=', $number],
-            ['network_id', '=', $bot->network->id],
-            ['channel_id', '=', $channel->id],
-            ['bot_id', '=', $bot->id]
-        ])->first();
-
-        $data = [
-            'file_name' => $fileName,
-            'gets' => $gets,
-            'size' => $size,
-            'media_type' => (new MediaTypeGuesser($fileName))->guess(),
-            'meta' => $existingPacket?->meta ?? [],
-        ];
-
-        // If the file name changes, update the creation timestamp
-        if ($existingPacket && trim($existingPacket->file_name) !== trim($fileName)) {
-            $data['created_at'] = now();
-        }
-
-        return $data;
     }
 
     /**

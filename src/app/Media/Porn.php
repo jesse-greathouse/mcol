@@ -20,7 +20,7 @@ final class Porn extends Media implements MediaTypeInterface
 
     // https://www.phpliveregex.com/p/MDq
     /** @var string The mask to match filenames without resolution */
-    const NO_RESOLUTION_MASK = '/^[\d{2}]*(.*)[\-|\.|\s]XXX[\-|\.|\s](.*)\.(.*)$/is';
+    const NO_RESOLUTION_MASK = '/^[\d{2}]*(.*)[\-|\.|\s]XXX[\-|\.|\s](.*)$/is';
 
     /** @var string Title of the movie */
     private string $title = '';
@@ -111,7 +111,7 @@ final class Porn extends Media implements MediaTypeInterface
     {
         // Perform regex match using the standard mask.
         // Ensure the match contains at least 7 elements to avoid incomplete data.
-        if (preg_match(self::STANDARD_MASK, $this->fileName, $match, PREG_UNMATCHED_AS_NULL) && count($match) >= 4) {
+        if (preg_match(self::STANDARD_MASK, $this->fileName, $match, PREG_UNMATCHED_AS_NULL) && count($match) >= 5) {
             $this->metaData = MetaData::build()
                 ->withTitle($match[1])         // Extracted title of the episode.
                 ->withResolution($match[2])    // Video resolution.

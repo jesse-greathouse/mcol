@@ -7,11 +7,8 @@ use Illuminate\Console\Command;
 use App\Jobs\GeneratePacketMeta as GeneratePacketMetaJob,
     App\Models\Packet;
 
-/**
- * Class GeneratePacketMeta
- *
- * This command is responsible for populating the 'meta' field of the 'packets' table for every packet.
- */
+use Exception;
+
 class GeneratePacketMeta extends Command
 {
     /**
@@ -19,7 +16,7 @@ class GeneratePacketMeta extends Command
      *
      * @var string
      */
-    protected $signature = 'mcol:generate-packet-meta {--packet= : The ID of the packet to process (optional)}';
+    protected $signature = 'mcol:generate-packet-meta {--packet=}';
 
     /**
      * The console command description.
@@ -30,31 +27,23 @@ class GeneratePacketMeta extends Command
 
     /**
      * Execute the console command.
-     *
-     * @return void
-     *
-     * @throws \Exception If the packet with the given ID is not found.
      */
-    public function handle(): void
+    public function handle()
     {
         $packet = null;
         $queue = 'longruns';
 
-        // Check if the packet ID option is provided
         if ($this->option('packet')) {
-            $id = (int) $this->option('packet'); // Typecast to int for better clarity and efficiency
+            $id = intval($this->option('packet'));
             $packet = Packet::find($id);
-
-            // If no packet found, throw an exception
-            if (!$packet) {
-                throw new \Exception("Packet with id: $id could not be found.");
+            if (null === $packet) {
+                throw new Exception("Packet with id: $id could not be found.");
             }
 
-            $queue = 'meta'; // Change queue to 'meta' if specific packet is found
+            $queue = 'meta';
         }
 
-        // Dispatch the job to the appropriate queue
         GeneratePacketMetaJob::dispatch($packet)->onQueue($queue);
-        $this->warn('Queued job for Generating Packet Meta.');
+        $this->warn("Queued job for Generating Packet Meta.");
     }
 }

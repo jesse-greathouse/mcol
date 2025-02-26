@@ -14,17 +14,17 @@ final class TvEpisode extends Media implements MediaTypeInterface
 {
     use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
 
-    // https://www.phpliveregex.com/p/N2Z
-    const STANDARD_MASK = '/^[\d{2}]*(.*)(?:\.|\-|\s|_)(S|Se|Sn|Season)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(E|Ep|Epi|Episode)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(.*)?(?:\.|\-|\s|_)?(480[p]?|720[p]?|1080[p]?|2160[p]?)(?:\.|\-|\s|_)?(.*)?$/is';
+    // https://www.phpliveregex.com/p/N3X
+    const STANDARD_MASK = '/^[\d{2}]*(.*)(?:\.|\-|\s|_)(?:S|Se|Sn|Season)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(?:E|Ep|Epi|Episode)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(.*)?(?:\.|\-|\s|_)?(480[p]?|720[p]?|1080[p]?|2160[p]?)(?:\.|\-|\s|_)?(.*)?$/is';
 
     // https://www.phpliveregex.com/p/N34
-    const NO_RESOLUTION_MASK = '/^[\d{2}]*(.+)(?:\.|\-|\s|_)(?:S|Se|Sn|Season)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(?:E|Ep|Epi|Episode)(?:\.|\-|\s|_)?(\d{1,3})((?:\.|\-|\s|_)(.+))?(\..*)$/is';
+    const NO_RESOLUTION_MASK = '/^[\d{2}]*(.+)(?:\.|\-|\s|_)(?:S|Se|Sn|Season)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(?:E|Ep|Epi|Episode)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)(.+)(?:\..*)$/is';
 
-    // https://www.phpliveregex.com/p/MDg
-    const BY_DATE_MASK = '/^[\d{2}]*(.*)[\.|\-|\s\_](\d{2,4})[\.|\-|\s\_](\d{2})[\.|\-|\s\_](\d{2})[\.|\-|\s\_]?(.*)?[\.|\-\s](480[p]?|720[p]?|1080[p]?|2160[p]?)[\.|\-|\s\_]?(.*)?$/is';
+    // https://www.phpliveregex.com/p/N3Y
+    const BY_DATE_MASK = '/^[\d{2}]*(.*)[\.|\-|\s](\d{2,4})[\.|\-|\s](\d{2})[\.|\-|\s](\d{2})[\.|\-|\s]?(.*)?[\.|\-\s](480[p]?|720[p]?|1080[p]?|2160[p]?)[\.|\-|\s]?(.*)?(?:\..*)$/is';
 
-    // https://www.phpliveregex.com/p/N3M
-    const SIMPLE_EPISODE_MASK = '/^[\d{2}]*(.+)(?:\.|\-|\s|_)(?:S|Se|Sn|Season)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(?:E|Ep|Epi|Episode)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)(.+)(?:\..*)$/is';
+    // https://www.phpliveregex.com/p/N3Z
+    const SIMPLE_EPISODE_MASK = '/^([A-Za-z0-9\s]+)(?:[\s+\-\_\.]+)(\d{1,3})x(\d{1,3})(?:[\s+\-\_\.]+)([^\(\[]+)?((?:[\(\[].*)?(480[p]?|720[p]?|1080[p]?|2160[p]?)(?:.*[\)\]])?)?(.*)?(?:\..*)$/is';
 
     // https://www.phpliveregex.com/p/N3I
     const UFC_EPISODE_MASK = '/^((.*\bUFC\b.*)\W+(\d{1,})\W+(\w+\W+vs?\W+\w+))((.*)(480[p]?|720[p]?|1080[p]?|2160[p]?))?(.*)(?:\..*)/is';
@@ -297,14 +297,14 @@ final class TvEpisode extends Media implements MediaTypeInterface
      */
     private function tryMatchWithNoResolutionMask(): bool
     {
-        if (preg_match(self::NO_RESOLUTION_MASK, $this->fileName, $match, PREG_UNMATCHED_AS_NULL) && count($match) >= 7) {
+        if (preg_match(self::NO_RESOLUTION_MASK, $this->fileName, $match, PREG_UNMATCHED_AS_NULL) && count($match) >= 5) {
             $this->metaData = MetaData::build()
                 ->withTitle($match[1])
                 ->withSeason($match[2])
                 ->withEpisode($match[3])
-                ->withEpisodeTitle($match[5])
+                ->withEpisodeTitle($match[4])
                 ->withResolution(null)
-                ->withTags($match[5]);
+                ->withTags($match[4]);
 
             return true;
         }
