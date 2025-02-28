@@ -38,6 +38,11 @@ final class Tar extends Transfer implements TransferInterface
         // Get the temporary path from the TransferManager
         $tmpPath = $this->manager->getTmpPath();
 
+        // tEST the current uri to be something useable
+        if (!$tmpPath = $this->manager->getTmpPath()) {
+            return;
+        }
+
         // Extract the .tar file
         $this->extractTar($tmpPath);
 

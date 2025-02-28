@@ -17,8 +17,8 @@ final class TvEpisode extends Media implements MediaTypeInterface
     // https://www.phpliveregex.com/p/N3X
     const STANDARD_MASK = '/^[\d{2}]*(.*)(?:\.|\-|\s|_)(?:S|Se|Sn|Season)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(?:E|Ep|Epi|Episode)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(.*)?(?:\.|\-|\s|_)?(480[p]?|720[p]?|1080[p]?|2160[p]?)(?:\.|\-|\s|_)?(.*)?$/is';
 
-    // https://www.phpliveregex.com/p/N34
-    const NO_RESOLUTION_MASK = '/^[\d{2}]*(.+)(?:\.|\-|\s|_)(?:S|Se|Sn|Season)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(?:E|Ep|Epi|Episode)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)(.+)(?:\..*)$/is';
+    // https://www.phpliveregex.com/p/N4s
+    const NO_RESOLUTION_MASK = '/^[\d{2}]*(.+)(?:\.|\-|\s|_)(?:S|Se|Sn|Season)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(?:E|Ep|Epi|Episode)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)(.+)(?:\..*)?$/is';
 
     // https://www.phpliveregex.com/p/N3Y
     const BY_DATE_MASK = '/^[\d{2}]*(.*)[\.|\-|\s](\d{2,4})[\.|\-|\s](\d{2})[\.|\-|\s](\d{2})[\.|\-|\s]?(.*)?[\.|\-\s](480[p]?|720[p]?|1080[p]?|2160[p]?)[\.|\-|\s]?(.*)?(?:\..*)$/is';

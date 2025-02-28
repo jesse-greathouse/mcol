@@ -17,9 +17,9 @@ class CreateDirectoryRequest extends FormRequest
     /**
      * A Store object.
      *
-     * @var Store
+     * @var ?Store
      */
-    private Store $store;
+    private ?Store $store = null;
 
     /**
      * Determine if the user is authorized to make this request.
@@ -93,7 +93,7 @@ class CreateDirectoryRequest extends FormRequest
      */
     private function getStore(Settings $settings): Store
     {
-        if ($this->store === null) {
+        if (!$this->store) {
             $this->store = new Store($settings->media_store);
         }
 

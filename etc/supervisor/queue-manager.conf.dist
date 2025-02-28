@@ -1,6 +1,19 @@
 [supervisord]
 logfile=%(ENV_LOG_DIR)s/queue-manager.log
-pidfile=%(ENV_VAR)s/pid/queue-manager.pidfile
+pidfile=%(ENV_VAR)s/pid/queue-manager.pid
+
+[inet_http_server]
+port=127.0.0.1:__QUEUECTL_PORT__
+username=__QUEUECTL_USER__
+password=__QUEUECTL_SECRET__
+
+[supervisorctl]
+serverurl=http://localhost:__QUEUECTL_PORT__
+username=__QUEUECTL_USER__
+password=__QUEUECTL_SECRET__
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [program:mcol-general-worker]
 process_name=%(program_name)s_%(process_num)02d

@@ -5,7 +5,7 @@ use strict;
 use Cwd qw(getcwd abs_path);
 use File::Basename;
 use lib(dirname(abs_path(__FILE__))  . "/modules");
-use Mcol::Instance qw(instance_start instance_restart instance_stop);
+use Mcol::Web qw(web_start web_restart web_stop);
 
 # Action is the first arg (start, restart, stop)
 my ($action) = @ARGV;
@@ -15,11 +15,11 @@ if (not defined $action) {
 }
 
 if ("start" eq $action) {
-   instance_start();
+   web_start();
 } elsif ("restart" eq $action) {
-   instance_restart();
+   web_restart();
 } elsif ("stop" eq $action) {
-   instance_stop();
+   web_stop();
 } else {
     die "Available actions are start, restart and stop.\n";
 }

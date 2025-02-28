@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 package Mcol::Configure;
+
 use strict;
 use File::Basename;
 use File::Touch;
@@ -46,6 +47,11 @@ my $errorLog = "$logDir/error.log";
 my $sslCertificate = "$etcDir/ssl/certs/mcol.cert";
 my $sslKey = "$etcDir/ssl/private/mcol.key";
 
+# Default Supervisor control ports
+my $supervisorPort = 5858;
+my $instanceCtlPort = 5859;
+my $queueCtlPort = 5860;
+
 # Config files
 #  -template
 #  -configuration
@@ -71,11 +77,14 @@ my $opensslConfFile = "$etcDir/ssl/openssl.cnf";
 my $nginxConfDist = "$etcDir/nginx/nginx.dist.conf";
 my $nginxConfFile = "$etcDir/nginx/nginx.conf";
 
-my $supervisordServiceDist = "$etcDir/supervisor/conf.d/supervisord.service.conf.dist";
-my $supervisordServiceFile = "$etcDir/supervisor/conf.d/supervisord.service.conf";
+my $supervisordConfDist = "$etcDir/supervisor/conf.d/supervisord.conf.dist";
+my $supervisordConfFile = "$etcDir/supervisor/conf.d/supervisord.conf";
 
 my $instanceManagerDist = "$etcDir/supervisor/instance-manager.conf.dist";
 my $instanceManagerFile = "$etcDir/supervisor/instance-manager.conf";
+
+my $queueManagerDist = "$etcDir/supervisor/queue-manager.conf.dist";
+my $queueManagerFile = "$etcDir/supervisor/queue-manager.conf";
 
 # Initialize laravel .env
 my $appKey = generate_app_key();
@@ -89,17 +98,19 @@ my %cfg = get_configuration();
 my %defaults = (
     laravel => {
         APP_NAME                    => 'mcol',
+        VITE_APP_NAME               => 'mcol',
         APP_ENV                     => 'local',
         APP_KEY                     => $appKey,
         APP_DEBUG                   => 'true',
         SESSION_DRIVER              => 'cookie',
-        APP_URL                     => 'localhost',
+        APP_URL                     => 'http://localhost:8080',
         SESSION_DOMAIN              => 'localhost',
         SANCTUM_STATEFUL_DOMAINS    => 'localhost',
         APP_TIMEZONE                => 'UTC',
         DOWNLOAD_DIR                => $downloadDir,
         LOG_CHANNEL                 => 'stack',
         LOG_SLACK_WEBHOOK_URL       => 'none',
+        REDIS_CLIENT                => 'phpredis',
         DB_CONNECTION               => 'mysql',
         DB_HOST                     => '127.0.0.1',
         DB_PORT                     => '3306',
@@ -107,7 +118,10 @@ my %defaults = (
         DB_USERNAME                 => 'mcol',
         DB_PASSWORD                 => 'mcol',
         CACHE_DRIVER                => 'file',
-        QUEUE_CONNECTION            => 'sync',
+        QUEUE_CONNECTION            => 'database',
+        LOG_DIR                     => $logDir,
+        DOWNLOAD_DIR                => $downloadDir,
+        CACHE_DIR                   => $cacheDir,
     },
     nginx => {
         DOMAINS                     => '127.0.0.1',
@@ -117,7 +131,10 @@ my %defaults = (
         SSL_KEY                     => $sslKey,
     },
     redis => {
-        REDIS_HOST                  => 'localhost',
+        REDIS_HOST                  => '/var/run/redis/redis.sock',
+        REDIS_PORT                  => '0',
+        REDIS_PASSWORD              => 'null',
+        REDIS_DB                    => '0',
     }
 );
 
@@ -149,8 +166,9 @@ sub configure {
     write_ssl_params_conf();
     write_openssl_conf();
     write_nginx_conf();
-    write_supervisord_service_conf();
+    write_supervisord_conf();
     write_instance_manager_conf();
+    write_queue_manager_conf();
     write_laravel_env();
 }
 
@@ -202,14 +220,19 @@ sub write_nginx_conf {
     write_config_file($nginxConfDist, $nginxConfFile, %c);
 }
 
-sub write_supervisord_service_conf {
+sub write_supervisord_conf {
     my %c = %{$cfg{supervisor}};
-    write_config_file($supervisordServiceDist, $supervisordServiceFile, %c);
+    write_config_file($supervisordConfDist, $supervisordConfFile, %c);
 }
 
 sub write_instance_manager_conf {
     my %c = %{$cfg{instance_manager}};
     write_config_file($instanceManagerDist, $instanceManagerFile, %c);
+}
+
+sub write_queue_manager_conf {
+    my %c = %{$cfg{queue_manager}};
+    write_config_file($queueManagerDist, $queueManagerFile, %c);
 }
 
 sub write_laravel_env {
@@ -236,57 +259,63 @@ sub request_user_input {
 
     # APP_NAME
     input('laravel', 'APP_NAME', 'App Name');
-    
-    # APP_ENV
-    input('laravel', 'APP_ENV', 'App Environment');
-    
-    # APP_KEY
-    input('laravel', 'APP_KEY', 'App Key (Security String)');
-    
-    # APP_DEBUG
-    input_boolean('laravel', 'APP_DEBUG', 'App Debug Flag');
-    
+
+    # SESSION_DOMAIN
+    input('laravel', 'SESSION_DOMAIN', 'App Domain');
+
     # APP_URL
     input('laravel', 'APP_URL', 'App Url');
-    
+
+    # APP_URL
+    input('laravel', 'APP_ENV', 'App Environment');
+
+    # APP_KEY
+    input('laravel', 'APP_KEY', 'App Key (Security String)');
+
+    # APP_DEBUG
+    input_boolean('laravel', 'APP_DEBUG', 'App Debug Flag');
+
     # APP_TIMEZONE
     input('laravel', 'APP_TIMEZONE', 'App Timezone');
 
     # DOWNLOAD_DIR
     input('laravel', 'DOWNLOAD_DIR', 'Download Directory');
-    
+
+    # LOG_DIR
+    input('laravel', 'LOG_DIR', 'Log Directory');
+
     # LOG_CHANNEL
     input('laravel', 'LOG_CHANNEL', 'Log Channel');
-    
-    # LOG_SLACK_WEBHOOK_URL
-    input('laravel', 'LOG_SLACK_WEBHOOK_URL', 'Slack Webhook Url');
-    
-    # DB_CONNECTION
-    input('laravel', 'DB_CONNECTION', 'Database Connection (driver)');
-    
-    # DB_HOST
-    input('laravel', 'DB_HOST', 'Database Hostname');
-    
-    # DB_PORT
-    input('laravel', 'DB_PORT', 'Database Port');
-    
-    # DB_DATABASE
-    input('laravel', 'DB_DATABASE', 'Database Schema Name');
-    
-    # DB_USERNAME
-    input('laravel', 'DB_USERNAME', 'Database Username');
-    
-    # DB_PASSWORD
-    input('laravel', 'DB_PASSWORD', 'Database Password');
-    
+
+    # CACHE_DIR
+    input('laravel', 'CACHE_DIR', 'Cache Directory');
+
     # CACHE_DRIVER
     input('laravel', 'CACHE_DRIVER', 'Cache Driver');
-    
+
+    # LOG_SLACK_WEBHOOK_URL
+    input('laravel', 'LOG_SLACK_WEBHOOK_URL', 'Slack Webhook Url');
+
+    # DB_CONNECTION
+    input('laravel', 'DB_CONNECTION', 'Database Connection (driver)');
+
     # QUEUE_CONNECTION
     input('laravel', 'QUEUE_CONNECTION', 'Queue Connection');
 
-    # DOMAINS
-    input('nginx', 'DOMAINS', 'Web Domains');
+    # DB_HOST
+    input('laravel', 'DB_HOST', 'Database Hostname');
+
+    # DB_PORT
+    input('laravel', 'DB_PORT', 'Database Port');
+
+    # DB_DATABASE
+    input('laravel', 'DB_DATABASE', 'Database Schema Name');
+
+    # DB_USERNAME
+    input('laravel', 'DB_USERNAME', 'Database Username');
+
+    # DB_PASSWORD
+    input('laravel', 'DB_PASSWORD', 'Database Password');
 
     # SSL
     input_boolean('nginx', 'IS_SSL', 'Use SSL (https)');
@@ -303,41 +332,63 @@ sub request_user_input {
         input('nginx', 'SSL_KEY', 'SSL Key Path');
         $cfg{nginx}{SSL_CERT_LINE} = 'ssl_certificate_key ' . $cfg{nginx}{SSL_KEY};
         $cfg{nginx}{INCLUDE_FORCE_SSL_LINE} = "include $etcDir/nginx/force-ssl.conf";
-
-        # SUPERVISORCTL_PORT
-        input('supervisor', 'SUPERVISORCTL_PORT', 'Application Control Port (5000 - 9000)');
     } else {
         # PORT
         input('nginx', 'PORT', 'Web Port');
-
-        # Configure supervisorctl port
-        my $portInt = int($cfg{nginx}{PORT});
-        $portInt++;
-        $cfg{supervisor}{SUPERVISORCTL_PORT} = $portInt;
-
         $cfg{nginx}{SSL} = '';
         $cfg{nginx}{SSL_CERT_LINE} = '';
         $cfg{nginx}{SSL_KEY_LINE} = '';
         $cfg{nginx}{INCLUDE_FORCE_SSL_LINE} = '';
     }
 
-    # Set Instance Control Port.
+    # Configure supervisorctl port
+    input('supervisor', 'SUPERVISORCTL_PORT', 'Application Control Port (5000 - 9000)');
     my $supervisorPortInt = int($cfg{supervisor}{SUPERVISORCTL_PORT});
+    $cfg{supervisor}{SUPERVISORCTL_PORT} = $supervisorPortInt;
     $supervisorPortInt++;
     $cfg{instance_manager}{INSTANCECTL_PORT} = $supervisorPortInt;
-    
+    $supervisorPortInt++;
+    $cfg{queue_manager}{QUEUECTL_PORT} = $supervisorPortInt;
+
     # REDIS_HOST
     input('redis', 'REDIS_HOST', 'Redis Host');
+
+    # REDIS_PORT
+    input('redis', 'REDIS_PORT', 'Redis Port');
+
+    # REDIS_PASSWORD
+    input('redis', 'REDIS_PASSWORD', 'Redis Password');
+
+    # RREDIS_DB
+    input('redis', 'REDIS_DB', 'Redis Db');
 }
 
 sub merge_defaults {
 
-    if (exists($cfg{laravel}{APP_URL})) {
-        if (!exists($cfg{laravel}{SESSION_DOMAIN})) {
-            $cfg{laravel}{SESSION_DOMAIN} = $cfg{laravel}{APP_URL};
-        }
+    if (!exists($cfg{laravel}{APP_KEY})) {
+        $cfg{laravel}{APP_KEY} = $appKey;
+    }
 
-        if (!exists($cfg{laravel}{SANCTUM_STATEFUL_DOMAINS})) {
+    if (!exists($cfg{laravel}{APP_ENV})) {
+        $cfg{laravel}{APP_ENV} = $defaults{laravel}{APP_ENV};
+    }
+
+    if (!exists($cfg{laravel}{VITE_APP_NAME})) {
+        $cfg{laravel}{VITE_APP_NAME} = $cfg{laravel}{APP_NAME};
+    }
+
+    if (!exists($cfg{laravel}{APP_URL})) {
+        $cfg{laravel}{APP_URL} = $defaults{laravel}{APP_URL};
+    }
+
+    if (!exists($cfg{laravel}{SESSION_DOMAIN})) {
+        $cfg{laravel}{SESSION_DOMAIN} = $defaults{laravel}{SESSION_DOMAIN};
+    }
+
+    if (!exists($cfg{laravel}{SANCTUM_STATEFUL_DOMAINS})) {
+        if (exists($cfg{laravel}{SESSION_DOMAIN})) {
+            $cfg{laravel}{SANCTUM_STATEFUL_DOMAINS} = $cfg{laravel}{SESSION_DOMAIN};
+        } else {
             $cfg{laravel}{SANCTUM_STATEFUL_DOMAINS} = $cfg{laravel}{APP_URL};
         }
     }
@@ -352,6 +403,11 @@ sub merge_defaults {
         $cfg{laravel}{SUPERVISORCTL_SECRET} = $secret;
     }
 
+    if (!exists($cfg{supervisor}{SUPERVISORCTL_PORT})) {
+        $cfg{supervisor}{SUPERVISORCTL_PORT} = $supervisorPort;
+        $cfg{laravel}{SUPERVISORCTL_PORT} = $supervisorPort;
+    }
+
     if (!exists($cfg{instance_manager}{INSTANCECTL_USER})) {
         $cfg{instance_manager}{INSTANCECTL_USER} = $ENV{"LOGNAME"};
         $cfg{laravel}{INSTANCECTL_USER} = $ENV{"LOGNAME"};
@@ -360,6 +416,26 @@ sub merge_defaults {
     if (!exists($cfg{instance_manager}{INSTANCECTL_SECRET})) {
         $cfg{instance_manager}{INSTANCECTL_SECRET} = $secret;
         $cfg{laravel}{INSTANCECTL_SECRET} = $secret;
+    }
+
+    if (!exists($cfg{supervisor}{INSTANCECTL_PORT})) {
+        $cfg{instance_manager}{INSTANCECTL_PORT} = $instanceCtlPort;
+        $cfg{laravel}{INSTANCECTL_PORT} = $instanceCtlPort;
+    }
+
+    if (!exists($cfg{queue_manager}{QUEUECTL_USER})) {
+        $cfg{queue_manager}{QUEUECTL_USER} = $ENV{"LOGNAME"};
+        $cfg{laravel}{QUEUECTL_USER} = $ENV{"LOGNAME"};
+    }
+
+    if (!exists($cfg{queue_manager}{QUEUECTL_SECRET})) {
+        $cfg{queue_manager}{QUEUECTL_SECRET} = $secret;
+        $cfg{laravel}{QUEUECTL_SECRET} = $secret;
+    }
+
+    if (!exists($cfg{supervisor}{QUEUECTL_PORT})) {
+        $cfg{queue_manager}{QUEUECTL_PORT} = $queueCtlPort;
+        $cfg{laravel}{QUEUECTL_PORT} = $queueCtlPort;
     }
 
     if (!exists($cfg{laravel}{LOG_URI})) {
@@ -378,9 +454,52 @@ sub merge_defaults {
         $cfg{laravel}{LOG_DIR} = $logDir;
     }
 
-    if (!exists($cfg{nginx}{USER})) {
-        $cfg{laravel}{USER} = $ENV{"LOGNAME"};
-        $cfg{nginx}{USER} = $ENV{"LOGNAME"};
+    if (!exists($cfg{laravel}{APP_ENV})) {
+        $cfg{laravel}{APP_ENV} = $defaults{laravel}{APP_ENV};
+    }
+
+    if (!exists($cfg{laravel}{REDIS_CLIENT})) {
+        $cfg{laravel}{REDIS_CLIENT} = $defaults{laravel}{REDIS_CLIENT};
+    }
+
+    if (!exists($cfg{laravel}{REDIS_HOST})) {
+        if (!exists($cfg{redis}{REDIS_HOST})) {
+            $cfg{redis}{REDIS_HOST} = $defaults{redis}{REDIS_HOST};
+        }
+
+        $cfg{laravel}{REDIS_HOST} = $cfg{redis}{REDIS_HOST};
+    }
+
+    if (!exists($cfg{laravel}{REDIS_PORT})) {
+        if (!exists($cfg{redis}{REDIS_PORT})) {
+            $cfg{redis}{REDIS_PORT} = $defaults{redis}{REDIS_PORT};
+        }
+
+        $cfg{laravel}{REDIS_PORT} = $cfg{redis}{REDIS_PORT};
+    }
+
+    if (!exists($cfg{laravel}{REDIS_PASSWORD})) {
+        if (!exists($cfg{redis}{REDIS_PASSWORD})) {
+            $cfg{redis}{REDIS_PASSWORD} = $defaults{redis}{REDIS_PASSWORD};
+        }
+
+        $cfg{laravel}{REDIS_PASSWORD} = $cfg{redis}{REDIS_PASSWORD};
+    }
+
+    if (!exists($cfg{laravel}{REDIS_DB})) {
+        if (!exists($cfg{redis}{REDIS_DB})) {
+            $cfg{redis}{REDIS_DB} = $defaults{redis}{REDIS_DB};
+        }
+
+        $cfg{laravel}{REDIS_DB} = $cfg{redis}{REDIS_DB};
+    }
+
+    if (!exists($cfg{laravel}{SESSION_DRIVER})) {
+        $cfg{laravel}{SESSION_DRIVER} = $defaults{laravel}{SESSION_DRIVER};
+    }
+
+    if (!exists($cfg{nginx}{DOMAINS})) {
+        $cfg{nginx}{DOMAINS} = $defaults{laravel}{SESSION_DOMAIN};
     }
 
     if (!exists($cfg{nginx}{LOG})) {
@@ -415,6 +534,10 @@ sub merge_defaults {
 
     if (!exists($cfg{nginx}{SESSION_SECRET})) {
         $cfg{nginx}{SESSION_SECRET} = $secret;
+    }
+
+    if (!exists($cfg{nginx}{USER})) {
+        $cfg{nginx}{USER} = $ENV{"LOGNAME"};
     }
 }
 

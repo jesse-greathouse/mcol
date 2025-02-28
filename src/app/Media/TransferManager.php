@@ -124,9 +124,11 @@ class TransferManager
      */
     public function transfer(): void
     {
-        $transferAgent = $this->isArchive()
-            ? $this->getArchiveTransferAgent()
-            : self::TRANSFER_AGENT_DEFAULT;
+
+        // Set up transferAgent
+        $transferAgent = $this->isArchive() ?
+            $this->getArchiveTransferAgent():
+            self::TRANSFER_AGENT_DEFAULT;
 
         $agent = new $transferAgent($this, $this->options);
         $agent->transfer();
@@ -189,27 +191,6 @@ class TransferManager
     }
 
     /**
-     * Provides a temporary directory path for working with archives.
-     *
-     * @return string
-     * @throws TransferFileInvalidTmpDirException
-     */
-    protected function getTemporaryDir(): string
-    {
-        if (!isset($this->options['tmp_dir'])) {
-            throw new TransferFileInvalidTmpDirException("Transfer required a temporary directory, but none was supplied.");
-        }
-
-        $tmpDir = $this->options['tmp_dir'] . $this->destinationPath;
-
-        if (!$this->preparePath($tmpDir)) {
-            throw new TransferFileInvalidTmpDirException("Unable to prepare temporary path: \"$tmpDir\".");
-        }
-
-        return $tmpDir;
-    }
-
-    /**
      * Retrieves the URI of the file to be transferred.
      *
      * @return string
@@ -246,6 +227,19 @@ class TransferManager
      */
     public function getTmpPath(): ?string
     {
+        // Lazy creation of tmpPath
+        if (null === $this->tmpPath) {
+            if (!isset($this->options['tmp_dir'])) {
+                throw new TransferFileInvalidTmpDirException("Transfer required a temporary directory, but none was supplied.");
+            }
+
+            $this->tmpPath = $this->options['tmp_dir'] . $this->destinationPath;
+
+            if (!$this->preparePath($this->tmpPath)) {
+                throw new TransferFileInvalidTmpDirException("Unable to prepare temporary path: \"{$this->tmpPath}\"");
+            }
+        }
+
         return $this->tmpPath;
     }
 

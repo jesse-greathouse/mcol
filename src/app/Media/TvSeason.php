@@ -11,9 +11,9 @@ final class TvSeason extends Media implements MediaTypeInterface
 {
     use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
 
-    // https://www.phpliveregex.com/p/N3p
+    // https://www.phpliveregex.com/p/N4a
     // Regular expression to match the format of a TV season filename
-    const STANDARD_MASK = '/^[\d{2}]*(.*)[\.|\-|\s\_](?:S|Se|Sn|Season)(\d{1,3})[\.|\-|\s\_](480[p]?|720[p]?|1080[p]?|2160[p]?)?(.+)$/is';
+    const STANDARD_MASK = '/^[\d{2}]*(.*)\W+(?:S|Se|Sn|Season)\W?(\d{1,3})\W+(480[p]?|720[p]?|1080[p]?|2160[p]?)?(.+)?(\..*)$/is';
 
     /** @var string Title of the series */
     private string $title = '';
@@ -106,7 +106,7 @@ final class TvSeason extends Media implements MediaTypeInterface
      */
     private function tryMatchWithStandardMask(): bool
     {
-        if (preg_match(self::STANDARD_MASK, $this->fileName, $match, PREG_UNMATCHED_AS_NULL) && count($match) >= 5) {
+        if (preg_match(self::STANDARD_MASK, $this->fileName, $match, PREG_UNMATCHED_AS_NULL) && count($match) >= 6) {
             $this->metaData = MetaData::build()
                 ->withTitle($match[1])         // Extracted title of the episode.
                 ->withSeason($match[2])        // Season number.

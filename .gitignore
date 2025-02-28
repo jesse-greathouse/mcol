@@ -55,7 +55,7 @@ etc/nginx/ssl-params.conf
 etc/nginx/ssl-params.docker.conf
 etc/nginx/force-ssl.conf
 etc/nginx/force-ssl.docker.conf
-etc/supervisor/conf.d/supervisord.service.conf
+etc/supervisor/conf.d/supervisord.conf
 etc/supervisor/instances/*
 etc/supervisor/*.conf
 etc/*.service
