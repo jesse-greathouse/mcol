@@ -71,6 +71,6 @@ final class CopyFile extends Transfer implements TransferInterface
      */
     public function cleanup(): void
     {
-        // No cleanup is needed as of now
+
     }
 }

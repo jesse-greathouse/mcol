@@ -70,8 +70,8 @@ abstract class Transfer
         $fileName = basename($uri);
 
         $tmpPath = $this->manager->getTmpPath();
-        if ($tmpPath !== null) {
-            $fileName = str_replace($tmpPath, '', $uri);
+        if (null !== $tmpPath) {
+            $fileName = basename(str_replace($tmpPath, '', $uri));
 
             // Remove the leading slash if it starts with one.
             if (strpos($fileName, DIRECTORY_SEPARATOR) === 0) {
@@ -80,8 +80,9 @@ abstract class Transfer
         }
 
         $this->manifest[] = [
-            'name' => $fileName,
-            'size' => $size,
+            'uri'   => $uri,
+            'name'  => $fileName,
+            'size'  => $size,
         ];
     }
 
@@ -97,9 +98,14 @@ abstract class Transfer
         }
 
         foreach ($this->manifest as $file) {
-            $uri = $this->manager->getDestinationPath() . DS . $file['name'];
+            $fileName = $file['name'];
+            $destinationUri = $this->manager->getDestinationPath() . DS . $fileName;
 
-            if (!file_exists($uri) || filesize($uri) !== $file['size']) {
+            // Remove any statcache that $destinationUri may have.
+            clearstatcache(true, $destinationUri);
+
+            // If $destinationUri doesn't exist, or size is wrong, then not completed.
+            if (!file_exists($destinationUri) || (filesize($destinationUri) !== $file['size'])) {
                 return false;
             }
         }

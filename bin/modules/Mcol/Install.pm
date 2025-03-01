@@ -19,6 +19,8 @@ my $bin = abs_path(dirname(__FILE__) . '/../../');
 my $applicationRoot = abs_path(dirname($bin));
 my $os = get_operating_system();
 my $osModule = 'Mcol::Install::' . $os;
+my $nodeVersion = '22.14';
+my $npmVersion = '11.1.0';
 
 eval "use $osModule qw(install_system_dependencies install_php)";
 
@@ -41,8 +43,6 @@ my @perlModules = (
     'Text::Wrap',
     'YAML::XS',
 );
-
-1;
 
 # ====================================
 #    Subroutines below this point
@@ -79,6 +79,11 @@ sub install {
         install_composer_dependencies($applicationRoot);
     }
 
+    if ($options{'node'}) {
+        install_node($applicationRoot);
+        node_build($applicationRoot);
+    }
+
     install_symlinks($applicationRoot);
 
     cleanup($applicationRoot);
@@ -86,16 +91,18 @@ sub install {
 
 sub handle_options {
     my $defaultInstall = 1;
-    my @components =  ('system', 'perl', 'openresty', 'php', 'composer');
+    my @components =  ('system', 'node', 'perl', 'openresty', 'php', 'composer');
     my %skips;
     my %installs;
 
     GetOptions ("skip-system"       => \$skips{'system'},
+                "skip-node"         => \$skips{'node'},
                 "skip-openresty"    => \$skips{'openresty'},
                 "skip-perl"         => \$skips{'perl'},
                 "skip-php"          => \$skips{'php'},
                 "skip-composer"     => \$skips{'composer'},
                 "system"            => \$installs{'system'},
+                "node"              => \$installs{'node'},
                 "openresty"         => \$installs{'openresty'},
                 "perl"              => \$installs{'perl'},
                 "php"               => \$installs{'php'},
@@ -114,6 +121,7 @@ sub handle_options {
     # Set up an options hash with the default install flag.
     my  %options = (
         system      => $defaultInstall,
+        node        => $defaultInstall,
         openresty   => $defaultInstall,
         perl        => $defaultInstall,
         php         => $defaultInstall,
@@ -457,3 +465,78 @@ sub cleanup {
     system(('bash', '-c', "rm -rf $openrestyBuildDir"));
     command_result($?, $!, 'Remove Openresty Build Dir...', "rm -rf $openrestyBuildDir");
 }
+
+sub install_node {
+    my ($dir) = @_;
+    my $nvmDir = "$dir/.nvm";
+    my $nvmInstallScript = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh';
+
+    # Check if NVM is already installed
+    my $nvmCheck = `bash -c 'export NVM_DIR=\$HOME/.nvm && [ -s "\$NVM_DIR/nvm.sh" ] && source "\$NVM_DIR/nvm.sh" && command -v nvm'`;
+
+    chomp $nvmCheck;  # Remove any trailing newline
+
+    unless ($nvmCheck) {
+        unless (-d $nvmDir) {
+            system(('bash', '-c', "curl -o- $nvmInstallScript | bash"));
+            command_result($?, $!, 'Installing NVM...', "curl -o- $nvmInstallScript | bash");
+        }
+    }
+
+    # Reload NVM environment
+    my $checkNodeInstalled = system('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && nvm ls $nodeVersion > /dev/null 2>&1");
+
+    if ($checkNodeInstalled != 0) {
+        system(('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && nvm install $nodeVersion"));
+        command_result($?, $!, 'Installing Node.js via NVM...', "nvm install $nodeVersion");
+    } else {
+        print "Node.js $nodeVersion is already installed. Skipping installation.\n";
+    }
+
+    # Ensure the correct Node.js version is being used
+    system(('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && nvm use $nodeVersion"));
+    command_result($?, $!, "Switching to Node.js $nodeVersion...", "nvm use $nodeVersion");
+
+    # Check NPM version
+    my $npmCheck = `bash -c 'export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && npm -v'`;
+    chomp($npmCheck);
+
+    if ($npmCheck ne $npmVersion) {
+        system(('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && npm install -g npm@$npmVersion"));
+        command_result($?, $!, "Upgrading NPM to $npmVersion...", "npm install -g npm@$npmVersion");
+    } else {
+        print "NPM $npmVersion is already installed. Skipping upgrade.\n";
+    }
+}
+
+sub node_build {
+    my ($dir) = @_;
+    my $originalDirectory = getcwd();
+    my $srcDir = "$dir/src";
+
+    # Change directory to source directory
+    chdir($srcDir) or die "Failed to change directory to $srcDir: $!";
+
+    # Switch to Node.js version using NVM
+    system(('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && nvm use $nodeVersion"));
+    command_result($?, $!, "Switching to Node.js $nodeVersion...", "nvm use $nodeVersion");
+
+    # Remove node_modules if it exists
+    if (-d "$srcDir/node_modules") {
+        system(('rm', '-rf', "$srcDir/node_modules"));
+        command_result($?, $!, "Removing existing node_modules...", "rm -rf $srcDir/node_modules");
+    }
+
+    # Run npm install
+    system(('bash', '-c', "npm install"));
+    command_result($?, $!, "Installing dependencies...", "npm install");
+
+    # Run npm build
+    system(('bash', '-c', "npm run build"));
+    command_result($?, $!, "Building project...", "npm run build");
+
+    # Change back to the original directory
+    chdir($originalDirectory) or die "Failed to change back to $originalDirectory: $!";
+}
+
+1;

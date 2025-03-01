@@ -6,7 +6,6 @@ use Cwd qw(getcwd abs_path);
 use File::Basename;
 use lib(dirname(abs_path(__FILE__))  . "/modules");
 use Mcol::Instance qw(instance_start instance_restart instance_stop);
-use Mcol::Instance qw(instance_start instance_restart instance_stop);
 use Mcol::Queue qw(queue_start queue_restart queue_stop);
 use Mcol::Web qw(web_start web_restart web_stop);
 
@@ -19,13 +18,13 @@ if (not defined $action) {
 }
 
 if ("start" eq $action) {
-    queue_start();
-    instance_start();
     web_start();
+    instance_start();
+    queue_start();
 } elsif ("restart" eq $action) {
-    queue_restart();
-    instance_restart();
     web_restart();
+    instance_restart();
+    queue_restart();
 } elsif ("stop" eq $action) {
     queue_stop();
     instance_stop();

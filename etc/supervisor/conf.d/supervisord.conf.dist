@@ -18,51 +18,46 @@ supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 [program:cleancache]
 environment=VAR="%(ENV_VAR)s"
 command=%(ENV_BIN)s/cleancache
+redirect_stderr=true
 stdout_events_enabled=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
+stderr_logfile=%(ENV_LOG_DIR)s/error.log
+stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
 startsecs = 0
 exitcodes = 0
 autostart = true
 autorestart = false
 priority=1
 
-[program:error.log]
-command=tail -f %(ENV_LOG_DIR)s/error.log
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-redirect_stderr = true
-autostart = true
-autorestart = true
-priority=2
-
 [program:generate-diffie-hellman]
 environment=ETC="%(ENV_ETC)s"
 command=%(ENV_BIN)s/dhp
+redirect_stderr=true
 stdout_events_enabled=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
+stderr_logfile=%(ENV_LOG_DIR)s/error.log
+stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
 startsecs = 0
 exitcodes = 0
 autostart = true
 autorestart = false
-priority=3
+priority=2
 
 [program:php-fpm]
 command=%(ENV_OPT)s/php/sbin/php-fpm -y %(ENV_ETC)s/php-fpm.d/php-fpm.conf
+redirect_stderr=true
 stdout_events_enabled=true
+stderr_logfile=%(ENV_LOG_DIR)s/error.log
 stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
-stdout_logfile_maxbytes=0
 autostart = true
 autorestart = true
-priority=4
+priority=3
 
 [program:openresty]
 environment=SSL=%(ENV_SSL)s,REDIS_HOST=%(ENV_REDIS_HOST)s,DIR="%(ENV_DIR)s",BIN="%(ENV_BIN)s",ETC="%(ENV_ETC)s",OPT="%(ENV_OPT)s",TMP="%(ENV_TMP)s",VAR="%(ENV_VAR)s",WEB="%(ENV_WEB)s",LOG_DIR="%(ENV_LOG_DIR)s",CACHE_DIR="%(ENV_CACHE_DIR)s",PORT="%(ENV_PORT)s"
 command=authbind --deep %(ENV_OPT)s/openresty/nginx/sbin/nginx -p %(ENV_OPT)s/openresty/nginx -c %(ENV_ETC)s/nginx/nginx.conf
+redirect_stderr=true
 stdout_events_enabled=true
+stderr_logfile=%(ENV_LOG_DIR)s/error.log
 stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
-stdout_logfile_maxbytes=0
-autostart = true
-autorestart = true
-priority=5
+autostart=true
+autorestart=true
+priority=4

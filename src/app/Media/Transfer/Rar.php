@@ -30,11 +30,11 @@ final class Rar extends Transfer implements TransferInterface
      * This method opens the .rar file, extracts its contents to a temporary directory,
      * and adds each file to the manifest. It also initiates a file transfer for each extracted file.
      *
-     * @param string|null $uri The URI of the RAR file to be transferred.
+     * @?param string|null $uri The URI of the RAR file to be transferred.
      * @return void
      * @throws TransferRarFileException If there is an issue with opening the RAR file or extracting its contents.
      */
-    public function transfer(string $uri = null): void
+    public function transfer(?string $uri = null): void
     {
         $tmpPath = $this->manager->getTmpPath();
 

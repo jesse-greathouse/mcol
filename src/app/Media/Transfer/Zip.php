@@ -29,12 +29,12 @@ final class Zip extends Transfer implements TransferInterface
      * This method opens a ZIP file, extracts its contents to a temporary directory, and then processes
      * the extracted files by adding them to the transfer manifest and copying them.
      *
-     * @param string|null $uri The URI to the ZIP archive to be transferred. Defaults to null.
+     * @param ?string|null $uri The URI to the ZIP archive to be transferred. Defaults to null.
      * @return void
      *
      * @throws TransferZipFileException If the ZIP file cannot be opened or if any errors occur during extraction.
      */
-    public function transfer(string $uri = null): void
+    public function transfer(?string $uri = null): void
     {
         $tmpPath = $this->manager->getTmpPath();
 

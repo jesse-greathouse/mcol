@@ -27,13 +27,13 @@ final class Tar extends Transfer implements TransferInterface
     /**
      * Transfers files with a .tar archive.
      *
-     * @param string|null $uri The URI of the source file to transfer. Defaults to null.
+     * @param ?string|null $uri The URI of the source file to transfer. Defaults to null.
      *
      * @throws TransferTarFileException If there is an error extracting or copying the .tar archive files.
      *
      * @return void
      */
-    public function transfer(string $uri = null): void
+    public function transfer(?string $uri = null): void
     {
         // Get the temporary path from the TransferManager
         $tmpPath = $this->manager->getTmpPath();

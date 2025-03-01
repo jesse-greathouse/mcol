@@ -190,7 +190,7 @@ class TrasferDownloadedMedia implements ShouldQueue
      *
      * @return string The var directory path.
      */
-    private function getDefaultVarDir(): string
+    protected function getDefaultVarDir(): string
     {
         // Default to Windows or Linux/macOS based on the system
         return (PHP_OS_FAMILY === 'Windows')
@@ -204,7 +204,7 @@ class TrasferDownloadedMedia implements ShouldQueue
      * @param string $path The path containing system variables.
      * @return string The path with system variables replaced.
      */
-    private function replaceSystemVariables(string $path): string
+    protected function replaceSystemVariables(string $path): string
     {
         // Replace %APPDATA% and $HOME with the respective system values
         if (PHP_OS_FAMILY === 'Windows') {

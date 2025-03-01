@@ -40,8 +40,8 @@ use App\Chat\Log\Diverter as LogDiverter,
 
 use Illuminate\Database\Eloquent\Collection;
 
-use \DateTime;
-use \TypeError;
+use DateTime,
+    TypeError;
 
 class Client
 {
@@ -253,9 +253,10 @@ class Client
                 $convertedIp = long2ip($pinger);
                 if ($convertedIp !== false) {
                     $pinger = $convertedIp;
+                    $this->console->info("Pinged from IP: '{$pinger}'");
                 }
             } catch (TypeError) {
-                $this->console->info("Skipping IP conversion: '{$pinger}' is not a valid long integer.");
+                $this->console->info("Pinged by: '{$pinger}'");
             }
 
             $pingMessage = "{$pinger} PING -> {$this->nick->nick}";
@@ -417,7 +418,7 @@ class Client
      */
     public function topicHandler(): void
     {
-        $this->client->on(IrcClientEvent::INVITE, function ($channel, string $topic) {
+        $this->client->on(IrcClientEvent::TOPIC, function ($channel, string $topic) {
             // Retrieve and update the channel information.
             $channel = $this->updateChannel($channel);
             $channelName = $channel->getName();
