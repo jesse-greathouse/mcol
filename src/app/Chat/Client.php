@@ -1331,9 +1331,10 @@ class Client
             return $this->botChannelMap[$botId];
         }
 
-        $this->botChannelMap[$botId] = Packet::where('bot_id', $botId)->latest()->value('channel')
-            ?? Packet::where('network_id', $bot->network->id)->latest()->value('channel')
-            ?? Channel::where('network_id', $bot->network->id)->first();
+        $packet = Packet::where('bot_id', $botId)->latest()->first();
+
+        $this->botChannelMap[$botId] = (null !== $packet) ? $packet->channel
+            : Channel::where('network_id', $bot->network->id)->first();
 
         if ($this->botChannelMap[$botId] === null) {
             throw new NetworkWithNoChannelException('No channel found for network: ' . $bot->network->name);

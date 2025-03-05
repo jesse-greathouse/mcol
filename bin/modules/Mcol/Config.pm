@@ -3,6 +3,7 @@
 package Mcol::Config;
 
 use strict;
+use warnings;
 use File::Basename;
 use File::Copy;
 use Cwd qw(getcwd abs_path);
@@ -26,6 +27,8 @@ our @EXPORT_OK = qw(
     write_env_file
     write_config_file
 );
+
+warn $@ if $@; # handle exception
 
 # Determine base paths for configuration
 my $bin = abs_path(dirname(__FILE__) . '/../../');       # Path to the script's base directory

@@ -1,10 +1,12 @@
 #!/usr/bin/perl
 
 use strict;
-
+use warnings;
 use Cwd qw(getcwd abs_path);
 use File::Basename;
 use lib(dirname(abs_path(__FILE__))  . "/modules");
 use Mcol::HotReport qw(hot_report);
+
+warn $@ if $@; # Handle exceptions
 
 hot_report();

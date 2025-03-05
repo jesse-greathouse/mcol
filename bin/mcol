@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-
+use warnings;
 use Cwd qw(getcwd abs_path);
 use File::Basename;
 use lib(dirname(abs_path(__FILE__))  . "/modules");
@@ -9,6 +9,7 @@ use Mcol::Instance qw(instance_start instance_restart instance_stop);
 use Mcol::Queue qw(queue_start queue_restart queue_stop);
 use Mcol::Web qw(web_start web_restart web_stop);
 
+warn $@ if $@; # Handle exceptions
 
 # Action is the first arg (start, restart, stop)
 my ($action) = @ARGV;

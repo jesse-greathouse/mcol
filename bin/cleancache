@@ -1,33 +1,26 @@
 #!/usr/bin/perl
 
 use strict;
+use warnings;
 use File::Path qw(rmtree);
 
+warn $@ if $@; # handle exception
+
 my $var = $ENV{'VAR'};
-my $argnum;
 
-my @caches = (
-  "cache/opcache"
-);
-
-# Sort out the command line args
-foreach $argnum (0 .. $#ARGV) {
-    if ($ARGV[$argnum] eq "--var") {
-      $var = $ARGV[$argnum + 1];
-    };
+# Check for --var argument
+for (my $i = 0; $i < @ARGV; $i++) {
+    $var = $ARGV[$i + 1] if $ARGV[$i] eq '--var';
 }
 
-foreach (@caches)
-{
-  clean("$var/$_");
-}
+# Define cache directories and clean them
+clean("$var/cache/opcache");
 
 sub clean {
-  my ($path) = @_;
-  if (-d $path) {
-    print "cleaning ... $path\n";
-    rmtree $path;
-  }
-
-  mkdir $path;
+    my ($path) = @_;
+    if (-d $path) {
+        print "cleaning ... $path\n";
+        rmtree $path;
+    }
+    mkdir $path;
 }

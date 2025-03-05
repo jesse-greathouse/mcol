@@ -2,8 +2,9 @@
 
 package Mcol::HotReport;
 use strict;
+use warnings;
 use File::Basename;
-use Cwd qw(getcwd abs_path);
+use Cwd qw(abs_path);
 use Exporter 'import';
 
 our @EXPORT_OK = qw(hot_report);
@@ -11,33 +12,18 @@ our @EXPORT_OK = qw(hot_report);
 warn $@ if $@; # handle exception
 
 # Folder Paths
-my $binDir = abs_path(dirname(__FILE__) . '/../../');
-my $applicationRoot = abs_path(dirname($binDir));
+my $applicationRoot = abs_path(dirname(abs_path(__FILE__)) . '/../../../');
 my $srcDir = "$applicationRoot/src";
 my $optDir = "$applicationRoot/opt";
-
-1;
-
-# ====================================
-#    Subroutines below this point
-# ====================================
 
 # Queries a network channel for a hot searches.
 sub hot_report {
     my ($network, $channel) = @ARGV;
 
-    if (not defined $network) {
-        die "Argument: \"network\" is required.";
-    }
+    die "Argument: \"network\" is required." unless defined $network;
+    die "Argument: \"channel\" is required." unless defined $channel;
 
-    if (not defined $channel) {
-        die "Argument: \"channel\" is required.";
-    }
-
-    my @cmd = ("$optDir/php/bin/php");
-    push @cmd, "$srcDir/artisan";
-    push @cmd, 'mcol:hot';
-    push @cmd, $network;
-    push @cmd, $channel;
-    system(@cmd);
+    system("$optDir/php/bin/php", "$srcDir/artisan", 'mcol:hot', $network, $channel);
 }
+
+1;

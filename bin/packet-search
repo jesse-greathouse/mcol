@@ -1,10 +1,12 @@
 #!/usr/bin/perl
 
 use strict;
-
+use warnings;
 use Cwd qw(getcwd abs_path);
 use File::Basename;
 use lib(dirname(abs_path(__FILE__))  . "/modules");
 use Mcol::PacketSearch qw(packet_search);
+
+warn $@ if $@; # Handle exceptions
 
 packet_search();

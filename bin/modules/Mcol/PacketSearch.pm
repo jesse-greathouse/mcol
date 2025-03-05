@@ -2,8 +2,9 @@
 
 package Mcol::PacketSearch;
 use strict;
+use warnings;
 use File::Basename;
-use Cwd qw(getcwd abs_path);
+use Cwd qw(abs_path);
 use Exporter 'import';
 
 our @EXPORT_OK = qw(packet_search);
@@ -11,12 +12,9 @@ our @EXPORT_OK = qw(packet_search);
 warn $@ if $@; # handle exception
 
 # Folder Paths
-my $binDir = abs_path(dirname(__FILE__) . '/../../');
-my $applicationRoot = abs_path(dirname($binDir));
+my $applicationRoot = abs_path(dirname(abs_path(__FILE__)) . '/../../../');
 my $srcDir = "$applicationRoot/src";
 my $optDir = "$applicationRoot/opt";
-
-1;
 
 # ====================================
 #    Subroutines below this point
@@ -26,23 +24,11 @@ my $optDir = "$applicationRoot/opt";
 sub packet_search {
     my ($network, $channel, $search) = @ARGV;
 
-    if (not defined $network) {
-        die "Argument: \"network\" is required.";
-    }
+    die "Argument: \"network\" is required." unless defined $network;
+    die "Argument: \"channel\" is required." unless defined $channel;
+    die "Argument: \"search\" is required." unless defined $search;
 
-    if (not defined $channel) {
-        die "Argument: \"channel\" is required.";
-    }
-
-    if (not defined $search) {
-        die "Argument: \"search\" is required.";
-    }
-
-    my @cmd = ("$optDir/php/bin/php");
-    push @cmd, "$srcDir/artisan";
-    push @cmd, 'mcol:packet-search';
-    push @cmd, $network;
-    push @cmd, $channel;
-    push @cmd, $search;
-    system(@cmd);
+    system("$optDir/php/bin/php", "$srcDir/artisan", 'mcol:packet-search', $network, $channel, $search);
 }
+
+1;
