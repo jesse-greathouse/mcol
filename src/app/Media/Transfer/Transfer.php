@@ -67,11 +67,11 @@ abstract class Transfer
     {
         clearstatcache(true, $uri);
         $size = filesize($uri);
-        $fileName = basename($uri);
+        $fileName = str_replace($this->manager->getFileDirName(), '', $uri);
 
         $tmpPath = $this->manager->getTmpPath();
         if (null !== $tmpPath) {
-            $fileName = basename(str_replace($tmpPath, '', $uri));
+            $fileName = str_replace($tmpPath, '', $uri);
 
             // Remove the leading slash if it starts with one.
             if (strpos($fileName, DIRECTORY_SEPARATOR) === 0) {
@@ -111,7 +111,7 @@ abstract class Transfer
         }
 
         $this->completed = true;
-        return true;
+        return $this->completed;
     }
 
     /**

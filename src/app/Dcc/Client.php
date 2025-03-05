@@ -85,7 +85,7 @@ class Client
             // Attempt to create a socket connection for downloading
             $dlStream = @stream_socket_client("tcp://$host:$port", $errno, $errstr);
             if (!is_resource($dlStream)) {
-                throw new InitializeDownloadStreamException("Connection failed: $errstr ($errno)");
+                throw new InitializeDownloadStreamException("Connection to [$host:$port]: (#$errno): $errstr");
             }
 
             $file = fopen($uri, 'a');

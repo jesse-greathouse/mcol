@@ -34,14 +34,12 @@ class Mapper
     const EVENT_PING = 'ping';
     const EVENT_REGISTERED = 'registered';
     const EVENT_VERSION = 'version';
-
     const EVENT_CTCP = 'ctcp';
     const EVENT_DCC = 'dcc';
     const EVENT_INVITE = 'invite';
     const EVENT_NICK = 'nick';
     const EVENT_NOTICE = 'notice';
     const EVENT_QUIT = 'quit';
-
     const EVENT_PRIVMSG = 'privmsg';
 
     /**
@@ -141,8 +139,11 @@ class Mapper
     public function getLog(string $event): string
     {
         $map = $this->getMap();
+
         if (!isset($map[$event])) {
-            throw new UnmappedChatLogEventException("Unable to log event: $event. No log is mapped for this event.");
+            throw new UnmappedChatLogEventException(
+                "Unable to log event: $event. No log is mapped for this event."
+            );
         }
 
         return $map[$event];
@@ -155,6 +156,7 @@ class Mapper
     {
         if ($reset || 0 === count($this->map)) {
             $map = [];
+
             $consoleLog = $this->getLogUri(self::LOG_CONSOLE);
             $noticeLog = $this->getLogUri(self::LOG_NOTICE);
             $privMsgLog = $this->getLogUri(self::LOG_PRIVMSG);

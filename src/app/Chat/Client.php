@@ -4,6 +4,7 @@ namespace App\Chat;
 
 use Illuminate\Console\Command,
     Illuminate\Contracts\Cache\Repository,
+    Illuminate\Database\Eloquent\Collection,
     Illuminate\Database\QueryException;
 
 use JesseGreathouse\PhpIrcClient\IrcClient,
@@ -22,6 +23,7 @@ use App\Chat\Log\Diverter as LogDiverter,
     App\Exceptions\UnmappedChatLogEventException,
     App\Jobs\CheckFileDownloadCompleted,
     App\Jobs\DccDownload,
+    App\Jobs\GeneratePacketMeta,
     App\Models\Bot,
     App\Models\Channel,
     App\Models\Client as ClientModel,
@@ -37,8 +39,6 @@ use App\Chat\Log\Diverter as LogDiverter,
     App\Models\PacketSearchResult,
     App\Packet\MediaType\MediaTypeGuesser,
     App\Packet\Parse;
-
-use Illuminate\Database\Eloquent\Collection;
 
 use DateTime,
     TypeError;
@@ -163,6 +163,19 @@ class Client
      */
     protected $client;
 
+    /**
+     * Initializes the IRC client with network and nickname configurations.
+     *
+     * This constructor sets up logging, caching, and the IRC client connection.
+     * It also ensures that the client model is updated or created in the database.
+     *
+     * @param Nick $nick The user's nickname representation.
+     * @param Network $network The network to which the client will connect.
+     * @param Repository $cache A caching layer for storing temporary data.
+     * @param Command $console The command handler for executing console commands.
+     *
+     * @throws SomeException If the client model cannot be created.
+     */
     public function __construct(Nick $nick, Network $network, Repository $cache, Command $console) {
         $logRoot = env('LOG_DIR', '/var/log');
         $this->cache = $cache;
@@ -246,6 +259,11 @@ class Client
         $this->disconnectHandler();
     }
 
+    /**
+     * Handles a ping event.
+     *
+     * @return void
+     */
     public function pingHandler(): void
     {
         $this->client->on(IrcClientEvent::PING, function (string $pinger) {
@@ -747,8 +765,8 @@ class Client
     {
         $directMessageHandle = IrcClientEvent::MESSAGE . $this->nick->nick;
 
-        $this->client->on(IrcClientEvent::MESSAGE, function (string $from, IrcChannel $channel = null, string $message) {
-            if ($channel === null) {
+        $this->client->on(IrcClientEvent::MESSAGE, function (string $from, ?IrcChannel $channel = null, string $message) {
+            if (null === $channel) {
                 return;
             }
 
@@ -775,7 +793,7 @@ class Client
             $this->downloadProgressManager->reportProgress();
         });
 
-        $this->client->on($directMessageHandle, function (string $from, IrcChannel $channel = null, string $message) {
+        $this->client->on($directMessageHandle, function (string $from, ?IrcChannel $channel = null, string $message) {
             if ($channel === null) {
                 return;
             }
@@ -1279,7 +1297,7 @@ class Client
         $mediaType = (new MediaTypeGuesser($fileName))->guess();
 
         // Use updateOrCreate to find or create the packet record efficiently
-        return Packet::updateOrCreate(
+        $packet = Packet::updateOrCreate(
             [
                 'number' => $packetNumber,
                 'network_id' => $this->network->id,
@@ -1292,6 +1310,10 @@ class Client
                 'media_type' => $mediaType,
             ]
         );
+
+        GeneratePacketMeta::dispatch($packet)->onQueue('meta');
+
+        return $packet;
     }
 
 

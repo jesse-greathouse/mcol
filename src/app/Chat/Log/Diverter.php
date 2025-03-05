@@ -13,7 +13,7 @@ class Diverter
     /**
      * Instance of mapping instructions for logs.
      *
-     * @var Maper $mapper
+     * @var Mapper $mapper
      */
     protected $mapper;
 
@@ -28,10 +28,10 @@ class Diverter
      *
      * @param string $event
      * @param string $message
-     * @param string $channel
+     * @param ?string $channel
      * @return void
      */
-    public function log(string $event, string $message, string $channel = null): void
+    public function log(string $event, string $message, ?string $channel = null): void
     {
         if (null !== $channel) {
             $event .= $channel;

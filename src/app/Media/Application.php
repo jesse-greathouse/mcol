@@ -23,17 +23,17 @@ final class Application extends Media implements MediaTypeInterface
      *
      * @var string
      */
-    private const STANDARD_MASK = '/^[\d{2,3}]*(.*)[\.|\-\_](.*)\..*$/i';
+    private const STANDARD_MASK = '/^[\d{2,3}]*(.*)[\.|\-\_](.*)\..*$/is';
 
     /**
      * Regular expression mask for extracting the version of the application.
      *
      * This pattern is used to capture version information from the application media string.
-     * https://www.phpliveregex.com/p/MxG
+     * https://www.phpliveregex.com/p/N5h
      *
      * @var string
      */
-    private const VERSION_MASK = '/^([A-Za-z\.]+)\.((v|version|\d{1,})[0-9\.]*)\..*$/i';
+    private const VERSION_MASK = '/(((v|version|\d{1,})\W?[\d]+\W?[\d]+?(\W?[\d]+)?)/is';
 
     /**
      * Predefined list of release types for filtering the application's release type.
@@ -250,7 +250,7 @@ final class Application extends Media implements MediaTypeInterface
         }
 
         // Return the second match as the version, or `null` if not available.
-        return $matches[2] ?? null;
+        return $matches[1] ?? null;
     }
 
     /**
