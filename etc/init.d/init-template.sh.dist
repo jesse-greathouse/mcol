@@ -40,13 +40,13 @@ NAME=__APP_NAME__;
 
 case "$1" in
   start)
-        __DIR__/bin/startservice
+        __DIR__/bin/mcol start
 	;;
   stop)
-        __DIR__/bin/stopservice
+        __DIR__/bin/mcol stop
 	;;
   restart)
-        __DIR__/bin/restartservice
+        __DIR__/bin/mcol restart
 	;;
   *)
         N=__DIR__/etc/init.d/$NAME

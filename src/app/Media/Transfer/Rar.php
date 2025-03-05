@@ -87,7 +87,16 @@ final class Rar extends Transfer implements TransferInterface
             foreach ($rii as $di) {
                 $baseName = $di->getFilename();
                 $uri = $tmpPath . DS . $baseName;
-                $this->addToManifest($uri);
+
+                // Remove the tmp path from the path to leave just the uri of the file.
+                $fileName = str_replace($tmpPath, '', $uri);
+
+                // Remove leading slash if present
+                if (str_starts_with($fileName, DS)) {
+                    $fileName = ltrim($fileName, $fileName[0]);
+                }
+
+                $this->addToManifest($fileName);
 
                 $copyFile = new CopyFile($this->manager);
                 $copyFile->transfer($uri);

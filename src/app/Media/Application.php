@@ -33,7 +33,7 @@ final class Application extends Media implements MediaTypeInterface
      *
      * @var string
      */
-    private const VERSION_MASK = '/(((v|version|\d{1,})\W?[\d]+\W?[\d]+?(\W?[\d]+)?)/is';
+    private const VERSION_MASK = '/((v|version|\d{1,})\W?[\d]+\W?[\d]+?)/is';
 
     /**
      * Predefined list of release types for filtering the application's release type.

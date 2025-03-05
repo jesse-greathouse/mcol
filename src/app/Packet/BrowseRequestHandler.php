@@ -12,7 +12,7 @@ use DateTime;
  * a mediator between the HTTP request layer and the database query layer, ensuring a clean separation
  * of concerns.
  *
- * It takes care of interpreting the request input, such as page numbers, filters, and other options,
+ * The BrowseRequestHandler interprets the request input, such as page numbers, filters, and other options,
  * and configures the `Browse` object accordingly. While this class is aware of both HTTP request
  * handling and database filtering, it ensures that the concerns of the Request are kept separate,
  * allowing the database-related logic to remain isolated within the `Browse` class.

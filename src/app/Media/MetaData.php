@@ -44,7 +44,8 @@ class MetaData
     public function __call(string $name, array $arguments): mixed
     {
         if (str_starts_with($name, 'set')) {
-            return $this->setData($this->extractKey($name, 'set'), $arguments[0] ?? null);
+            $this->setData($this->extractKey($name, 'set'), $arguments[0] ?? null);
+            return true;
         }
 
         if (str_starts_with($name, 'get')) {

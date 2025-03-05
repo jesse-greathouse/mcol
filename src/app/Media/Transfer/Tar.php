@@ -95,9 +95,17 @@ final class Tar extends Transfer implements TransferInterface
                     continue;
                 }
 
-                // Get the file URI and add it to the manifest
                 $uri = $di->getPath() . DS . $di->getFilename();
-                $this->addToManifest($uri);
+
+                // Remove the tmp path from the path to leave just the uri of the file.
+                $fileName = str_replace($tmpPath, '', $uri);
+
+                // Remove leading slash if present
+                if (str_starts_with($fileName, DS)) {
+                    $fileName = ltrim($fileName, $fileName[0]);
+                }
+
+                $this->addToManifest($fileName);
 
                 // Copy the extracted file to the destination
                 $copyFile = new CopyFile($this->manager);

@@ -33,6 +33,13 @@ class TransferManager
     protected string $fileUri;
 
     /**
+     * The directory where all files are initially downloaded.
+     *
+     * @var string
+     */
+    protected ?string $downloadDir = null;
+
+    /**
      * The path of where to transfer the file to.
      *
      * @var string
@@ -281,5 +288,19 @@ class TransferManager
     public function getFileFileName(): string
     {
         return $this->fileFileName;
+    }
+
+    /**
+     * Get the directory where all files are initially downloaded.
+     *
+     * @return  string
+     */
+    public function getDownloadDir(): string
+    {
+        if (null === $this->downloadDir) {
+            $this->downloadDir = env('DOWNLOAD_DIR');
+        }
+
+        return $this->downloadDir;
     }
 }

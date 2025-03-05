@@ -5,6 +5,11 @@ namespace App\Media\Transfer;
 use App\Exceptions\TransferFileCopyException,
     App\FileSystem;
 
+// Define DS constant for cross-platform compatibility if not already defined
+if (!defined('DS')) {
+    define('DS', DIRECTORY_SEPARATOR);
+}
+
 /**
  * Class responsible for transferring files by copying.
  */
@@ -29,19 +34,16 @@ final class CopyFile extends Transfer implements TransferInterface
     public function transfer(?string $uri = null, ?string $tmpPath = null): void
     {
         $this->uri = $uri ?? $this->manager->getFileUri();
-        $fileName = basename($this->uri);
 
-        if ($tmpPath !== null) {
-            $fileName = str_replace($tmpPath, '', $this->uri);
+        $fileName = str_replace($this->manager->getDownloadDir(), '', $this->uri);
 
-            // Remove leading slash if present
-            if (str_starts_with($fileName, DIRECTORY_SEPARATOR)) {
-                $fileName = ltrim($fileName, $fileName[0]);
-            }
+        // Remove leading slash if present
+        if (str_starts_with($fileName, DS)) {
+            $fileName = ltrim($fileName, $fileName[0]);
         }
 
         $newFile = $this->prepareNewFile($fileName);
-        $this->addToManifest($this->uri);
+        $this->addToManifest($fileName);
 
         if (!copy($this->uri, $newFile)) {
             throw new TransferFileCopyException("Failed to copy \"$this->uri\" to \"$newFile\".");
@@ -56,8 +58,7 @@ final class CopyFile extends Transfer implements TransferInterface
      */
     private function prepareNewFile(string $fileName): string
     {
-        $newPath = $this->manager->getDestinationPath();
-        $newFile = $newPath . DIRECTORY_SEPARATOR . $fileName;
+        $newFile = $this->manager->getDestinationPath() . DS . $fileName;
         $newDir = pathinfo($newFile, PATHINFO_DIRNAME);
         $this->preparePath($newDir);
 

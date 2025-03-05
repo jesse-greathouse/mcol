@@ -2,7 +2,8 @@
 
 namespace App\Media\Transfer;
 
-use App\FileSystem,
+use App\Exceptions\TransferFileUriNotFoundException,
+    App\FileSystem,
     App\Media\TransferManager;
 
 // Define DS constant for cross-platform compatibility if not already defined
@@ -60,24 +61,26 @@ abstract class Transfer
     /**
      * Adds another file to the manifest.
      *
-     * @param string $uri
+     * @param string $fileName Partial path to the file.
      * @return void
      */
-    public function addToManifest(string $uri): void
+    public function addToManifest(string $fileName): void
     {
+        $tmpDir = $this->manager->getTmpPath();
+        $tmpUri = $tmpDir . DS . $fileName;
+        $downloadDir = $this->manager->getDownloadDir();
+        $downloadUri = $downloadDir . DS . $fileName;
+
+        if (file_exists($downloadUri)) {
+            $uri = $downloadUri;
+        } elseif (file_exists($tmpUri)) {
+            $uri = $tmpUri;
+        } else {
+            throw new TransferFileUriNotFoundException("$fileName not found in \"$tmpDir\" or \"$downloadDir\"");
+        }
+
         clearstatcache(true, $uri);
         $size = filesize($uri);
-        $fileName = str_replace($this->manager->getFileDirName(), '', $uri);
-
-        $tmpPath = $this->manager->getTmpPath();
-        if (null !== $tmpPath) {
-            $fileName = str_replace($tmpPath, '', $uri);
-
-            // Remove the leading slash if it starts with one.
-            if (strpos($fileName, DIRECTORY_SEPARATOR) === 0) {
-                $fileName = ltrim($fileName, DIRECTORY_SEPARATOR);
-            }
-        }
 
         $this->manifest[] = [
             'uri'   => $uri,
@@ -93,24 +96,24 @@ abstract class Transfer
      */
     public function isCompleted(): bool
     {
-        if ($this->completed) {
-            return true;
-        }
+        if (!$this->completed) {
+            // Test each file in the manifest.
+            foreach ($this->manifest as $file) {
+                $fileName = $file['name'];
+                $destinationUri = $this->manager->getDestinationPath() . DS . $fileName;
 
-        foreach ($this->manifest as $file) {
-            $fileName = $file['name'];
-            $destinationUri = $this->manager->getDestinationPath() . DS . $fileName;
+                // Remove any statcache that $destinationUri may have.
+                clearstatcache(true, $destinationUri);
 
-            // Remove any statcache that $destinationUri may have.
-            clearstatcache(true, $destinationUri);
-
-            // If $destinationUri doesn't exist, or size is wrong, then not completed.
-            if (!file_exists($destinationUri) || (filesize($destinationUri) !== $file['size'])) {
-                return false;
+                // If $destinationUri doesn't exist, or size is wrong, then not completed.
+                if (!file_exists($destinationUri) || (filesize($destinationUri) !== $file['size'])) {
+                    return false;
+                }
             }
+
+            $this->completed = true;
         }
 
-        $this->completed = true;
         return $this->completed;
     }
 
