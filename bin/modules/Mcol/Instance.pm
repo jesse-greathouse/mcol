@@ -55,19 +55,13 @@ sub instance_start {
 # Restarts the instance manager supervisor.
 sub instance_restart {
     my $output = "The instance Daemon was not found.\n";
-    if (-e $pidFile) {
-        if (is_pid_running($pidFile)) {
-            my @cmd = ('supervisorctl');
-            push @cmd, '-c';
-            push @cmd, $supervisorConfig;
-            push @cmd, 'restart';
-            push @cmd, 'all';
-            system(@cmd);
 
-            $output = "The instance Daemon was signalled to restart all instances.\n";
-            command_result($?, $!, 'Restart all instances...', \@cmd);
+    if (-e $pidFile && is_pid_running($pidFile)) {
+        my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'restart', 'all');
+        system(@cmd);
 
-        }
+        $output = "The instance Daemon was signalled to restart all instances.\n";
+        command_result($?, $!, 'Restart all instances...', \@cmd);
     }
 
     print $output;
@@ -76,42 +70,26 @@ sub instance_restart {
 # Stops the instance manager supervisor.
 sub instance_stop {
     my $output = "The instance Daemon was not found.\n";
-    if (-e $pidFile) {
-        if (is_pid_running($pidFile)) {
-            my @cmd = ('supervisorctl');
-            push @cmd, '-c';
-            push @cmd, $supervisorConfig;
-            push @cmd, 'stop';
-            push @cmd, 'all';
-            system(@cmd);
 
-            $output = "The instance Daemon was signalled to stop all instances.\n";
-            command_result($?, $!, 'Stop all instances...', \@cmd);
-        }
+    if (-e $pidFile && is_pid_running($pidFile)) {
+        my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'stop', 'all');
+        system(@cmd);
+
+        $output = "The instance Daemon was signalled to stop all instances.\n";
+        command_result($?, $!, 'Stop all instances...', \@cmd);
     }
 
     print $output;
 }
 
+# Starts the supervisor daemon.
 sub start_daemon {
-    $ENV{'DIR'} = $applicationRoot;
-    $ENV{'ETC'} = $etcDir;
-    $ENV{'OPT'} = $optDir;
-    $ENV{'VAR'} = $varDir;
-    $ENV{'SRC'} = $srcDir;
-    $ENV{'LOG_DIR'} = $logDir;
-
-    # Clear the log
-    if (-e $supervisorLogFile) {
-        unlink($supervisorLogFile)  or die "Can't delete $supervisorLogFile: $!\n";
-    }
+    @ENV{qw(DIR ETC OPT VAR SRC LOG_DIR)} =
+        ($applicationRoot, $etcDir, $optDir, $varDir, $srcDir, $logDir);
 
     print "Starting instance Daemon...\n";
 
-    my @cmd = ('supervisord');
-    push @cmd, '-c';
-    push @cmd, $supervisorConfig;
-    system(@cmd);
+    system('supervisord', '-c', $supervisorConfig);
 
     sleep(5);
     print_output();
@@ -120,12 +98,7 @@ sub start_daemon {
 sub print_output {
     cls();
     splash();
-
-    my @cmd = ('tail');
-    push @cmd, '-n';
-    push @cmd, '10';
-    push @cmd, $supervisorLogFile;
-    system(@cmd);
+    system('tail', '-n', '10', $supervisorLogFile);
 }
 
 1;

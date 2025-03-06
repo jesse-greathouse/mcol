@@ -33,19 +33,10 @@ my $pidFile = "$varDir/pid/queue-manager.pid";
 
 # Runs the queue manager supervisor.
 sub queue_start {
-    if (-e $pidFile) {
-        if (is_pid_running($pidFile)) {
-            my @cmd = ('supervisorctl');
-            push @cmd, '-c';
-            push @cmd, $supervisorConfig;
-            push @cmd, 'start';
-            push @cmd, 'all';
-            system(@cmd);
-
-            command_result($?, $!, 'Start all Queues...', \@cmd);
-        } else {
-            start_daemon();
-        }
+    if (-e $pidFile && is_pid_running($pidFile)) {
+        my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'start', 'all');
+        system(@cmd);
+        command_result($?, $!, 'Start all Queues...', \@cmd);
     } else {
         start_daemon();
     }
@@ -56,19 +47,13 @@ sub queue_start {
 # Restarts the queue manager supervisor.
 sub queue_restart {
     my $output = "The Queue Daemon was not found.\n";
-    if (-e $pidFile) {
-        if (is_pid_running($pidFile)) {
-            my @cmd = ('supervisorctl');
-            push @cmd, '-c';
-            push @cmd, $supervisorConfig;
-            push @cmd, 'restart';
-            push @cmd, 'all';
-            system(@cmd);
 
-            $output = "The Queue Daemon was signalled to restart all queues.\n";
-            command_result($?, $!, 'Restart all queues...', \@cmd);
+    if (-e $pidFile && is_pid_running($pidFile)) {
+        my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'restart', 'all');
+        system(@cmd);
 
-        }
+        $output = "The Queue Daemon was signalled to restart all queues.\n";
+        command_result($?, $!, 'Restart all queues...', \@cmd);
     }
 
     print $output;
@@ -77,42 +62,26 @@ sub queue_restart {
 # Stops the queue manager supervisor.
 sub queue_stop {
     my $output = "The Queue Daemon was not found.\n";
-    if (-e $pidFile) {
-        if (is_pid_running($pidFile)) {
-            my @cmd = ('supervisorctl');
-            push @cmd, '-c';
-            push @cmd, $supervisorConfig;
-            push @cmd, 'stop';
-            push @cmd, 'all';
-            system(@cmd);
 
-            $output = "The Queue Daemon was signalled to stop all queues.\n";
-            command_result($?, $!, 'Stop all queues...', \@cmd);
-        }
+    if (-e $pidFile && is_pid_running($pidFile)) {
+        my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'stop', 'all');
+        system(@cmd);
+
+        $output = "The Queue Daemon was signalled to stop all queues.\n";
+        command_result($?, $!, 'Stop all queues...', \@cmd);
     }
 
     print $output;
 }
 
+# Starts the supervisor daemon.
 sub start_daemon {
-    $ENV{'DIR'} = $applicationRoot;
-    $ENV{'ETC'} = $etcDir;
-    $ENV{'OPT'} = $optDir;
-    $ENV{'VAR'} = $varDir;
-    $ENV{'SRC'} = $srcDir;
-    $ENV{'LOG_DIR'} = $logDir;
-
-    # Clear the log
-    if (-e $supervisorLogFile) {
-        unlink($supervisorLogFile)  or die "Can't delete $supervisorLogFile: $!\n";
-    }
+    @ENV{qw(DIR ETC OPT VAR SRC LOG_DIR)} =
+        ($applicationRoot, $etcDir, $optDir, $varDir, $srcDir, $logDir);
 
     print "Starting Queue Daemon...\n";
 
-    my @cmd = ('supervisord');
-    push @cmd, '-c';
-    push @cmd, $supervisorConfig;
-    system(@cmd);
+    system('supervisord', '-c', $supervisorConfig);
 
     sleep(5);
     print_output();
@@ -121,12 +90,7 @@ sub start_daemon {
 sub print_output {
     cls();
     splash();
-
-    my @cmd = ('tail');
-    push @cmd, '-n';
-    push @cmd, '10';
-    push @cmd, $supervisorLogFile;
-    system(@cmd);
+    system('tail', '-n', '10', $supervisorLogFile);
 }
 
 1;

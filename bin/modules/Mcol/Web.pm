@@ -41,19 +41,10 @@ my %cfg = get_configuration();
 
 # Runs the web manager supervisor.
 sub web_start {
-    if (-e $pidFile) {
-        if (is_pid_running($pidFile)) {
-            my @cmd = ('supervisorctl');
-            push @cmd, '-c';
-            push @cmd, $supervisorConfig;
-            push @cmd, 'start';
-            push @cmd, 'all';
-            system(@cmd);
-
-            command_result($?, $!, 'Start all web services...', \@cmd);
-        } else {
-            start_daemon();
-        }
+    if (-e $pidFile && is_pid_running($pidFile)) {
+        my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'start', 'all');
+        system(@cmd);
+        command_result($?, $!, 'Start all web services...', \@cmd);
     } else {
         start_daemon();
     }
@@ -64,19 +55,13 @@ sub web_start {
 # Restarts the web manager supervisor.
 sub web_restart {
     my $output = "The Web Daemon was not found.\n";
-    if (-e $pidFile) {
-        if (is_pid_running($pidFile)) {
-            my @cmd = ('supervisorctl');
-            push @cmd, '-c';
-            push @cmd, $supervisorConfig;
-            push @cmd, 'restart';
-            push @cmd, 'all';
-            system(@cmd);
 
-            $output = "The Web Daemon was signalled to restart all web services.\n";
-            command_result($?, $!, 'Restart all web services...', \@cmd);
+    if (-e $pidFile && is_pid_running($pidFile)) {
+        my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'restart', 'all');
+        system(@cmd);
 
-        }
+        $output = "The Web Daemon was signalled to restart all web services.\n";
+        command_result($?, $!, 'Restart all web services...', \@cmd);
     }
 
     print $output;
@@ -85,50 +70,27 @@ sub web_restart {
 # Stops the web manager supervisor.
 sub web_stop {
     my $output = "The Web Daemon was not found.\n";
-    if (-e $pidFile) {
-        if (is_pid_running($pidFile)) {
-            my @cmd = ('supervisorctl');
-            push @cmd, '-c';
-            push @cmd, $supervisorConfig;
-            push @cmd, 'stop';
-            push @cmd, 'all';
-            system(@cmd);
 
-            $output = "The Web Daemon was signalled to stop all web services.\n";
-            command_result($?, $!, 'Stop all web services...', \@cmd);
-        }
+    if (-e $pidFile && is_pid_running($pidFile)) {
+        my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'stop', 'all');
+        system(@cmd);
+
+        $output = "The Web Daemon was signalled to stop all web services.\n";
+        command_result($?, $!, 'Stop all web services...', \@cmd);
     }
 
     print $output;
 }
 
+# Starts the supervisor daemon.
 sub start_daemon {
-    $ENV{'USER'} = $user;
-    $ENV{'BIN'} = $binDir;
-    $ENV{'DIR'} = $applicationRoot;
-    $ENV{'ETC'} = $etcDir;
-    $ENV{'OPT'} = $optDir;
-    $ENV{'TMP'} = $tmpDir;
-    $ENV{'VAR'} = $varDir;
-    $ENV{'SRC'} = $srcDir;
-    $ENV{'WEB'} = $webDir;
-    $ENV{'CACHE_DIR'} = $cacheDir;
-    $ENV{'LOG_DIR'} = $logDir;
-    $ENV{'PORT'} = $cfg{nginx}{PORT};
-    $ENV{'SSL'} = $cfg{nginx}{IS_SSL};
-    $ENV{'REDIS_HOST'} = $cfg{redis}{REDIS_HOST};
-
-    # Clear the log
-    if (-e $supervisorLogFile) {
-        unlink($supervisorLogFile)  or die "Can't delete $supervisorLogFile: $!\n";
-    }
+    @ENV{qw(USER BIN DIR ETC OPT TMP VAR SRC WEB CACHE_DIR LOG_DIR PORT SSL REDIS_HOST)} =
+        ($user, $binDir, $applicationRoot, $etcDir, $optDir, $tmpDir, $varDir, $srcDir, $webDir,
+         $cacheDir, $logDir, $cfg{nginx}{PORT}, $cfg{nginx}{IS_SSL}, $cfg{redis}{REDIS_HOST});
 
     print "Starting web Daemon...\n";
 
-    my @cmd = ('supervisord');
-    push @cmd, '-c';
-    push @cmd, $supervisorConfig;
-    system(@cmd);
+    system('supervisord', '-c', $supervisorConfig);
 
     sleep(5);
     print_output();
@@ -137,12 +99,7 @@ sub start_daemon {
 sub print_output {
     cls();
     splash();
-
-    my @cmd = ('tail');
-    push @cmd, '-n';
-    push @cmd, '10';
-    push @cmd, $supervisorLogFile;
-    system(@cmd);
+    system('tail', '-n', '10', $supervisorLogFile);
 }
 
 1;
