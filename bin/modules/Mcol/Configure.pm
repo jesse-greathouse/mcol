@@ -286,21 +286,6 @@ sub assign_dynamic_config {
     # Ensure VITE_APP_NAME is the same as APP_NAME if not explicitly set
     $cfg{laravel}{VITE_APP_NAME} //= $cfg{laravel}{APP_NAME};
 
-    # Assign dynamically generated values that are not part of %defaults
-    $cfg{supervisord}{SUPERVISORCTL_USER} //= $ENV{"LOGNAME"};
-    $cfg{supervisord}{SUPERVISORCTL_SECRET} //= $secret;
-
-    $cfg{instance_manager}{INSTANCECTL_USER} //= $ENV{"LOGNAME"};
-    $cfg{instance_manager}{INSTANCECTL_SECRET} //= $secret;
-
-    $cfg{queue_manager}{QUEUECTL_USER} //= $ENV{"LOGNAME"};
-    $cfg{queue_manager}{QUEUECTL_SECRET} //= $secret;
-
-    # Assign dynamic Supervisor and Queue ports
-    $cfg{supervisord}{SUPERVISORCTL_PORT} //= $supervisorPort;
-    $cfg{instance_manager}{INSTANCECTL_PORT} //= $instanceCtlPort;
-    $cfg{queue_manager}{QUEUECTL_PORT} //= $queueCtlPort;
-
     # Ensure Laravel-specific paths and settings
     $cfg{laravel}{LOG_URI} //= $errorLog;
     $cfg{laravel}{DOWNLOAD_DIR} //= $downloadDir;
@@ -337,7 +322,7 @@ sub assign_dynamic_config {
 
     # Handle SSL-specific configuration
     if ($cfg{nginx}{IS_SSL} eq 'true') {
-        $cfg{nginx}{SSL} = 'ssl';
+        $cfg{nginx}{SSL} = 'ssl http2';
         $cfg{nginx}{PORT} = '443';
         $cfg{nginx}{SSL_CERT_LINE} = 'ssl_certificate ' . $cfg{nginx}{SSL_CERT};
         $cfg{nginx}{SSL_KEY_LINE} = 'ssl_certificate_key ' . $cfg{nginx}{SSL_KEY};
@@ -357,6 +342,21 @@ sub assign_dynamic_config {
 
     # openssl configuration values.
     $cfg{openssl}{ETC} //= $etcDir;
+
+    # Assign dynamically generated values that are not part of %defaults
+    $cfg{supervisord}{SUPERVISORCTL_USER} //= $ENV{"LOGNAME"};
+    $cfg{supervisord}{SUPERVISORCTL_SECRET} //= $secret;
+
+    $cfg{instance_manager}{INSTANCECTL_USER} //= $ENV{"LOGNAME"};
+    $cfg{instance_manager}{INSTANCECTL_SECRET} //= $secret;
+
+    $cfg{queue_manager}{QUEUECTL_USER} //= $ENV{"LOGNAME"};
+    $cfg{queue_manager}{QUEUECTL_SECRET} //= $secret;
+
+    # Assign dynamic Supervisor and Queue ports
+    $cfg{supervisord}{SUPERVISORCTL_PORT} //= $supervisorPort;
+    $cfg{instance_manager}{INSTANCECTL_PORT} //= $instanceCtlPort;
+    $cfg{queue_manager}{QUEUECTL_PORT} //= $queueCtlPort;
 }
 
 sub input {

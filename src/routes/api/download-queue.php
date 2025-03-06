@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Facades\Route,
+    Illuminate\Http\Request,
+    Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 use App\Http\Resources\DownloadQueueCollection,
     App\Models\Download,
