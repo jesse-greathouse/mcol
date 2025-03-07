@@ -34,20 +34,36 @@ final class CopyFile extends Transfer implements TransferInterface
     public function transfer(?string $uri = null, ?string $tmpPath = null): void
     {
         $this->uri = $uri ?? $this->manager->getFileUri();
-
-        $fileName = str_replace($this->manager->getDownloadDir(), '', $this->uri);
-
-        // Remove leading slash if present
-        if (str_starts_with($fileName, DS)) {
-            $fileName = ltrim($fileName, $fileName[0]);
-        }
+        $fileName = $this->normalizeFileName($this->uri, $tmpPath);
 
         $newFile = $this->prepareNewFile($fileName);
+
         $this->addToManifest($fileName);
 
         if (!copy($this->uri, $newFile)) {
             throw new TransferFileCopyException("Failed to copy \"$this->uri\" to \"$newFile\".");
         }
+    }
+
+    /**
+     * Strips the Application directory parts from the URI.
+     * The result is the location the file minus the Download or Temporary path.
+     * With this normalized path to the file, we can concatenate it to any other path for copy or move.
+     *
+     * @param string $uri The file's URI
+     * @param string|null $tmpPath Temporary path to adjust the file name if necessary
+     * @return string The processed file name
+     */
+    private function normalizeFileName(string $uri, ?string $tmpPath = null): string
+    {
+        $fileName = str_replace($this->manager->getDownloadDir(), '', $uri);
+
+        if (null !== $tmpPath) {
+            $fileName = str_replace($tmpPath, '', $uri);
+        }
+
+        // Remove leading slash if present
+        return str_starts_with($fileName, DS) ? ltrim($fileName, $fileName[0]) : $fileName;
     }
 
     /**

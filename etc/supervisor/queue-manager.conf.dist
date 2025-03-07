@@ -15,9 +15,11 @@ password=__QUEUECTL_SECRET__
 [rpcinterface:supervisor]
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
-[program:mcol-general-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work
+[program:general]
+process_name=%(ENV_APP_NAME)s_queue_%(program_name)s_%(process_num)02d
+environment=PATH="%(ENV_OPT)s/php/bin:%(ENV_PATH)s"
+directory=%(ENV_SRC)s
+command=php artisan queue:work
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -31,9 +33,11 @@ stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
 stopwaitsecs=3
 priority=6
 
-[program:mcol-search-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work search --queue=search
+[program:search]
+process_name=%(ENV_APP_NAME)s_queue_%(program_name)s_%(process_num)02d
+environment=PATH="%(ENV_OPT)s/php/bin:%(ENV_PATH)s"
+directory=%(ENV_SRC)s
+command=php artisan queue:work search --queue=search
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -47,9 +51,11 @@ stdout_logfile=%(ENV_LOG_DIR)s/search.log
 stopwaitsecs=3
 priority=7
 
-[program:mcol-meta-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work meta --queue=meta
+[program:meta]
+process_name=%(ENV_APP_NAME)s_queue_%(program_name)s_%(process_num)02d
+environment=PATH="%(ENV_OPT)s/php/bin:%(ENV_PATH)s"
+directory=%(ENV_SRC)s
+command=php artisan queue:work meta --queue=meta
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -63,9 +69,11 @@ stdout_logfile=%(ENV_LOG_DIR)s/meta.log
 stopwaitsecs=3
 priority=8
 
-[program:mcol-transfer-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work transfer --queue=transfer --timeout=3600
+[program:transfer]
+process_name=%(ENV_APP_NAME)s_queue_%(program_name)s_%(process_num)02d
+environment=PATH="%(ENV_OPT)s/php/bin:%(ENV_PATH)s"
+directory=%(ENV_SRC)s
+command=php artisan queue:work transfer --queue=transfer --timeout=3600
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -79,9 +87,11 @@ stdout_logfile=%(ENV_LOG_DIR)s/transfer.log
 stopwaitsecs=3
 priority=9
 
-[program:mcol-download-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work download --queue=download --timeout=172800
+[program:download]
+process_name=%(ENV_APP_NAME)s_queue_%(program_name)s_%(process_num)02d
+environment=PATH="%(ENV_OPT)s/php/bin:%(ENV_PATH)s"
+directory=%(ENV_SRC)s
+command=php artisan queue:work download --queue=download --timeout=172800
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -95,9 +105,11 @@ stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
 stopwaitsecs=3
 priority=10
 
-[program:mcol-longruns-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=%(ENV_OPT)s/php/bin/php %(ENV_SRC)s/artisan queue:work longruns --queue=longruns --timeout=86400
+[program:longruns]
+process_name=%(ENV_APP_NAME)s_queue_%(program_name)s_%(process_num)02d
+environment=PATH="%(ENV_OPT)s/php/bin:%(ENV_PATH)s"
+directory=%(ENV_SRC)s
+command=php artisan queue:work longruns --queue=longruns --timeout=86400
 autostart=true
 autorestart=true
 stopasgroup=true

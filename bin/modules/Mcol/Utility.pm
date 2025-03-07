@@ -153,7 +153,7 @@ sub command_result {
         exit $exit;
     }
     else {
-        printf "$operation_str exited with value %d\n", $exit >> 8;
+        print "$operation_str success!\n";
     }
 }
 

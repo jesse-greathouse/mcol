@@ -4,7 +4,8 @@ namespace App\Dcc;
 
 use Illuminate\Support\Facades\Log;
 
-use App\Exceptions\InitializeDownloadStreamException,
+use App\Exceptions\HostRefusedConnectionException,
+    App\Exceptions\InitializeDownloadStreamException,
     App\Jobs\DccDownload,
     App\Jobs\CheckFileDownloadCompleted,
     App\Models\Bot,
@@ -26,6 +27,7 @@ class Client
     const UPDATE_INTERVAL = 10; // 10 seconds
     const PACKET_LIST_MASK = '/mylist\.txt$/i';
     const TRANSFER_TERMINATED_MESSAGE = 'TRANSFER TERMINATED';
+    const CONNECTION_REFUSED = 111;
 
     // Define system-specific subdirectories for downloads and packet lists
     const DOWNLOAD_URI = DS . 'var' . DS . 'download';
@@ -85,7 +87,13 @@ class Client
             // Attempt to create a socket connection for downloading
             $dlStream = @stream_socket_client("tcp://$host:$port", $errno, $errstr);
             if (!is_resource($dlStream)) {
-                throw new InitializeDownloadStreamException("Connection to [$host:$port]: (#$errno): $errstr");
+                $message = "Connection to [$host:$port]: (#$errno): $errstr";
+
+                if (isset($errno) && $errno === self::CONNECTION_REFUSED) {
+                    throw new HostRefusedConnectionException($message);
+                }
+
+                throw new InitializeDownloadStreamException($message);
             }
 
             $file = fopen($uri, 'a');

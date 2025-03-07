@@ -16,8 +16,10 @@ password=__SUPERVISORCTL_SECRET__
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [program:cleancache]
-environment=VAR="%(ENV_VAR)s"
-command=%(ENV_BIN)s/cleancache
+process_name=%(ENV_APP_NAME)s_web_%(program_name)s
+environment=VAR="%(ENV_VAR)s",PATH="%(ENV_BIN)s:%(ENV_PATH)s"
+directory=%(ENV_DIR)s
+command=bin/cleancache
 redirect_stderr=true
 stdout_events_enabled=true
 stderr_logfile=%(ENV_LOG_DIR)s/error.log
@@ -28,9 +30,11 @@ autostart = true
 autorestart = false
 priority=1
 
-[program:generate-diffie-hellman]
-environment=ETC="%(ENV_ETC)s"
-command=%(ENV_BIN)s/dhp
+[program:dhp]
+process_name=%(ENV_APP_NAME)s_web_%(program_name)s
+environment=ETC="%(ENV_ETC)s",PATH="%(ENV_BIN)s:%(ENV_PATH)s"
+directory=%(ENV_DIR)s
+command=bin/dhp
 redirect_stderr=true
 stdout_events_enabled=true
 stderr_logfile=%(ENV_LOG_DIR)s/error.log
@@ -41,8 +45,11 @@ autostart = true
 autorestart = false
 priority=2
 
-[program:php-fpm]
-command=%(ENV_OPT)s/php/sbin/php-fpm -y %(ENV_ETC)s/php-fpm.d/php-fpm.conf
+[program:php]
+process_name=%(ENV_APP_NAME)s_web_%(program_name)s
+environment=PATH="%(ENV_BIN)s:%(ENV_OPT)s/php/sbin:%(ENV_PATH)s"
+directory=%(ENV_DIR)s
+command=php-fpm -y etc/php-fpm.d/php-fpm.conf
 redirect_stderr=true
 stdout_events_enabled=true
 stderr_logfile=%(ENV_LOG_DIR)s/error.log
@@ -51,9 +58,11 @@ autostart = true
 autorestart = true
 priority=3
 
-[program:openresty]
-environment=SSL=%(ENV_SSL)s,REDIS_HOST=%(ENV_REDIS_HOST)s,DIR="%(ENV_DIR)s",BIN="%(ENV_BIN)s",ETC="%(ENV_ETC)s",OPT="%(ENV_OPT)s",TMP="%(ENV_TMP)s",VAR="%(ENV_VAR)s",WEB="%(ENV_WEB)s",LOG_DIR="%(ENV_LOG_DIR)s",CACHE_DIR="%(ENV_CACHE_DIR)s",PORT="%(ENV_PORT)s"
-command=authbind --deep %(ENV_OPT)s/openresty/nginx/sbin/nginx -p %(ENV_OPT)s/openresty/nginx -c %(ENV_ETC)s/nginx/nginx.conf
+[program:nginx]
+process_name=%(ENV_APP_NAME)s_web_%(program_name)s
+environment=SSL=%(ENV_SSL)s,REDIS_HOST=%(ENV_REDIS_HOST)s,DIR="%(ENV_DIR)s",BIN="%(ENV_BIN)s",ETC="%(ENV_ETC)s",OPT="%(ENV_OPT)s",TMP="%(ENV_TMP)s",VAR="%(ENV_VAR)s",WEB="%(ENV_WEB)s",LOG_DIR="%(ENV_LOG_DIR)s",CACHE_DIR="%(ENV_CACHE_DIR)s",PORT="%(ENV_PORT)s",PATH="%(ENV_BIN)s:%(ENV_OPT)s/openresty/nginx/sbin:%(ENV_PATH)s"
+directory=%(ENV_DIR)s
+command=authbind --deep nginx -p opt/openresty/nginx -c etc/nginx/nginx.conf
 redirect_stderr=true
 stdout_events_enabled=true
 stderr_logfile=%(ENV_LOG_DIR)s/error.log

@@ -75,7 +75,7 @@ Route::middleware('auth:sanctum')->get('/media-store', function (Request $reques
     $sort = Store::SORT_DEFAULT;
     $direction = Store::DIRECTION_SORT_DEFAULT;
 
-    if (!$request->has('uri')) {
+    if (!$request->filled('uri')) {
         throw new HttpResponseException(response()->json([
             'success'   => false,
             'message'   => 'uri parameter is required.',
@@ -85,11 +85,11 @@ Route::middleware('auth:sanctum')->get('/media-store', function (Request $reques
 
     $uri = $request->input('uri');
 
-    if ($request->has('sort')) {
+    if ($request->filled('sort')) {
         $sort = $request->input('sort');
     }
 
-    if ($request->has('direction')) {
+    if ($request->filled('direction')) {
         $direction = $request->input('direction');
     }
 

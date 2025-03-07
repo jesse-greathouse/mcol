@@ -11,8 +11,10 @@ use Illuminate\Bus\Queueable,
     Illuminate\Support\Facades\Log;
 
 use App\Dcc\Client,
+    App\Exceptions\HostRefusedConnectionException,
     App\Exceptions\IllegalPacketException,
     App\Exceptions\UnknownBotException,
+    App\Jobs\CancelRequest,
     App\Models\Bot,
     App\Models\Packet;
 
@@ -120,7 +122,14 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
         }
 
         $dcc = new Client($this->file, $this->fileSize, $bot, $packet);
-        $dcc->download(long2ip($this->host), $this->port, $this->resume);
+
+        try {
+            $dcc->download(long2ip($this->host), $this->port, $this->resume);
+        } catch(HostRefusedConnectionException $e) {
+            Log::warning("DCC Client: Host Refused Connection \nbot: {$bot->nick} \nhost: {$this->host} \nfile: {$this->file} \nmessage: \n{$e->getMessage()}");
+            Log::warning("Canceling request from: \nbot: {$bot->nick}");
+            CancelRequest::dispatch($bot);
+        }
     }
 
     /**

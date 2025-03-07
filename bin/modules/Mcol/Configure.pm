@@ -153,7 +153,7 @@ sub generate_app_key {
         print $fh "APP_KEY=";
         close $fh;
     }
-    return `$binDir/php $applicationRoot/src/artisan key:generate`;
+    return `$binDir/php $srcDir/artisan key:generate`;
 }
 
 # Writes a configuration file from its template.

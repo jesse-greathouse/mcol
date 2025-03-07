@@ -19,7 +19,7 @@ clean("$var/cache/opcache");
 sub clean {
     my ($path) = @_;
     if (-d $path) {
-        print "cleaning ... $path\n";
+        print "...cleaning: $path...\n";
         rmtree $path;
     }
     mkdir $path;

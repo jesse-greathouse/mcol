@@ -33,9 +33,9 @@ abstract class Transfer
     protected array $options = [];
 
     /**
-     * List of files to be transferred with their original file size.
+     * List of files to be transferred, indexed by file name.
      *
-     * @var array
+     * @var array<string, array{uri: string, name: string, size: int}>
      */
     protected array $manifest = [];
 
@@ -59,10 +59,13 @@ abstract class Transfer
     }
 
     /**
-     * Adds another file to the manifest.
+     * Adds a file to the manifest, ensuring no duplicate entries.
+     *
+     * If the file already exists in the manifest, it is replaced with the latest details.
      *
      * @param string $fileName Partial path to the file.
      * @return void
+     * @throws TransferFileUriNotFoundException If the file cannot be found in either the temporary or download directory.
      */
     public function addToManifest(string $fileName): void
     {
@@ -82,31 +85,36 @@ abstract class Transfer
         clearstatcache(true, $uri);
         $size = filesize($uri);
 
-        $this->manifest[] = [
-            'uri'   => $uri,
-            'name'  => $fileName,
-            'size'  => $size,
+        // Assign file details to manifest using $fileName as the key
+        $this->manifest[$fileName] = [
+            'uri'  => $uri,
+            'name' => $fileName,
+            'size' => $size,
         ];
     }
 
     /**
-     * Checks if the transfer is completed by verifying file existence and size.
+     * Determines if the file transfer process is complete.
      *
-     * @return bool
+     * The transfer is considered complete if all files listed in the manifest exist
+     * in the destination directory and match their expected sizes.
+     *
+     * @return bool True if all files are successfully transferred, otherwise false.
      */
     public function isCompleted(): bool
     {
         if (!$this->completed) {
-            // Test each file in the manifest.
-            foreach ($this->manifest as $file) {
-                $fileName = $file['name'];
-                $destinationUri = $this->manager->getDestinationPath() . DS . $fileName;
+            $destinationPath = $this->manager->getDestinationPath();
 
-                // Remove any statcache that $destinationUri may have.
+            // Verify each file's existence and size.
+            foreach ($this->manifest as $fileName => $file) {
+                $destinationUri = $destinationPath . DS . $fileName;
+
+                // Remove any cached stat data for the destination file.
                 clearstatcache(true, $destinationUri);
 
-                // If $destinationUri doesn't exist, or size is wrong, then not completed.
-                if (!file_exists($destinationUri) || (filesize($destinationUri) !== $file['size'])) {
+                // If file is missing or size is incorrect, transfer is incomplete.
+                if (!file_exists($destinationUri) || filesize($destinationUri) !== $file['size']) {
                     return false;
                 }
             }

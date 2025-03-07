@@ -39,6 +39,6 @@ if (!-e $dhparamFile) {
     system(@cmd);
     command_result($?, $!, "openssl dhparam", \@cmd);
 } else {
-    print "$dhparamFile already exists.\n";
+    print "...dhp file already exists. skipping...\n";
     exit 0;
 }
