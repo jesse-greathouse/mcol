@@ -1,12 +1,44 @@
 # Media Collector
 
-![Mcol -- Media Collector](https://i.imgur.com/xZEnK1s.png "Mcol Browse Web Interface")
+![Mcol -- Media Collector](https://i.imgflip.com/9mmeq8.jpg "Mcol Browse Web Interface")
 
-* Uses PHP and IRC to collect media.
-* Only Supported on Ubuntu 20.04+
+* Built with [PHP 8.4](https://www.php.net/releases/8.4/en.php) and [Openresty](https://openresty.org/en/).
+* Uses [Laravel](https://laravel.com/) and [ReactPHP](https://reactphp.org/) to connect to IRC networks and collect information about shared files.
+* With [Intertia](https://inertiajs.com/) and [Vue 3](https://vuejs.org/) to create a simple User Interface to download and interact with media.
+* Recommended for Linux servers (Not supported on Windows).
 * Pre Alpha (Not for distribution)
 
 ## Install
+
+### Download
+
+Currently the only way to download the project is with git:
+
+```bash
+git clone https://github.com/jesse-greathouse/mcol.git
+
+cd mcol
+```
+
+### TLDR
+
+```bash
+bin/install
+
+# wait...
+
+bin/configure
+
+# Answer questions to configure for the environment...
+
+bin/mcol start
+
+# Starts the Mcol Daemons
+# UI running at:
+# http://localhost:8080
+```
+
+### Detailed instructions
 
 ```bash
 bin/install
