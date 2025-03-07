@@ -12,6 +12,7 @@ use Mcol::Utility qw(
     get_operating_system
     command_result
 );
+use Mcol::System qw(how_many_threads_should_i_use);
 use Exporter 'import';
 our @EXPORT_OK = qw(install);
 
@@ -20,7 +21,7 @@ my $applicationRoot = abs_path(dirname($bin));
 my $os = get_operating_system();
 my $osModule = 'Mcol::Install::' . $os;
 my $nodeVersion = '22.14';
-my $npmVersion = '11.1.0';
+my $npmVersion = '11.2.0';
 
 eval "use $osModule qw(install_system_dependencies install_php)";
 
@@ -150,6 +151,7 @@ sub handle_options {
 # installs Openresty.
 sub install_openresty {
     my ($dir) = @_;
+    my $threads = how_many_threads_should_i_use();
     my @configureOpenresty = ('./configure');
     push @configureOpenresty, '--prefix=' . $dir . '/opt/openresty';
     push @configureOpenresty, '--with-pcre-jit';
@@ -163,21 +165,26 @@ sub install_openresty {
 
     # Unpack
     system(('bash', '-c', "tar -xzf $dir/opt/openresty-*.tar.gz -C $dir/opt/"));
-    command_result($?, $!, 'Unpack Openresty Archive...', 'tar -xzf ' . $dir . '/opt/openresty-*.tar.gz -C ' . $dir . ' /opt/');
+    command_result($?, $!, 'Unpack Nginx (Openresty)... Archive...', 'tar -xzf ' . $dir . '/opt/openresty-*.tar.gz -C ' . $dir . ' /opt/');
 
     chdir glob("$dir/opt/openresty-*/");
 
     # configure
     system(@configureOpenresty);
-    command_result($?, $!, 'Configure Openresty...', \@configureOpenresty);
+    command_result($?, $!, 'Configure Nginx (Openresty)......', \@configureOpenresty);
 
-    # make
-    system('make');
-    command_result($?, $!, 'Make Openresty...', 'make');
+    # Make and Install Nginx(Openresty)
+    print "\n=================================================================\n";
+    print " Compiling Nginx...\n";
+    print "=================================================================\n\n";
+    print "Running make using $threads threads in concurrency.\n\n";
+
+    system('make', "-j$threads");
+    command_result($?, $!, 'Compile Nginx (Openresty)...', "make -j$threads");
 
     # install
     system(('make', 'install'));
-    command_result($?, $!, 'Install Openresty...', 'make install');
+    command_result($?, $!, 'Install (Openresty)...', 'make install');
 
     chdir $originalDir;
 }
@@ -234,6 +241,12 @@ sub install_pear {
         move($phpIniFile, $phpIniBackupFile);
     }
 
+    # If Pear directory exists, delete it.
+    if (-d "$dir/opt/pear") {
+        system(('bash', '-c', "rm -rf $dir/opt/pear"));
+        command_result($?, $!, "Removing existing Pear directory...", "rm -rf $dir/opt/pear");
+    }
+
     system(('bash', '-c', "yes n | $dir/bin/install-pear.sh $dir/opt"));
     command_result($?, $!, 'Install Pear...', "yes n | $dir/bin/install-pear.sh $dir/opt");
 
@@ -241,6 +254,15 @@ sub install_pear {
     if (-e $phpIniBackupFile) {
          move($phpIniBackupFile, $phpIniFile);
     }
+}
+
+# installs pear/PHP_Archive.
+sub install_phparchive {
+    my ($dir) = @_;
+    my $pear = $dir . '/opt/pear/bin/pear';
+
+    system(('bash', '-c', "$pear install pear/PHP_Archive-0.14.0"));
+    command_result($?, $!, 'pear/PHP_Archive...', "$pear install pear/PHP_Archive-0.14.0");
 }
 
 # installs Imagemagick.
@@ -267,6 +289,7 @@ sub install_imagick {
 # installs msgpack-php.
 sub install_msgpack {
     my ($dir) = @_;
+    my $threads = how_many_threads_should_i_use();
     my $optDir = $dir . '/opt';
     my $phpizeBinary = $optDir . '/php/bin/phpize';
     my $phpconfigBinary = $optDir . '/php/bin/php-config';
@@ -298,8 +321,14 @@ sub install_msgpack {
     system(@msgpackConfigure);
     command_result($?, $!, 'Configuring msgpack-php...', \@msgpackConfigure);
 
-    system('make');
-    command_result($?, $!, 'make msgpack-php...', 'make');
+    # Make and Install msgpack-php
+    print "\n=================================================================\n";
+    print " Compiling msgpack-php Extension...\n";
+    print "=================================================================\n\n";
+    print "Running make using $threads threads in concurrency.\n\n";
+
+    system('make', "-j$threads");
+    command_result($?, $!, 'make msgpack-php...', "make -j$threads");
 
     system('make install');
     command_result($?, $!, 'make install msgpack-php', 'make install');
@@ -313,6 +342,7 @@ sub install_msgpack {
 # installs rar.
 sub install_rar {
     my ($dir) = @_;
+    my $threads = how_many_threads_should_i_use();
     my $optDir = $dir . '/opt';
     my $phpizeBinary = $optDir . '/php/bin/phpize';
     my $phpconfigBinary = $optDir . '/php/bin/php-config';
@@ -344,8 +374,14 @@ sub install_rar {
     system(@phpRarConfigure);
     command_result($?, $!, 'Configuring php-rar...', \@phpRarConfigure);
 
-    system('make');
-    command_result($?, $!, 'make php-rar...', 'make');
+    # Make and Install php-rar
+    print "\n=================================================================\n";
+    print " Compiling php-rar Extension...\n";
+    print "=================================================================\n\n";
+    print "Running make using $threads threads in concurrency.\n\n";
+
+    system('make', "-j$threads");
+    command_result($?, $!, 'make php-rar...', "make -j$threads");
 
     system('make install');
     command_result($?, $!, 'make install php-rar', 'make install');
@@ -359,6 +395,7 @@ sub install_rar {
 # installs phpredis.
 sub install_phpredis {
     my ($dir) = @_;
+    my $threads = how_many_threads_should_i_use();
     my $optDir = $dir . '/opt';
     my $phpizeBinary = $optDir . '/php/bin/phpize';
     my $phpconfigBinary = $optDir . '/php/bin/php-config';
@@ -390,8 +427,14 @@ sub install_phpredis {
     system(@phpredisConfigure);
     command_result($?, $!, 'Configuring phpredis...', \@phpredisConfigure);
 
-    system('make');
-    command_result($?, $!, 'make phpredis...', 'make');
+    # Make and Install phpredis
+    print "\n=================================================================\n";
+    print " Compiling phpredis Extension...\n";
+    print "=================================================================\n\n";
+    print "Running make using $threads threads in concurrency.\n\n";
+
+    system('make', "-j$threads");
+    command_result($?, $!, 'make phpredis...', "make -j$threads");
 
     system('make install');
     command_result($?, $!, 'make install phpredis', 'make install');
@@ -444,11 +487,18 @@ sub install_composer_dependencies {
     my $originalDir = getcwd();
     my $binDir = $dir . '/bin';
     my $srcDir = $dir . '/src';
+    my $vendorDir = $srcDir . '/vendor';
     my $phpExecutable = $dir . '/opt/php/bin/php';
     my $composerExecutable = "$phpExecutable $binDir/composer";
     my $composerInstallCommand = "$composerExecutable install";
 
     chdir $srcDir;
+
+    # If vendor directory exists, delete it.
+    if (-d $vendorDir) {
+        system(('bash', '-c', "rm -rf $vendorDir"));
+        command_result($?, $!, "Removing existing composer vendors directory...", "rm -rf $vendorDir");
+    }
 
     system(('bash', '-c', $composerInstallCommand));
     command_result($?, $!, 'Installing Composer Dependencies...', $composerInstallCommand);
@@ -478,7 +528,7 @@ sub install_node {
 
     unless ($nvmCheck) {
         unless (-d $nvmDir) {
-            system(('bash', '-c', "curl -o- $nvmInstallScript | bash"));
+            system('bash', '-c', "curl -o- $nvmInstallScript | bash");
             command_result($?, $!, 'Installing NVM...', "curl -o- $nvmInstallScript | bash");
         }
     }
@@ -487,7 +537,7 @@ sub install_node {
     my $checkNodeInstalled = system('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && nvm ls $nodeVersion > /dev/null 2>&1");
 
     if ($checkNodeInstalled != 0) {
-        system(('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && nvm install $nodeVersion"));
+        system('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && nvm install $nodeVersion");
         command_result($?, $!, 'Installing Node.js via NVM...', "nvm install $nodeVersion");
     } else {
         print "Node.js $nodeVersion is already installed. Skipping installation.\n";
@@ -502,8 +552,9 @@ sub install_node {
     chomp($npmCheck);
 
     if ($npmCheck ne $npmVersion) {
-        system(('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && npm install -g npm@$npmVersion"));
-        command_result($?, $!, "Upgrading NPM to $npmVersion...", "npm install -g npm@$npmVersion");
+        my $npm_cmd = "npm install -g npm\@$npmVersion";  # Escape @ using backslash or use a variable
+        system('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && $npm_cmd");
+        command_result($?, $!, "Upgrading NPM to $npmVersion...", $npm_cmd);
     } else {
         print "NPM $npmVersion is already installed. Skipping upgrade.\n";
     }
@@ -513,6 +564,7 @@ sub node_build {
     my ($dir) = @_;
     my $originalDirectory = getcwd();
     my $srcDir = "$dir/src";
+    my $modulesDir = $srcDir . '/node_modules';
 
     # Change directory to source directory
     chdir($srcDir) or die "Failed to change directory to $srcDir: $!";
@@ -521,10 +573,10 @@ sub node_build {
     system(('bash', '-c', "export NVM_DIR=\$HOME/.nvm && source \$NVM_DIR/nvm.sh && nvm use $nodeVersion"));
     command_result($?, $!, "Switching to Node.js $nodeVersion...", "nvm use $nodeVersion");
 
-    # Remove node_modules if it exists
-    if (-d "$srcDir/node_modules") {
-        system(('rm', '-rf', "$srcDir/node_modules"));
-        command_result($?, $!, "Removing existing node_modules...", "rm -rf $srcDir/node_modules");
+    # Remove node_modules if it exists.
+    if (-d $modulesDir) {
+        system(('bash', '-c', "rm -rf $modulesDir"));
+        command_result($?, $!, "Removing existing node_modules...", "rm -rf $modulesDir");
     }
 
     # Run npm install

@@ -3,6 +3,7 @@
 package Mcol::System;
 use strict;
 use warnings;
+use POSIX qw(ceil);
 use Cwd qw(getcwd abs_path);
 use Sys::Info;
 use Sys::Info::Constants qw( :device_cpu );
@@ -22,22 +23,24 @@ sub how_many_threads_should_i_use {
     my $info = Sys::Info->new;
     my $cpu = $info->device('CPU');
 
-    # Retrieve the system CPU load for the last 1 minute (DCPU_LOAD_LAST_01)
+    # Retrieve the system CPU load for the last 1 minute
     my $load = $cpu->load(DCPU_LOAD_LAST_01);
 
     # Get the total number of CPU threads (logical CPUs)
     my $cpu_count = $cpu->count;
 
-    # If there's no load or invalid load value, default to using all available threads
     if (defined $load && $load =~ /^\d+(\.\d+)?$/) {
-        # Calculate the inverse percentage of load (1 - load) to get the proportion of available CPU capacity
-        my $available_capacity = 1 - $load;
+        # Normalize load to be relative to CPU count
+        my $available_capacity = 1 - ($load / $cpu_count);
 
-        # The max CPU threads to use would be the available capacity multiplied by the total CPU count
-        my $max_threads = int($available_capacity * $cpu_count);
+        # Ensure the available capacity is within a valid range (0 to 1)
+        $available_capacity = 0 if $available_capacity < 0;
+        $available_capacity = 1 if $available_capacity > 1;
 
-        # Ensure that at least one CPU thread is used
+        # Calculate max threads, ensuring we use at least 1
+        my $max_threads = ceil($available_capacity * $cpu_count);
         $max_threads = 1 if $max_threads < 1;
+        $max_threads = $cpu_count if $max_threads > $cpu_count;
 
         return $max_threads;
     } else {

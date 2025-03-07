@@ -22,6 +22,7 @@ use Mcol::Config qw(
     write_env_file
     write_config_file
 );
+use Mcol::Migrate qw(migrate);
 use Mcol::Utility qw(splash generate_rand_str write_file);
 
 our @EXPORT_OK = qw(configure);
@@ -142,6 +143,8 @@ sub configure {
     }
 
     write_laravel_env();
+
+    prompt_migrate();
 }
 
 # Generates a Laravel application key if none exists.
@@ -407,6 +410,23 @@ sub input_integer {
             last;
         }
         print "Invalid input. Please enter a valid integer.\n";
+    }
+}
+
+# Displays a prompt to the user asking whether to run database migrations.
+# If the user confirms (defaulting to 'y'), the `migrate` function is called
+# to update the database schema to the latest design specification.
+sub prompt_migrate() {
+    print "\n=================================================================\n";
+    print " Database Migrations\n";
+    print "=================================================================\n\n";
+
+     print "Now that your database is configured for use, update the database schema to the latest design spec.\n\n";
+
+    my $answer = prompt('y', "Run Database Migrations?", '', "y");
+
+    if ($answer eq 1) {
+        migrate();
     }
 }
 

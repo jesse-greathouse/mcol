@@ -56,7 +56,7 @@ sub install_php {
         '--enable-intl', '--enable-ftp', '--enable-pcntl', '--enable-gd',
         '--enable-soap', '--enable-sockets', '--without-sqlite3',
         '--without-pdo-sqlite', '--with-libxml', '--with-xsl', '--with-zlib',
-        '--with-curl', '--with-webp', '--with-openssl', '--with-zip',
+        '--with-curl', '--with-webp', '--with-openssl', '--with-zip', '--with-bz2',
         '--with-sodium', '--with-mysqli', '--with-pdo-mysql', '--with-mysql-sock',
         '--with-iconv'
     );
@@ -74,6 +74,11 @@ sub install_php {
     command_result($?, $!, 'Configured PHP...', \@configurePhp);
 
     # Make and Install PHP
+    print "\n=================================================================\n";
+    print " Compiling PHP...\n";
+    print "=================================================================\n\n";
+    print "Running make using $threads threads in concurrency.\n\n";
+
     system('make', "-j$threads");
     command_result($?, $!, 'Made PHP...', 'make');
 
