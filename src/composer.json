@@ -16,6 +16,10 @@
         {
             "type": "vcs",
             "url": "git@github.com:jesse-greathouse/portable-utf8.git"
+        },
+        {
+            "type": "vcs",
+            "url": "git@github.com:jesse-greathouse/server.git"
         }
     ],
     "require": {
@@ -26,18 +30,18 @@
         "deerdama/console-zoo-laravel": "^1.4",
         "doctrine/dbal": "^3.6",
         "guzzlehttp/guzzle": "^7.2",
-        "inertiajs/inertia-laravel": "^1.3",
+        "inertiajs/inertia-laravel": "^2.0.1",
         "jesse-greathouse/php-irc-client": "dev-main",
         "jesse-greathouse/portable-utf8": "dev-master",
         "jesse-greathouse/stringy": "dev-master",
         "laravel/dusk": "^8.0",
-        "laravel/framework": "^11.23",
+        "laravel/framework": "^12.0",
         "laravel/jetstream": "^5.0",
         "laravel/passport": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/scout": "^10.0",
         "laravel/tinker": "^2.9",
-        "sajya/server": "^6.1",
+        "sajya/server": "dev-feature/Laravel-12",
         "splitbrain/php-archive": "^1.3",
         "symfony/yaml": "^7.1",
         "tightenco/ziggy": "^2.0"
@@ -47,8 +51,8 @@
         "laravel/pint": "^1.0",
         "laravel/sail": "^1.18",
         "mockery/mockery": "^1.4.4",
-        "nunomaduro/collision": "^8.2",
-        "phpunit/phpunit": "^10.1",
+        "nunomaduro/collision": "^8.6",
+        "phpunit/phpunit": "^11.0",
         "spatie/laravel-ignition": "^2.0"
     },
     "autoload": {
