@@ -13,8 +13,8 @@ use App\Exceptions\HostRefusedConnectionException,
     App\Models\FileDownloadLock,
     App\Models\Packet;
 
-use \DateTime,
-    \Exception;
+use DateTime,
+    Exception;
 
 // Define DS constant for cross-platform compatibility if not already defined
 if (!defined('DS')) {

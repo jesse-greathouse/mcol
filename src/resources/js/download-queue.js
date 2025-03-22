@@ -140,6 +140,7 @@ function getDownloadDestinationRoots(download, settings, mediaStore = null) {
     return settings.media_store[mediaStore]
 }
 
+// Creates an index that keys the file name for each file object.
 function indexQueue(files, index) {
     files.forEach((file) => {
         if (!has(index, file.file_name)) {

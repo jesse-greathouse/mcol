@@ -39,10 +39,23 @@ get-pip.py
 
 # bin
 bin/*-e
+bin/bazel
+bin/elixir
+bin/mix
 bin/composer
 bin/composer.phar
 bin/php
 bin/phpunit
+bin/rabbitmq-defaults
+bin/rabbitmq-diagnostics
+bin/rabbitmq-env
+bin/rabbitmq-plugins
+bin/rabbitmq-queues
+bin/rabbitmq-server
+bin/rabbitmq-streams
+bin/rabbitmq-upgrade
+bin/rabbitmqctl
+bin/vmware-rabbitmq
 
 # etc
 etc/php/php.ini
@@ -58,6 +71,7 @@ etc/nginx/force-ssl.docker.conf
 etc/supervisor/conf.d/supervisord.conf
 etc/supervisor/instances/*
 etc/supervisor/*.conf
+etc/rabbitmq/*.conf
 etc/*.service
 etc/*.conf
 etc/init.d/*
@@ -74,6 +88,9 @@ etc/ssl/openssl.docker.cnf
 
 # opt
 opt/php/
+opt/bazelisk/
+opt/elixir/
+opt/rabbitmq/
 opt/php*/
 opt/pear/
 opt/pear*/

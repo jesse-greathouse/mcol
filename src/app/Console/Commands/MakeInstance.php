@@ -9,7 +9,8 @@ use App\Chat\Client as IrcClient,
     App\Models\Client,
     App\Models\Instance,
     App\Models\Nick,
-    App\Models\Network;
+    App\Models\Network,
+    App\SystemMessage;
 
 /**
  * Command to instantiate an IRC client.
@@ -65,7 +66,7 @@ class MakeInstance extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(SystemMessage $systemMessage)
     {
         $nick = $this->getNick();
         $network = $this->getNetwork();
@@ -82,7 +83,7 @@ class MakeInstance extends Command
         }
 
         // Instantiate and connect the IRC client
-        $client = new IrcClient($nick, $network, $this->cache, $this);
+        $client = new IrcClient($nick, $network, $this->cache, $this, $systemMessage);
         $client->connect();
     }
 

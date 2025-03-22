@@ -341,7 +341,7 @@ class DownloadQueue
 
         $qb = $qb->whereIn('downloads.status', self::getStatusOptions());
         $qb = $qb->orderBy(self::ORDER_BY_QUEUE, 'asc');
-        $qb = $qb->orderBy(self::ORDER_BY_CREATED, $this->getDefaultDirection());
+        $qb = $qb->orderBy(self::ORDER_BY_NAME, $this->getDefaultDirection());
 
         return $qb;
     }

@@ -41,6 +41,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/scout": "^10.0",
         "laravel/tinker": "^2.9",
+        "php-amqplib/php-amqplib": "^3.7",
         "sajya/server": "dev-feature/Laravel-12",
         "splitbrain/php-archive": "^1.3",
         "symfony/yaml": "^7.1",

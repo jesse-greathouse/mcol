@@ -48,7 +48,7 @@ class TransferCompleted extends Command
      *
      * @var string
      */
-    protected $signature = 'mcol:transfer-completed ?{uri}';
+    protected $signature = 'mcol:transfer-completed {uri?}';
 
     /**
      * The console command description.

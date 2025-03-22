@@ -10,7 +10,7 @@ use Mcol::Utility qw(command_result);
 use Mcol::System qw(how_many_threads_should_i_use);
 use Exporter 'import';
 
-our @EXPORT_OK = qw(install_system_dependencies install_php);
+our @EXPORT_OK = qw(install_system_dependencies install_php install_bazelisk);
 
 my $bin = abs_path(dirname(__FILE__) . '/../../../');
 my $applicationRoot = abs_path(dirname($bin));
@@ -111,6 +111,48 @@ sub install_pip {
 sub install_supervisor {
     system('python3', '-m', 'pip', 'install', 'supervisor');
     command_result($?, $!, "Installed Supervisor...", 'python3', '-m', 'pip', 'install', 'supervisor');
+}
+
+# installs Bazelisk.
+sub install_bazelisk {
+    my ($dir) = @_;
+    my $originalDir = getcwd();
+    my $bazeliskDir = "$dir/opt/bazelisk/";
+
+    # If elixir directory exists, delete it.
+    if (-d $bazeliskDir) {
+        system(('bash', '-c', "rm -rf $bazeliskDir"));
+        command_result($?, $!, "Removing existing Bazelisk directory...", "rm -rf $bazeliskDir");
+    }
+
+    # Unpack
+    system(('bash', '-c', "tar -xzf $dir/opt/bazelisk-*.tar.gz -C $dir/opt/"));
+    command_result($?, $!, 'Unpack Bazelisk...', "tar -xzf $dir/opt/bazelisk-*.tar.gz -C $dir/opt/");
+
+    # Rename
+    system(('bash', '-c', "mv $dir/opt/bazelisk-*/ $bazeliskDir"));
+    command_result($?, $!, 'Renaming Bazelisk Dir...', "mv -xzf $dir/opt/bazelisk-*/ $bazeliskDir");
+
+    chdir glob($bazeliskDir);
+
+
+    # Install Bazelisk
+    print "\n=================================================================\n";
+    print " Installing Bazelisk....\n";
+    print "=================================================================\n\n";
+
+    # Install
+    system('bash', '-c', 'go install github.com/bazelbuild/bazelisk@latest');
+    command_result($?, $!, 'Install Bazelisk...', 'go install github.com/bazelbuild/bazelisk@latest');
+
+    # Binary
+    system('bash', '-c', "GOOS=darwin GOARCH=amd64 go build -o $dir/bin/bazel");
+    command_result($?, $!, 'Build Bazelisk...', "GOOS=linux GOARCH=amd64 go build -o $dir/bin/bazel");
+
+    system('bash', '-c', "$dir/bin/bazel version");
+    command_result($?, $!, 'Run Bazelisk...', "$dir/bin/bazel version");
+
+    chdir $originalDir;
 }
 
 1;

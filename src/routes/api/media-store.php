@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request,
-    Illuminate\Http\Exceptions\HttpResponseException;
+    Illuminate\Http\Exceptions\HttpResponseException,
+    Illuminate\Support\Facades\Route;
 
 use App\Exceptions\DirectoryDirectionSortIllegalOptionException,
     App\Exceptions\DirectoryNotWithinMediaStoreException,

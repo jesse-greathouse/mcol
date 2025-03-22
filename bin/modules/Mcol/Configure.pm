@@ -72,6 +72,7 @@ my %config_files = (
     ssl_params          => ["$etcDir/nginx/ssl-params.dist.conf",               "$etcDir/nginx/ssl-params.conf"],
     openssl             => ["$etcDir/ssl/openssl.dist.cnf",                     "$etcDir/ssl/openssl.cnf"],
     nginx               => ["$etcDir/nginx/nginx.dist.conf",                    "$etcDir/nginx/nginx.conf"],
+    rabbitmq            => ["$etcDir/rabbitmq/rabbitmq.dist.conf",              "$etcDir/rabbitmq/rabbitmq.conf"],
     supervisord         => ["$etcDir/supervisor/conf.d/supervisord.conf.dist",  "$etcDir/supervisor/conf.d/supervisord.conf"],
     instance_manager    => ["$etcDir/supervisor/instance-manager.conf.dist",    "$etcDir/supervisor/instance-manager.conf"],
     queue_manager       => ["$etcDir/supervisor/queue-manager.conf.dist",       "$etcDir/supervisor/queue-manager.conf"],
@@ -116,6 +117,13 @@ my %defaults = (
         REDIS_PORT                  => '0',
         REDIS_PASSWORD              => 'null',
         REDIS_DB                    => '0',
+    },
+    rabbitmq => {
+        RABBITMQ_HOST               => '127.0.0.1',
+        RABBITMQ_PORT               => '5861',
+        RABBITMQ_USERNAME           => 'guest',
+        RABBITMQ_PASSWORD           => 'guest',
+        RABBITMQ_VHOST              => '/',
     }
 );
 
@@ -137,9 +145,12 @@ sub configure {
     assign_dynamic_config();
     save_configuration(%cfg);
 
+    # Refreshes the cfg variable with exactly what was just written to the file.
+    my %liveCfg = get_configuration();
+
     # Write configuration files
     foreach my $key (keys %config_files) {
-        write_config(@{$config_files{$key}}, $cfg{$key} // {});
+        write_config(@{$config_files{$key}}, $liveCfg{$key} // {});
     }
 
     write_laravel_env();
@@ -225,6 +236,13 @@ sub request_user_input {
         ['redis', 'REDIS_PORT', 'Redis Port'],
         ['redis', 'REDIS_PASSWORD', 'Redis Password'],
         ['redis', 'REDIS_DB', 'Redis Database Index'],
+
+        # RabbitMQ settings
+        ['rabbitmq', 'RABBITMQ_HOST', 'Rabbitmq Listener Host'],
+        ['rabbitmq', 'RABBITMQ_PORT', 'Rabbitmq Listener Port'],
+        ['rabbitmq', 'RABBITMQ_USERNAME', 'Rabbitmq Username'],
+        ['rabbitmq', 'RABBITMQ_PASSWORD', 'Rabbitmq Password'],
+        ['rabbitmq', 'RABBITMQ_VHOST', 'Rabbitmq vhost'],
     );
 
     # Prompt the user in the exact order defined above
@@ -301,6 +319,15 @@ sub assign_dynamic_config {
     $cfg{laravel}{REDIS_PASSWORD} //= $cfg{redis}{REDIS_PASSWORD} // $defaults{redis}{REDIS_PASSWORD};
     $cfg{laravel}{REDIS_DB} //= $cfg{redis}{REDIS_DB} // $defaults{redis}{REDIS_DB};
 
+    # RabbitMQ Config for Laravel
+    $cfg{laravel}{RABBITMQ_HOST} //= $cfg{laravel}{RABBITMQ_HOST} // $cfg{rabbitmq}{RABBITMQ_HOST};
+    $cfg{laravel}{RABBITMQ_PORT} //= $cfg{laravel}{RABBITMQ_PORT} // $cfg{rabbitmq}{RABBITMQ_PORT};
+    $cfg{laravel}{RABBITMQ_USERNAME} //= $cfg{laravel}{RABBITMQ_USERNAME} // $cfg{rabbitmq}{RABBITMQ_USERNAME};
+    $cfg{laravel}{RABBITMQ_PASSWORD} //= $cfg{laravel}{RABBITMQ_PASSWORD} // $cfg{rabbitmq}{RABBITMQ_PASSWORD};
+    $cfg{laravel}{RABBITMQ_VHOST} //= $cfg{laravel}{RABBITMQ_VHOST} // $cfg{rabbitmq}{RABBITMQ_VHOST};
+    $cfg{rabbitmq}{APP_NAME} //= $cfg{rabbitmq}{APP_NAME} // $cfg{laravel}{APP_NAME};
+    $cfg{rabbitmq}{RABBITMQ_NODENAME} //= $cfg{rabbitmq}{RABBITMQ_NODENAME} // $cfg{rabbitmq}{APP_NAME} . '@' .  $cfg{laravel}{SESSION_DOMAIN};
+
     # Initd configuration values.
     $cfg{initd}{APP_NAME} //= $cfg{laravel}{APP_NAME};
     $cfg{initd}{DIR} //= $applicationRoot;
@@ -314,6 +341,7 @@ sub assign_dynamic_config {
     $cfg{nginx}{DOMAINS} //= $cfg{laravel}{SESSION_DOMAIN};
     $cfg{nginx}{LOG} //= $errorLog;
     $cfg{nginx}{DIR} //= $applicationRoot;
+    $cfg{nginx}{BIN} //= $binDir;
     $cfg{nginx}{VAR} //= $varDir;
     $cfg{nginx}{ETC} //= $etcDir;
     $cfg{nginx}{WEB} //= "$applicationRoot/src/public";
@@ -355,6 +383,8 @@ sub assign_dynamic_config {
 
     $cfg{queue_manager}{QUEUECTL_USER} //= $ENV{"LOGNAME"};
     $cfg{queue_manager}{QUEUECTL_SECRET} //= $secret;
+    $cfg{queue_manager}{RABBITMQ_PORT} //= $cfg{queue_manager}{RABBITMQ_PORT} // $cfg{rabbitmq}{RABBITMQ_PORT};
+    $cfg{queue_manager}{RABBITMQ_NODENAME} //= $cfg{queue_manager}{RABBITMQ_NODENAME} // $cfg{rabbitmq}{RABBITMQ_NODENAME};
 
     # Assign dynamic Supervisor and Queue ports
     $cfg{supervisord}{SUPERVISORCTL_PORT} //= $supervisorPort;

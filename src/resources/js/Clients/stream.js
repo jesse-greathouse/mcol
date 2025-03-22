@@ -39,6 +39,11 @@ async function streamPrivmsg(network, offset = 0, parse) {
     await streamGet(url, headers, parse)
 }
 
+async function streamSystemMessage(queue, parse) {
+    const url = `${endpoint}/system-message?queue=${queue}`
+    await streamGet(url, headers, parse)
+}
+
 export {
     fetchConsole,
     fetchMessage,
@@ -46,5 +51,6 @@ export {
     streamEvent,
     streamMessage,
     streamNotice,
-    streamPrivmsg
+    streamPrivmsg,
+    streamSystemMessage
 };

@@ -7,6 +7,7 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
+import SystemMessage from '@/Components/SystemMessage.vue';
 
 defineProps({
     title: String,
@@ -56,6 +57,9 @@ const logout = () => {
                                 </NavLink>
                                 <NavLink :href="route('chat')" :active="route().current('chat')">
                                     Chat
+                                </NavLink>
+                                <NavLink :href="route('download')" :active="route().current('download')">
+                                    Downloads
                                 </NavLink>
                             </div>
                         </div>
@@ -285,6 +289,8 @@ const logout = () => {
                     <slot name="header" />
                 </div>
             </header>
+
+            <SystemMessage queue="chat" />
 
             <!-- Page Content -->
             <main>

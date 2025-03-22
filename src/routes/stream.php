@@ -14,3 +14,4 @@ require_once __DIR__ . '/stream/notice.php';
 require_once __DIR__ . '/stream/message.php';
 require_once __DIR__ . '/stream/privmsg.php';
 require_once __DIR__ . '/stream/event.php';
+require_once __DIR__ . '/stream/system-message.php';

@@ -38,7 +38,10 @@ use App\Chat\Log\Diverter as LogDiverter,
     App\Models\PacketSearch,
     App\Models\PacketSearchResult,
     App\Packet\MediaType\MediaTypeGuesser,
-    App\Packet\Parse;
+    App\Packet\Parse,
+    App\RabbitMQ\Queue as MessageQueue,
+    App\RabbitMQ\SystemMessage as Message,
+    App\SystemMessage;
 
 use DateTime,
     TypeError;
@@ -164,6 +167,13 @@ class Client
     protected $client;
 
     /**
+     * SystemMessage service
+     *
+     * @var ?SystemMessage|null
+     */
+    protected ?SystemMessage $systemMessage = null;
+
+    /**
      * Initializes the IRC client with network and nickname configurations.
      *
      * This constructor sets up logging, caching, and the IRC client connection.
@@ -173,16 +183,23 @@ class Client
      * @param Network $network The network to which the client will connect.
      * @param Repository $cache A caching layer for storing temporary data.
      * @param Command $console The command handler for executing console commands.
+     * @param ?SystemMessage|null $systemMessage
      *
      * @throws SomeException If the client model cannot be created.
      */
-    public function __construct(Nick $nick, Network $network, Repository $cache, Command $console) {
+    public function __construct(Nick $nick, Network $network, Repository $cache, Command $console, ?SystemMessage $systemMessage = null)
+    {
         $logRoot = env('LOG_DIR', '/var/log');
         $this->cache = $cache;
         $this->nick = $nick;
         $this->network = $network;
         $this->console = $console;
         $this->logDiverter = new LogDiverter(new LogMapper($logRoot, $network->name, $nick->nick));
+
+        // If the SystemMessage service was included in the
+        if ($systemMessage) {
+            $this->systemMessage = $systemMessage ?? null;
+        }
 
         $options = new ClientOptions($nick->nick);
         $this->client = new IrcClient("{$network->firstServer->host}:6667", $options, self::VERSION);
@@ -193,6 +210,22 @@ class Client
         );
 
         $this->assignHandlers();
+    }
+
+    /**
+     * Omnibus method for sending a SystemMessage message with a $routingKey
+     *
+     * If the routingKey is fully qualified as specific: 'system.message.download.328'
+     * Normalize thhe routing key by stripping the query and topic from the pattern.
+     *
+     */
+    public function systemSend(string $message, ?string $routingKey = ''): void
+    {
+        if ($this->systemMessage) {
+            // Prepend the network name to the routing key.
+            $routingKey = "{$this->network->name}.$routingKey";
+            $this->systemMessage->send($message, MessageQueue::SYSTEM_MESSAGE_CHAT, $routingKey);
+        }
     }
 
     /**
@@ -572,6 +605,7 @@ class Client
         // Handle the CTCP event and log the details.
         $this->client->on(IrcClientEvent::CTCP, function (string $action, array $args, string $command) {
             $message = "CTCP: $command | action: $action params: " . json_encode($args);
+            $this->systemSend($message, "ctcp.$action");
             $this->console->warn($message);
             $this->logDiverter->log(LogMapper::EVENT_CTCP, $message);
         });
@@ -592,6 +626,7 @@ class Client
                 return;
             }
 
+            $this->systemSend((string) $message, "msg.$userName");
             $this->logDiverter->log(LogMapper::LOG_PRIVMSG, "$userName: $message");
             $this->console->warn("$userName to $target says: $message");
 
@@ -671,6 +706,7 @@ class Client
         $params = $this->extractDccParams($message);
         $this->console->warn($message);
         $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
+        $this->systemSend($message, "notice");
 
         $this->logAndWarnDccJobQueued($userName, $params);
         DccDownload::dispatch($params['ip'], $params['port'], $params['fileName'], $params['position'], $userName, $params['position'])->onQueue('download');
@@ -740,6 +776,8 @@ class Client
         $notice = "Queued DCC Download Job: host: {$params['ip']} port: {$params['port']} file: {$params['fileName']} file-size: {$params['fileSize']} bot: '$userName'";
         $this->console->warn($notice);
         $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
+        $payload = http_build_query(array_merge($params, ['bot' => $userName]));
+        $this->systemSend("Dispatched to download queue | $payload", "notice");
     }
 
     /**
@@ -752,7 +790,7 @@ class Client
         $this->client->on(IrcClientEvent::MOTD, function (string $message) {
             $cleanMessage = Parse::cleanMessage($message);
             $this->console->warn("[ {$this->network->name} ]: $cleanMessage");
-            $this->logDiverter->log(LogMapper::EVENT_PING, $cleanMessage);
+            $this->logDiverter->log(LogMapper::EVENT_MOTD, $cleanMessage);
         });
     }
 
@@ -1182,6 +1220,7 @@ class Client
     {
         $this->console->warn("========[  $message ");
         $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
+        $this->systemSend($message, "notice");
     }
 
     /**

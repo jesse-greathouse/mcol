@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use File::Basename;
 use Getopt::Long;
-use Cwd qw(getcwd abs_path);
+use Cwd qw(getcwd abs_path);;
 use Exporter 'import';
 use lib(dirname(abs_path(__FILE__))  . "/../modules");
 use Mcol::Config qw(get_configuration);
@@ -51,6 +51,8 @@ sub queue_restart {
     my $output = "The Queue Daemon was not found.\n";
 
     if ( -e $pidFile && is_pid_running($pidFile)) {
+        stop_bazel();
+
         my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'restart', 'all');
         system(@cmd);
 
@@ -66,6 +68,8 @@ sub queue_stop {
     my $output = "The Queue Daemon was not found.\n";
 
     if ( -e $pidFile && is_pid_running($pidFile)) {
+        stop_bazel();
+
         my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'stop', 'all');
         system(@cmd);
 
@@ -108,8 +112,11 @@ sub queue_kill {
 
 # Starts the supervisor daemon.
 sub start_daemon {
-    @ENV{qw(DIR ETC OPT VAR SRC LOG_DIR APP_NAME)} =
-        ($applicationRoot, $etcDir, $optDir, $varDir, $srcDir, $logDir, $cfg{laravel}{APP_NAME});
+    @ENV{qw(DIR ETC OPT VAR SRC LOG_DIR APP_NAME RABBITMQ_HOST RABBITMQ_NODENAME
+            RABBITMQ_PORT RABBITMQ_USERNAME RABBITMQ_PASSWORD RABBITMQ_VHOST)} =
+        ($applicationRoot, $etcDir, $optDir, $varDir, $srcDir, $logDir,
+        $cfg{laravel}{APP_NAME}, $cfg{rabbitmq}{RABBITMQ_HOST}, $cfg{rabbitmq}{RABBITMQ_NODENAME},
+        $cfg{rabbitmq}{RABBITMQ_PORT}, $cfg{rabbitmq}{RABBITMQ_USERNAME}, $cfg{rabbitmq}{RABBITMQ_PASSWORD}, $cfg{rabbitmq}{RABBITMQ_VHOST});
 
     print "Starting Queue Daemon...\n";
 
@@ -122,7 +129,28 @@ sub start_daemon {
 sub print_output {
     cls();
     splash();
-    system('tail', '-n', '10', $supervisorLogFile);
+    system('tail', '-n', '15', $supervisorLogFile);
+}
+
+sub stop_bazel {
+    my $bazelDir = "$optDir/rabbitmq";
+    my $originalDir = getcwd();
+    my $nodeName = $cfg{rabbitmq}{RABBITMQ_NODENAME};
+
+    # Ensure $originalDir is defined before proceeding
+    if (!defined $originalDir) {
+        die "Error: getcwd() failed to return a directory path\n";
+    }
+
+    system(('bash', '-c', 'PATH="' . $binDir . ':$PATH" rabbitmqctl --node='. $nodeName . ' shutdown'));
+    command_result($?, $!, 'Shut down rabbitmq node...', 'rabbitmqctl --node='. $nodeName . ' shutdown');
+
+    chdir glob($bazelDir) or die "Failed to change to directory $bazelDir: $!";
+
+    system(('bash', '-c', 'PATH="' . $binDir . ':$PATH" bazel shutdown'));
+    command_result($?, $!, 'Shut down Bazel...', 'bazel shutdown');
+
+    chdir glob($originalDir) or die "Failed to change back to original directory $originalDir: $!";
 }
 
 1;

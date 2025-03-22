@@ -16,14 +16,14 @@ use Mcol::System qw(how_many_threads_should_i_use);
 use Exporter 'import';
 our @EXPORT_OK = qw(install);
 
-my $bin = abs_path(dirname(__FILE__) . '/../../');
-my $applicationRoot = abs_path(dirname($bin));
+my $binDir = abs_path(dirname(__FILE__) . '/../../');
+my $applicationRoot = abs_path(dirname($binDir));
 my $os = get_operating_system();
 my $osModule = 'Mcol::Install::' . $os;
 my $nodeVersion = '22.14';
 my $npmVersion = '11.2.0';
 
-eval "use $osModule qw(install_system_dependencies install_php)";
+eval "use $osModule qw(install_system_dependencies install_php install_bazelisk)";
 
 my @perlModules = (
     'JSON',
@@ -59,6 +59,12 @@ sub install {
         install_system_dependencies();
     }
 
+    if ($options{'rabbitmq'}) {
+        install_elixir($applicationRoot);
+        install_bazelisk($applicationRoot);
+        install_rabbitmq($applicationRoot);
+    }
+
     if ($options{'perl'}) {
         install_perl_modules();
     }
@@ -92,18 +98,20 @@ sub install {
 
 sub handle_options {
     my $defaultInstall = 1;
-    my @components =  ('system', 'node', 'perl', 'openresty', 'php', 'composer');
+    my @components =  ('system', 'node', 'rabbitmq', 'perl', 'openresty', 'php', 'composer');
     my %skips;
     my %installs;
 
     GetOptions ("skip-system"       => \$skips{'system'},
                 "skip-node"         => \$skips{'node'},
+                "skip-rabbitmq"     => \$skips{'rabbitmq'},
                 "skip-openresty"    => \$skips{'openresty'},
                 "skip-perl"         => \$skips{'perl'},
                 "skip-php"          => \$skips{'php'},
                 "skip-composer"     => \$skips{'composer'},
                 "system"            => \$installs{'system'},
                 "node"              => \$installs{'node'},
+                "rabbitmq"          => \$installs{'rabbitmq'},
                 "openresty"         => \$installs{'openresty'},
                 "perl"              => \$installs{'perl'},
                 "php"               => \$installs{'php'},
@@ -123,6 +131,7 @@ sub handle_options {
     my  %options = (
         system      => $defaultInstall,
         node        => $defaultInstall,
+        rabbitmq    => $defaultInstall,
         openresty   => $defaultInstall,
         perl        => $defaultInstall,
         php         => $defaultInstall,
@@ -211,11 +220,16 @@ sub configure_php {
 # installs symlinks.
 sub install_symlinks {
     my ($dir) = @_;
-    my $binDir = $dir . '/bin';
     my $optDir = $dir . '/opt';
 
     unlink "$binDir/php";
     symlink("$optDir/php/bin/php", "$binDir/php");
+
+    unlink "$binDir/elixir";
+    symlink("$optDir/elixir/bin/elixir", "$binDir/elixir");
+
+    unlink "$binDir/mix";
+    symlink("$optDir/elixir/bin/mix", "$binDir/mix");
 }
 
 # installs Perl Modules.
@@ -448,7 +462,6 @@ sub install_phpredis {
 # installs Composer.
 sub install_composer {
     my ($dir) = @_;
-    my $binDir = $dir . '/bin';
     my $phpExecutable = $dir . '/opt/php/bin/php';
     my $composerInstallScript = $binDir . '/composer-setup.php';
     my $composerHash = 'dac665fdc30fdd8ec78b38b9800061b4150413ff2e3b6f88543c636f7cd84f6db9189d43a81e5503cda447da73c7e5b6';
@@ -485,7 +498,6 @@ sub install_composer {
 sub install_composer_dependencies {
     my ($dir) = @_;
     my $originalDir = getcwd();
-    my $binDir = $dir . '/bin';
     my $srcDir = $dir . '/src';
     my $vendorDir = $srcDir . '/vendor';
     my $phpExecutable = $dir . '/opt/php/bin/php';
@@ -494,7 +506,7 @@ sub install_composer_dependencies {
 
     chdir $srcDir;
 
-    # If vendor directory exists, delete it.
+    # If elixir directory exists, delete it.
     if (-d $vendorDir) {
         system(('bash', '-c', "rm -rf $vendorDir"));
         command_result($?, $!, "Removing existing composer vendors directory...", "rm -rf $vendorDir");
@@ -514,6 +526,97 @@ sub cleanup {
     command_result($?, $!, 'Remove PHP Build Dir...', "rm -rf $phpBuildDir");
     system(('bash', '-c', "rm -rf $openrestyBuildDir"));
     command_result($?, $!, 'Remove Openresty Build Dir...', "rm -rf $openrestyBuildDir");
+}
+
+sub install_elixir {
+    my ($dir) = @_;
+    my $elixirVersion = 'v1.16.3';
+    my $originalDir = getcwd();
+    my $elixirDir = glob("$dir/opt/elixir");
+
+    if (-d $elixirDir) {
+        system('bash', '-c', "rm -rf $elixirDir");
+        command_result($?, $!, 'Removing Elixir...', "rm -rf $elixirDir");
+    }
+
+    system(('bash', '-c', "git clone --depth 1 --branch $elixirVersion https://github.com/elixir-lang/elixir.git $dir/opt/elixir"));
+    command_result($?, $!, 'Clone elixir ...', "git clone --depth 1 --branch $elixirVersion https://github.com/elixir-lang/elixir.git $dir/opt/elixir");
+
+    chdir $elixirDir;
+
+    system(('bash', '-c', "git checkout $elixirVersion"));
+    command_result($?, $!, "Checkout Elixir $elixirVersion ...", "git checkout $elixirVersion");
+
+    system(('bash', '-c', 'make clean compile'));
+    command_result($?, $!, 'Make elixir ...', 'make clean compile');
+
+    chdir $originalDir;
+}
+
+sub install_rabbitmq {
+    my ($dir) = @_;
+    my $rabbitmqVersion = 'v3.12.13';
+    my $originalDir = getcwd();
+    my $rabbitmqDir = glob("$dir/opt/rabbitmq");
+    my $rabbitmqSbin = glob("$rabbitmqDir/bazel-out/k8-fastbuild/bin/broker-home/sbin");
+    my $elixirPath = glob("$dir/opt/elixir/bin");
+
+    # delete
+    if (-d $rabbitmqDir) {
+        my $deleteCmd =  "rm -rf $rabbitmqDir";
+        system('bash', '-c', $deleteCmd);
+        command_result($?, $!, 'Deleting rabbitmq dir...', $deleteCmd);
+    }
+
+    my $cloneCmd = "git clone --depth 1 --branch $rabbitmqVersion https://github.com/rabbitmq/rabbitmq-server.git $rabbitmqDir";
+    system(('bash', '-c', $cloneCmd));
+    command_result($?, $!, 'Clone rabbitmq ...', $cloneCmd);
+
+    chdir $rabbitmqDir;
+
+    # Make and Install rabbitmq
+    print "\n=================================================================\n";
+    print " Make and Install rabbitmq...\n";
+    print "=================================================================\n\n";
+
+    # checkout
+    my $checkoutCmd = "git checkout $rabbitmqVersion";
+    system(('bash', '-c', $checkoutCmd));
+    command_result($?, $!, "Checkout rabbitmq $rabbitmqVersion ...", $checkoutCmd);
+
+    # make
+    my $makeCmd = 'PATH="' . $elixirPath . ':$PATH" make package-generic-unix';
+    system(('bash', '-c', $makeCmd));
+    command_result($?, $!, 'Make rabbitmq ...', $makeCmd);
+
+    # Build rabbitmq broker and sbin
+    print "\n=================================================================\n";
+    print " Building rabbitmq sbin tools...\n";
+    print "=================================================================\n\n";
+
+    # Broker
+    my $buildCmd = 'PATH="' . $binDir . ':$PATH" bazel build //:broker';
+    system(('bash', '-c', $buildCmd));
+    command_result($?, $!, 'bazel build broker...', $buildCmd);
+
+    # Sbin
+    my $buildSbinCmd = 'PATH="' . $binDir . ':$PATH" bazel build //:sbin-files';
+    system(('bash', '-c', $buildSbinCmd));
+    command_result($?, $!, 'bazel build sbin...', $buildSbinCmd);
+
+    # Link Rabbitmq scripts into bin/
+    chdir $binDir;
+    for my $script (qw(
+        rabbitmq-defaults rabbitmq-diagnostics rabbitmq-env rabbitmq-plugins
+        rabbitmq-queues rabbitmq-server rabbitmq-streams rabbitmq-upgrade
+        rabbitmqctl vmware-rabbitmq
+    )) {
+        unlink $script if -l $script;
+        symlink "$rabbitmqSbin/$script", $script;
+    }
+
+    chdir $originalDir;
+
 }
 
 sub install_node {

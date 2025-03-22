@@ -9,15 +9,15 @@ use Mcol::Utility qw(command_result);
 use Mcol::System qw(how_many_threads_should_i_use);
 use Exporter 'import';
 
-our @EXPORT_OK = qw(install_system_dependencies install_php);
+our @EXPORT_OK = qw(install_system_dependencies install_php install_bazelisk);
 
 my @systemDependencies = qw(
     supervisor authbind expect openssl build-essential intltool autoconf
-    automake gcc curl pkg-config cpanminus mysql-client imagemagick
+    automake gcc curl pkg-config cpanminus erlang-nox erlang-src erlang-dev
     libpcre3-dev libcurl4 libcurl4-openssl-dev libmagickwand-dev
     libssl-dev libxslt1-dev libmysqlclient-dev libxml2 libxml2-dev
     libicu-dev libmagick++-dev libzip-dev libonig-dev libsodium-dev
-    libglib2.0-dev libwebp-dev
+    libglib2.0-dev libwebp-dev mysql-client imagemagick golang-go
 );
 
 # ====================================
@@ -30,11 +30,18 @@ sub install_system_dependencies {
     print "Sudo is required for updating and installing system dependencies.\n";
     print "Please enter sudoers password for: $username elevated privileges.\n";
 
+    my @cmd = ('sudo', 'add-apt-repository',  '-y', 'ppa:longsleep/golang-backports');
+    system(@cmd);
+    command_result($?, $!, "Added Golang Repositories...", , \@cmd);
+
     my @updateCmd = ('sudo', 'apt-get', 'update');
     system(@updateCmd);
     command_result($?, $!, "Updated system dependencies...", \@updateCmd);
 
     my @cmd = ('sudo', 'apt-get', 'install', '-y', @systemDependencies);
+    system(@cmd);
+    command_result($?, $!, "Installed system dependencies...", \@cmd);
+
     system(@cmd);
     command_result($?, $!, "Installed system dependencies...", \@cmd);
 }
@@ -83,6 +90,47 @@ sub install_php {
 
     system('make install');
     command_result($?, $!, 'Installed PHP...', 'make install');
+
+    chdir $originalDir;
+}
+
+# installs Bazelisk.
+sub install_bazelisk {
+    my ($dir) = @_;
+    my $originalDir = getcwd();
+    my $bazeliskDir = "$dir/opt/bazelisk/";
+
+    # If elixir directory exists, delete it.
+    if (-d $bazeliskDir) {
+        system(('bash', '-c', "rm -rf $bazeliskDir"));
+        command_result($?, $!, "Removing existing Bazelisk directory...", "rm -rf $bazeliskDir");
+    }
+
+    # Unpack
+    system(('bash', '-c', "tar -xzf $dir/opt/bazelisk-*.tar.gz -C $dir/opt/"));
+    command_result($?, $!, 'Unpack Bazelisk...', "tar -xzf $dir/opt/bazelisk-*.tar.gz -C $dir/opt/");
+
+    # Rename
+    system(('bash', '-c', "mv $dir/opt/bazelisk-*/ $bazeliskDir"));
+    command_result($?, $!, 'Renaming Bazelisk Dir...', "mv -xzf $dir/opt/bazelisk-*/ $bazeliskDir");
+
+    chdir glob($bazeliskDir);
+
+    # Install Bazelisk
+    print "\n=================================================================\n";
+    print " Installing Bazelisk....\n";
+    print "=================================================================\n\n";
+
+    # Install
+    system('bash', '-c', 'go install github.com/bazelbuild/bazelisk@latest');
+    command_result($?, $!, 'Install Bazelisk...', 'go install github.com/bazelbuild/bazelisk@latest');
+
+    # Binary
+    system('bash', '-c', "GOOS=linux GOARCH=amd64 go build -o $dir/bin/bazel");
+    command_result($?, $!, 'Build Bazelisk...', "GOOS=linux GOARCH=amd64 go build -o $dir/bin/bazel");
+
+    system('bash', '-c', "$dir/bin/bazel version");
+    command_result($?, $!, 'Run Bazelisk...', "$dir/bin/bazel version");
 
     chdir $originalDir;
 }
