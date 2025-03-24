@@ -6,20 +6,19 @@
           <section class="bg-white dark:bg-gray-900">
             <div class="py-4 px-4 w-full">
                 <div class="flex flex-wrap gap-4 justify-start">
-                <div
-                    v-for="(card, fileName) in downloadCards"
-                    :key="fileName"
-                    class="bg-gray-50 border border-gray-200 rounded-lg p-2 shadow-sm dark:bg-gray-800 dark:border-gray-700 transition-opacity duration-500 ease-in-out"
-                    :style="{
-                        width: '800px',
-                        height: '200px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }" >
                     <div
-                        :ref="`download-card-${fileName}`"
-                        v-html=card ></div>
+                        v-for="(card, fileName) in downloadCards"
+                        :key="fileName"
+                        :id="fileName"
+                        class="bg-gray-50 border border-gray-200 rounded-lg p-2 shadow-sm dark:bg-gray-800 dark:border-gray-700 transition-opacity duration-500 ease-in-out"
+                        :style="{
+                            width: '800px',
+                            height: '200px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }" >
+                        <div :ref="`download-card-${fileName}`" v-html=card ></div>
                     </div>
                 </div>
             </div>

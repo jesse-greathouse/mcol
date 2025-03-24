@@ -1,7 +1,7 @@
 <template>
     <div class="fixed top-0 left-0 w-full h-full pointer-events-none">
         <div
-            class="m-2 absolute bottom-20 left-0 z-50 inline-block max-w-sm break-words transition-opacity duration-2000"
+            class="m-2 absolute bottom-20 left-10 z-50 inline-block max-w-5xl break-words transition-opacity duration-2000"
             :class="{
                 'opacity-0 pointer-events-none': !visible || faded,
                 'opacity-100 pointer-events-auto': visible && !faded
@@ -83,7 +83,7 @@ export default {
                     // Start fade after 3 seconds
                     setTimeout(() => {
                         this.faded = true
-                    }, 4000)
+                    }, 5000)
                 })
             }
 

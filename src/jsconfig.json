@@ -3,7 +3,8 @@
         "baseUrl": ".",
         "paths": {
             "@/*": ["resources/js/*"]
-        }
+        },
+        "lib": ["esnext"]
     },
     "exclude": ["node_modules", "public"]
 }
