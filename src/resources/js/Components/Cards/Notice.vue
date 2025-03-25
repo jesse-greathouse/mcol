@@ -1,5 +1,5 @@
 <template>
-    <div ref="systemMessageCard" class="max-w-5xl p-4 bg-white border rounded-lg shadow-sm drop-shadow-md dark:bg-gray-800 " :class="getCardClass()">
+    <div ref="systemMessageCard" class="p-4 bg-white border rounded-lg shadow-sm drop-shadow-md dark:bg-gray-800" :class="getCardClass()">
         <!-- System Message Component -->
         <component v-bind:is="partial" :routingKey="routingKey" :msg="msg" :network="network" :target="target" />
     </div>
@@ -11,12 +11,13 @@ import DefaultNotice from '@/Components/Cards/Partials/Notice.vue'
 import NoticeBullitin from '@/Components/Cards/Partials/NoticeBullitin.vue'
 import NoticeDownloadCard from '@/Components/Cards/Partials/DownloadCard.vue'
 import NoticeQueued from '@/Components/Cards/Partials/Queued.vue'
+import ChatConsole from '../ChatConsole.vue'
 
 const partialMap = {
-    default:    'DefaultNotice',
-    bullitin:   'NoticeBullitin',
-    queued:     'NoticeQueued',
-    card:       'NoticeDownloadCard',
+    default:    DefaultNotice,
+    bullitin:   NoticeBullitin,
+    queued:     NoticeQueued,
+    card:       NoticeDownloadCard,
 }
 
 export default {
@@ -27,8 +28,8 @@ export default {
         NoticeQueued,
     },
     props: {
-        target: String,
         network: String,
+        target: String,
         routingKey: String,
         msg: String,
     },
@@ -40,8 +41,15 @@ export default {
             partial: partial,
         }
     },
-    updated() {
-        [this.partial, this.color] = this.getPartial()
+    watch: {
+        msg: {
+            deep: false,
+            handler() {
+                const [partial, color] = this.getPartial()
+                this.partial = partial
+                this.color = color
+            },
+        },
     },
     methods: {
         getPartial() {
@@ -57,7 +65,10 @@ export default {
                 return [partialMap.card, color]
             }
 
-            if (this.msg.indexOf('**') > -1) {
+            let hasDoubleStar = this.msg.indexOf('**') > -1
+            let hasStarSpaceStar = this.msg.indexOf('* *') > -1
+
+            if ( hasDoubleStar || hasStarSpaceStar) {
                 return [partialMap.bullitin, color]
             }
 
@@ -66,6 +77,6 @@ export default {
         getCardClass() {
             return [ `border-${this.color}-200`, `dark:border-${this.color}-700`, ]
         }
-    },
+    }
 }
 </script>

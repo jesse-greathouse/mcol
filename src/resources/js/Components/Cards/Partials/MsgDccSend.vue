@@ -1,14 +1,16 @@
 <template>
-    <div class="flex flex-row">
-        <div class="flex flex-row items-center">
+    <div class="flex flex-row items-start gap-3">
+        <div class="flex flex-row items-center gap-3">
             <span class="flex w-3 h-3 m-2 bg-blue-500 rounded-full"></span>
-            <span class="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-gray-700 dark:text-blue-400 border border-blue-400">{{ network }}</span>
-            <span class="text-blue-800 text-medium font-bold me-2 px-2.5 py-0.5 dark:bg-blue-900 dark:text-blue-300">{{ target }}</span>
+            <span class="text-blue-800 dark:text-blue-300 text-medium font-bold py-2">
+                {{ network }}
+            </span>
+            <span class="text-blue-800 dark:text-blue-300 text-medium font-bold py-2 break-keep">{{ target }}</span>
         </div>
-        <div class="max-w-5xl m-2 overflow-x-hidden">
-            <p class="max-w-full bg-zinc-100 border border-zinc-400 rounded-lg justify-start text-Neutral-800 text-base p-2">
-                <a class="font-extrabold underline decoration-sky-500">{{ fileName }}</a> transfer opened at: <a class="underline decoration-pink-500">{{ ip }}</a>:<a class="underline decoration-indigo-500">{{ port }}</a>
-            </p>
+        <div class="m-2 font-normal">
+            <span class="text-slate-800 dark:text-slate-200 break-words overflow-hidden tracking-tight font-medium">
+                <a class="font-extrabold underline decoration-sky-500">{{ fileName }}</a> &raquo; <a class="underline decoration-pink-500">{{ ip }}</a>:<a class="underline decoration-indigo-500">{{ port }}</a>
+            </span>
         </div>
     </div>
 </template>

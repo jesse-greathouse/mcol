@@ -41,7 +41,7 @@ export default {
         try {
             timestamp = formatISODate(this.date, 'MM/dd/yyyy HH:mm:ss')
         } catch(error) {
-            console.log(`error formatting date: ${this.date} error: ${error}`)
+            console.warn(`error formatting date: ${this.date} error: ${error}`)
         }
 
         return timestamp

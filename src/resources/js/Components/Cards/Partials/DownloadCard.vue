@@ -15,20 +15,22 @@ export default {
     },
     data() {
         return {
-            lnk: 'download',
+            lnk: '/download',
             card: '',
         }
     },
     mounted() {
         this.fetchCard()
     },
-    updated() {
-        this.fetchCard()
+    watch: {
+        msg: {
+            deep: false,
+            handler() {
+                this.fetchCard()
+            },
+        },
     },
     methods: {
-        wait(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms))
-        },
         async fetchCard() {
             const parts = this.msg.split('fileName=')
             if (parts.length < 2 ) return
@@ -37,28 +39,16 @@ export default {
             const valParts = valStr.split('&')
             const fileName = valParts[0]
             const refKey = `${this.network}-${this.routingKey}-download-card`
-            const card = this.$refs[refKey]
+            const ref = this.$refs[refKey]
 
-            for (let attempt = 1; attempt <= 3; attempt++) {
+            if (ref) {
                 try {
                     const svg = await fetchDownloadCard(fileName)
-                    if (card) {
-                        this.lnk = `download#${fileName}`
-                        card.innerHTML = svg
-                    }
-                    return // Success, exit the method
+                    ref.innerHTML = svg
+                    this.lnk = `/download#${fileName}`
                 } catch (error) {
                     console.error(`Attempt ${attempt} failed for ${fileName}:`, error)
-                    if (attempt < 3) {
-                        await this.wait(500)
-                    }
                 }
-            }
-
-            // If we got here, all 3 attempts failed
-            const ref = this.$refs[refKey]
-            if (ref && ref.parentNode) {
-                ref.parentNode.removeChild(ref)
             }
         }
     }

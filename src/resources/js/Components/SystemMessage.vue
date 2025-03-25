@@ -1,7 +1,7 @@
 <template>
     <div class="fixed top-0 left-0 w-full h-full pointer-events-none">
         <div
-            class="m-2 absolute bottom-20 left-10 z-50 inline-block max-w-5xl break-words transition-opacity duration-2000"
+            class="max-w-6xl m-2 absolute bottom-20 left-10 z-50 inline-block transition-opacity duration-2000"
             :class="{
                 'opacity-0 pointer-events-none': !visible || faded,
                 'opacity-100 pointer-events-auto': visible && !faded
@@ -13,30 +13,21 @@
 </template>
 
 <script>
-import { trim } from '@/funcs'
+import { toRaw } from 'vue';
+import { streamSystemMessage } from '@/Clients/stream'
+import { parseSystemMessage } from '@/system-message'
 import DefaultCard from '@/Components/Cards/SystemMessage.vue'
 import NoticeCard from '@/Components/Cards/Notice.vue'
 import MsgCard from '@/Components/Cards/Msg.vue'
-import { streamSystemMessage } from '@/Clients/stream'
-import { parseSystemMessage } from '@/system-message'
 
 const cardTypeMap = {
-    notice: 'NoticeCard',
-    msg: 'MsgCard',
-    default: 'DefaultCard',
+    notice:     NoticeCard,
+    msg:        MsgCard,
+    default:    DefaultCard,
 }
 
 const refreshSystemMessagesInterval = 3000 // Check system messages every 3 seconds.
-let refreshSystemMessagesId
-const clearSystemMessageInterval = function () {
-    clearTimeout(refreshSystemMessagesId)
-}
-
 const displaySystemMessagesInterval = 1000 // Display a system message only at this interval.
-let displaySystemMessagesId
-const clearDisplayInterval = function () {
-    clearTimeout(displaySystemMessagesId)
-}
 
 export default {
     components: {
@@ -48,10 +39,8 @@ export default {
         queue: String,
     },
     data() {
-        let cardType = cardTypeMap.default
-
         return {
-            card: cardType,
+            card: cardTypeMap.default,
             routingKey: '',
             msg: '',
             target: '',
@@ -59,62 +48,66 @@ export default {
             systemMessages: [],
             visible: false, // controls fade in
             faded: false, // triggering fade-out
+            displaySystemMessagesId: null,
+            refreshSystemMessagesId: null,
         }
     },
     mounted() {
         this.refreshSystemMessages()
         this.displaySystemMessages()
     },
+    beforeUnmount() {
+        clearTimeout(this.displaySystemMessagesId)
+        clearTimeout(this.refreshSystemMessagesId)
+    },
     methods: {
-        displaySystemMessages() {
-            if (this.systemMessages.length > 0) {
-                let sm = this.systemMessages.shift();
-
-                this.card = this.mapCardType(sm.routingKey)
-                this.msg = sm.msg
-                this.routingKey = sm.routingKey
-                this.visible = false
-                this.faded = false
-
-                // Force reflow to reset transition
-                requestAnimationFrame(() => {
-                    this.visible = true
-
-                    // Start fade after 3 seconds
-                    setTimeout(() => {
-                        this.faded = true
-                    }, 5000)
-                })
-            }
-
-            clearDisplayInterval()
-            displaySystemMessagesId = setTimeout(this.displaySystemMessages, displaySystemMessagesInterval)
-        },
-        mapCardType(routingKey) {
-            let cardType = cardTypeMap.default
-
-            let [network, channel, target] = routingKey.split('.')
-
-            let channelIndex = Object.keys(cardTypeMap).indexOf(channel)
-            if (channelIndex > -1) {
-                this.network = network
-                this.target = target
-                cardType = cardTypeMap[channel]
-
-            }
-
-            return cardType
+        async displaySystemMessages() {
+            this.updateSystemMessage()
+            clearTimeout(this.displaySystemMessagesId)
+            this.displaySystemMessagesId = setTimeout(this.displaySystemMessages, displaySystemMessagesInterval)
         },
         async refreshSystemMessages() {
             await this.streamSystemMessage()
-            clearSystemMessageInterval()
-            refreshSystemMessagesId = setTimeout(this.refreshSystemMessages, refreshSystemMessagesInterval)
+            clearTimeout(this.refreshSystemMessagesId)
+            this.refreshSystemMessagesId = setTimeout(this.refreshSystemMessages, refreshSystemMessagesInterval)
+        },
+        updateSystemMessage() {
+            if (this.systemMessages.length > 0) {
+                let sm = toRaw(this.systemMessages.shift());
+                const [network, channel, target] = sm.routingKey.split('.')
+
+                //Set it to be invisible
+                this.visible = false
+                this.faded = false
+
+                // Swap out the card
+                if (Object.keys(cardTypeMap).indexOf(channel) > -1) {
+                    this.card = cardTypeMap[channel]
+                } else {
+                    this.card = cardTypeMap.default
+                }
+
+                this.msg = sm.msg
+                this.routingKey = sm.routingKey
+                this.network = network
+                this.target = target
+
+                //Force reflow to reset transition
+                requestAnimationFrame(() => {
+                    this.visible = true
+
+                    // Start fade after 2 seconds
+                    setTimeout(() => {
+                        this.faded = true
+                    }, 2000)
+                })
+            }
         },
         async streamSystemMessage() {
             await streamSystemMessage(this.queue, async (chunk) => {
                 let lines = chunk.split("\n")
                 lines.forEach((line) => {
-                    if (trim(line) === '') return;
+                    if (line.trim() === '') return;
 
                     const sysMsg = parseSystemMessage(line, this.queue)
 

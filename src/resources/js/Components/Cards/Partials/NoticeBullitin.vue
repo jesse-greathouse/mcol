@@ -1,15 +1,15 @@
 <template>
-    <div class="flex flex-row">
-        <div class="flex flex-row items-start">
+    <div class="flex flex-row items-start gap-3">
+        <div class="flex flex-row items-center gap-3">
             <span class="flex w-3 h-3 m-2 bg-green-500 rounded-full"></span>
-            <span class="text-green-800 text-medium font-bold me-2 px-2.5 py-0.5 rounded-sm dark:bg-green-900 dark:text-green-300">
+            <span class="text-green-800 dark:text-green-300 text-medium font-bold py-2">
                 {{ network }}
             </span>
         </div>
-        <div class="max-w-4xl">
-            <p class="mb-2 text-lg font-medium tracking-tight text-green-900 dark:text-green break-words overflow-hidden">
+        <div class="m-2 font-normal">
+            <span class="text-green-900 dark:text-green break-words overflow-hidden tracking-tight font-medium">
                 {{ cleaned }}
-            </p>
+            </span>
         </div>
     </div>
 </template>
@@ -23,15 +23,22 @@ export default {
         msg: String,
     },
     data() {
-        const cleaned = this.clean()
-
         return {
-            cleaned: cleaned,
+            cleaned: this.clean(),
         }
+    },
+    watch: {
+        msg: {
+            deep: false,
+            handler() {
+                this.cleaned = this.clean()
+            },
+        },
     },
     methods: {
         clean() {
-            let cleaned = this.msg.replace(/\*\*/g, "")
+            let cleaned = this.msg
+            cleaned = cleaned.replace(/\*\*/g, "")
             cleaned = cleaned.replace(/\* \*/g, "")
             return cleaned.trim()
         }

@@ -1,25 +1,34 @@
 <template>
-    <div class="flex flex-row">
+    <div class="flex flex-row items-start">
         <div class="flex flex-row items-center">
             <span class="flex w-3 h-3 m-2 bg-yellow-500 rounded-full"></span>
-            <span class="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-gray-700 dark:text-yellow-400 border border-yellow-400">{{ network }}</span>
-            <span class="text-yellow-800 text-medium font-bold me-2 px-2.5 py-0.5 dark:bg-yellow-900 dark:text-yellow-300">Queued</span>
+            <span class="text-yellow-700 text-medium font-bold m-2 py-2 dark:text-yellow-300">
+                {{ network }}
+            </span>
+            <span class="text-yellow-700 text-medium font-bold m-2 py-2 dark:text-yellow-300">Queued</span>
         </div>
-        <div class="max-w-5xl m-2 overflow-x-hidden">
-            <p>
-                <a class="font-extrabold">{{ fileName }}</a>
+        <div class="flex flex-row items-start max-w-3/4">
+            <span class="text-slate-800 dark:text-slate-200 text-medium font-normal m-2 py-2">
+                <a class="text-yellow-700 dark:text-yellow-300 font-extrabold">{{ fileName }}</a>
                 <template v-if="position !== '?' && total !== '?'">
-                    position <a class="font-extrabold">{{ position }}</a> &#x2f; <a class="font-extrabold">{{ total }}</a>
+                    &nbsp;position <a class="text-yellow-700 dark:text-yellow-300 font-extrabold">{{ position }}</a> &#x2f;
+                    <a class="text-yellow-700 dark:text-yellow-300 font-extrabold">{{ total }}</a>
                 </template>
-            </p>
-            <p v-if="timeQueued !== '' || timeRemaining !== ''">
-                <template v-if="timeQueued !== ''">
-                    for: <a class="font-extrabold">{{ timeQueued }}</a>
+            </span>
+            <span class="text-slate-800 dark:text-slate-200 text-medium font-normal m-2 py-2 max-w-1/3" v-if="timeQueued !== '' || timeRemaining !== ''">
+                <template v-if="timeQueued !== ''"">
+                    <div class="flex justify-between">
+                        <span>for: </span>
+                        <span class="text-yellow-700 dark:text-yellow-300 font-extrabold">{{ timeQueued }} </span>
+                    </div>
                 </template>
                 <template v-if="timeRemaining !== ''">
-                    &nbsp;remaining: <a class="font-extrabold">{{ timeRemaining }}</a>
+                    <div class="flex justify-between">
+                        <span>remaining: </span>
+                        <span class="text-yellow-700 dark:text-yellow-300 font-extrabold">{{ timeRemaining }} </span>
+                    </div>
                 </template>
-            </p>
+            </span>
         </div>
     </div>
 </template>
@@ -73,7 +82,6 @@ export default {
                 if (match) {
                     fileName = match[2]
                 } else {
-                    console.log(`unmatched string: ${this.msg}`)
                     match = this.matchFallback()
                     fileName = (match && match.length > 2) ? match[2] : ''
                 }
