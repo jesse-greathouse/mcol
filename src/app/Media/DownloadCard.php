@@ -32,6 +32,13 @@ class DownloadCard
     protected ?int $progress = null;
 
     /**
+     * Any custom overload of the progress/queue label.
+     *
+     * @var string|null Null until computed; then stores the progress color hex value.
+     */
+    protected ?string $label = null;
+
+    /**
      * The cached value produced by getProgressColor().
      * getProgressColor is an expensive call and this property holds the result.
      *
@@ -141,12 +148,18 @@ class DownloadCard
      * 3. Dynamically assigned attributes (such as bot name, icon, etc.) always take final precedence.
      *
      * @param Download $download    The Download object.
-     * @param array  $attributes  Optional key-value pairs to override default attributes.
+     * @param ?string $label  Optional overloading label.
+     * @param ?array $attributes  Optional key-value pairs to override default attributes.
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the download record is not found.
      */
-    public function __construct(Download $download, array $attributes = [])
+    public function __construct(Download $download, ?string $label = null, ?array $attributes = [])
     {
+        // Overload label if provided.
+        if ($label) {
+            $this->label = $label;
+        }
+
         // Retrieve the download record or fail if it does not exist
         $this->download = $download;
 
@@ -440,7 +453,10 @@ class DownloadCard
 
                 case Download::STATUS_INCOMPLETE:
                     // Calculate progress as a percentage of bytes downloaded
-                    $position = $this->download->progress_bytes ?? 1; // Avoid division by zero
+                    $position = (is_numeric($this->download->progress_bytes) && $this->download->progress_bytes > 0)
+                        ? $this->download->progress_bytes
+                        : 1; // Avoid division by zero
+
                     $this->progress = min(100, max(0, ($position / $this->download->file_size_bytes) * 100));
                     break;
 
@@ -524,8 +540,10 @@ class DownloadCard
      */
     protected function addQueuedLabelSvgElement(): string
     {
+        // Overload this->label if not null
+        $label = $this->label ?? $this->getQueuedLabel();
         return $this->download->status === Download::STATUS_QUEUED
-            ? $this->addProgressLabelSvgElement($this->getQueuedLabel())
+            ? $this->addProgressLabelSvgElement($label)
             : '';
     }
 
@@ -536,8 +554,10 @@ class DownloadCard
      */
     protected function addProgressPercentLabelSvgElement(): string
     {
+        // Overload this->label if not null
+        $label = $this->label ?? "{$this->getProgress()}%";
         return $this->download->status === Download::STATUS_INCOMPLETE
-            ? $this->addProgressLabelSvgElement("{$this->getProgress()}%")
+            ? $this->addProgressLabelSvgElement($label)
             : '';
     }
 
@@ -548,8 +568,10 @@ class DownloadCard
      */
     protected function addCompletionLabelSvgElement(): string
     {
+        // Overload this->label if not null
+        $label = $this->label ?? "Complete";
         return $this->download->status === Download::STATUS_COMPLETED
-            ? $this->addProgressLabelSvgElement("Complete")
+            ? $this->addProgressLabelSvgElement($label)
             : '';
     }
 

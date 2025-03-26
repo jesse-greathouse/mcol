@@ -43,7 +43,7 @@ export default {
 
             if (ref) {
                 try {
-                    const svg = await fetchDownloadCard(fileName)
+                    const svg = await fetchDownloadCard(fileName, 'Connecting...')
                     ref.innerHTML = svg
                     this.lnk = `/download#${fileName}`
                 } catch (error) {

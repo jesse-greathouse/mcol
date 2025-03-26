@@ -80,10 +80,9 @@ class Client
     {
         $bytes = $resume ?? 0;
         $isPacketList = $this->isPacketList();
+        $uri = $this->initializeDownload($isPacketList, $bytes);
 
         try {
-            $uri = $this->initializeDownload($isPacketList, $bytes);
-
             // Attempt to create a socket connection for downloading
             $dlStream = @stream_socket_client("tcp://$host:$port", $errno, $errstr);
             if (!is_resource($dlStream)) {
@@ -120,10 +119,7 @@ class Client
             // Log the error
             Log::error($e->getMessage());
 
-            // Ensure any file lock is released before rethrowing
-            if ($this->isFileDownloadLocked($this->packet->file_name)) {
-                $this->releaseLock($this->packet->file_name);
-            }
+            $this->finalizeDownload($host, $port, $uri);
 
             throw $e;
         }

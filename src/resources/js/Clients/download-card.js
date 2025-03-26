@@ -6,9 +6,14 @@ const headers = {
     'Accept': 'image/svg+xml',
 }
 
-async function fetchDownloadCard(fileName = '') {
+async function fetchDownloadCard(fileName = '', label = null) {
     const encoded = encodeURIComponent(fileName);
-    const url = `${endpoint}?fileName=${encoded}`
+    let url = `${endpoint}?fileName=${encoded}`
+
+    if (label) {
+        url = url + `&label=${label}`
+    }
+
     const res = await get(url, headers);
     return res.data;
 }
