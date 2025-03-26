@@ -75,7 +75,7 @@
         </div>
 
         <div class="flex items-start justify-start mb-6">
-          <pagination :links="pagination_nav" />
+          <pagination :links="pagination_nav" @call:navigateToPage="navigateToPage" />
         </div>
 
         <div class="bg-white rounded-md shadow overflow-x-auto">
@@ -96,7 +96,11 @@
             />
           </table>
         </div>
-        <pagination class="mt-6" :links="pagination_nav" />
+        <pagination
+            class="mt-6"
+            :links="pagination_nav"
+            @call:navigateToPage="navigateToPage"
+        />
         <div v-show="showQueue">
           <download-queue-drawer ref="queue"
             :queue="downloadQueue"
@@ -322,7 +326,6 @@
         deep: true,
         handler: throttle(function () {
           lastTotalPacketsCount = null
-          if (has(this.form, 'page')) delete this.form.page // if the search changes, reset page.
           this.$inertia.get('/browse', pickBy(this.form), { preserveState: true })
           this.resetIntervals()
         }, 150),
@@ -420,6 +423,9 @@
           this.form.order = order
           this.form.direction = defaultDirection[order]
         }
+      },
+      navigateToPage(number) {
+        this.form.page = number
       },
       refresh() {
         // Close the downloads queue
