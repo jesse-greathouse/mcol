@@ -117,9 +117,9 @@
       </div>
     </div>
   </div>
-  </template>
+</template>
 
-  <script>
+<script>
   import axios from 'axios';
   import { Head, Link } from '@inertiajs/vue3'
   import { initFlowbite } from 'flowbite'
@@ -244,46 +244,72 @@
       queued: Object,
     },
     mounted() {
+      if (this.shouldRefresh) {
+        this.refresh()
+      }
+
       initFlowbite()
       this.showQueue = (this.hasQueue()) ? true : false
       this.resetIntervals()
     },
+    updated() {
+      // In case we have arrived at a narrower result set
+      // the page might be out of bounds from the previous result set
+      if (this.form.page > this.last_page) {
+        this.navigateToPage(1)
+      }
+    },
     data() {
+      // Update lastTotalPacketsCount global
+      lastTotalPacketsCount = this.total_packets
+
+      // form
+      // * controls the browsing mechanism in realtime.
+      // * being maniuplated by the UI components.
+      // * configures the parameters being sent to the browse API
+      // * has a watcher, changes to the form object will spawn a this.refresh()
+      // * is being saved to local storage every time it's changed.
+      let form = {
+        start_date: formatDate(this.filters.start_date),
+        end_date: formatDate(this.filters.end_date),
+        page: this.filters.page,
+        order: this.filters.order,
+        direction: this.filters.direction,
+        search_string: this.filters.search_string,
+        in_media_type: this.filters.in_media_type,
+        out_media_type: this.filters.out_media_type,
+        in_language: this.filters.in_language,
+        out_language: this.filters.out_language,
+        in_resolution: this.filters.in_resolution,
+        in_dynamic_range: this.filters.in_dynamic_range,
+        out_dynamic_range: this.filters.out_dynamic_range,
+        in_network: this.filters.in_network,
+      }
+
+      // Injects saved state from local storage; if it exists
+      const [merged, shouldRefresh] = this.injectBrowseState({form: form}, false)
+
+      // toggle bits for inclusion/exclusion (languages, dynamic ranges)
       let exclude_languages = false
       let exclude_dynamic_ranges = false
-      lastTotalPacketsCount = this.total_packets
 
       // If nothing is in the in_language list and the out_language list has items
       // start in exclusion mode.
-      if ((1 > this.filters.in_language.length) && (0 < this.filters.out_language.length)) {
+      if ((1 > merged.form.in_language.length) && (0 < merged.form.out_language.length)) {
         exclude_languages = true
       }
 
       // If nothing is in the in_dynamic_range list and the out_dynamic_range list has items
       // start in exclusion mode.
-      if ((1 > this.filters.in_dynamic_range.length) && (0 < this.filters.out_dynamic_range.length)) {
+      if ((1 > merged.form.in_dynamic_range.length) && (0 < merged.form.out_dynamic_range.length)) {
         exclude_dynamic_ranges = true
       }
 
       return {
-        form: {
-          start_date: formatDate(this.filters.start_date),
-          end_date: formatDate(this.filters.end_date),
-          page: this.filters.page,
-          order: this.filters.order,
-          direction: this.filters.direction,
-          search_string: this.filters.search_string,
-          in_media_type: this.filters.in_media_type,
-          out_media_type: this.filters.out_media_type,
-          in_language: this.filters.in_language,
-          out_language: this.filters.out_language,
-          in_resolution: this.filters.in_resolution,
-          in_dynamic_range: this.filters.in_dynamic_range,
-          out_dynamic_range: this.filters.out_dynamic_range,
-          in_network: this.filters.in_network,
-        },
-        exclude_languages: exclude_languages,
-        exclude_dynamic_ranges: exclude_dynamic_ranges,
+        shouldRefresh,
+        exclude_languages,
+        exclude_dynamic_ranges,
+        form: merged.form,
         packet_list: this.packet_list,
         locks: this.locks,
         completed: this.completed,
@@ -322,13 +348,11 @@
       }
     },
     watch: {
-      form: {
-        deep: true,
-        handler: throttle(function () {
-          lastTotalPacketsCount = null
-          this.$inertia.get('/browse', pickBy(this.form), { preserveState: true })
-          this.resetIntervals()
-        }, 150),
+        form: {
+            deep: true,
+            handler: throttle(function () {
+                this.refresh()
+            }, 150),
       },
       downloadQueue: {
         deep: true,
@@ -372,6 +396,34 @@
         totalPacketsTimeoutId = setTimeout(this.checkTotalPackets, totalPacketsInterval);
         locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
         queueTimeoutId = setTimeout(this.checkQueue, queueInterval);
+      },
+      getBrowseState() {
+        return {
+            form: this.form,
+        }
+      },
+      injectBrowseState(state, shouldRefresh) {
+        const savedState = this.recallBrowseState()
+
+        if (!savedState) {
+            return [state, shouldRefresh]
+        }
+
+        if (has(savedState, 'form')) {
+            if (JSON.stringify(savedState.form) !== JSON.stringify(state.form)) {
+                state.form = savedState.form
+                shouldRefresh = true
+            }
+        }
+
+        return [state, shouldRefresh]
+      },
+      saveBrowseState() {
+        localStorage.setItem('browse', JSON.stringify(this.getBrowseState()))
+      },
+      recallBrowseState() {
+        const raw = localStorage.getItem('browse')
+        return raw ? JSON.parse(raw) : null
       },
       checkTotalPackets() {
         this.fetchBrowse(this.updateTotalPackets)
@@ -428,19 +480,31 @@
         this.form.page = number
       },
       refresh() {
-        // Close the downloads queue
-        this.$refs.queue.hide()
-
         // refresh the current results.
         this.new_records_count = 0
+
+        // Update lastTotalPacketsCount global
         lastTotalPacketsCount = null
+
+        // Full inertia server page xhr request of form
         this.$inertia.get('/browse', pickBy(this.form), { preserveState: true })
+
+        // Save the state of form to localstorage
+        this.saveBrowseState()
+
+         // Close the downloads queue
+         if (has(this.$refs, 'queue')) {
+            this.$refs.queue.hide()
+        }
+
+        // Reset the timers
         this.resetIntervals()
       },
       reset() {
         this.$refs.media.clear() // reset the media dropdownlist
         this.$refs.fromDate.clearPicker()
         this.form = mapValues(this.form, () => null)
+        this.form.page = 1
         // datePicker prefers empty dates to be strings.
         this.form.end_date = ''
         this.form.start_date = ''

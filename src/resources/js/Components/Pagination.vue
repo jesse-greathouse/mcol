@@ -5,18 +5,19 @@
           <div
             class="mb-1 mr-1 px-4 py-3 text-gray-400 text-sm leading-4 border rounded"
             v-if="link.url === null"
-             v-html="link.label" />
+            v-html="link.label" />
                 <Link
                     class="mb-1 mr-1 px-4 py-3 focus:text-indigo-500 text-sm leading-4 hover:bg-white border focus:border-indigo-500 rounded"
-                    v-else :key="`link-${key}`"  :class="{ 'bg-white': link.active, 'text-slate-300': link.active }" :href="link.url" v-html="link.label"
-                    @click="nav(link)"
-                />
+                    :class="{ 'bg-white': link.active, 'text-slate-300': link.active }" :href="link.url"
+                    v-else :key="`link-${key}`"
+                    v-html="link.label"
+                    @click="nav(link)" />
         </template>
       </div>
     </div>
-  </template>
+</template>
 
-  <script>
+<script>
   import { Link } from '@inertiajs/vue3'
 
   export default {
