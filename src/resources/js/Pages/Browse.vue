@@ -145,30 +145,9 @@
   import SearchFilter from '@/Components/SearchFilter.vue'
   import SortButtons from '@/Components/SortButtons.vue'
 
-  let lastTotalPacketsCount; // Tracks the total packet count to compare against refreshed count.
   const totalPacketsInterval = 60000; // Check total packets every 60 seconds.
-  let totalPacketsTimeoutId;
-  const clearTotalPacketsInterval = function () {
-    clearTimeout(totalPacketsTimeoutId)
-  }
-
   const locksInterval = 10000; // Check download locks every 10 seconds.
-  let locksTimeoutId
-  const clearLocksInterval = function () {
-    clearTimeout(locksTimeoutId)
-  }
-
   const queueInterval = 10000; // Check download queue every 10 seconds.
-  let queueTimeoutId
-  const clearQueueInterval = function () {
-    clearTimeout(queueTimeoutId)
-  }
-
-  const clearAllIntervals = function() {
-    clearTotalPacketsInterval()
-    clearLocksInterval()
-    clearQueueInterval()
-  }
 
   // Default sort direction per column.
   const defaultDirection = {
@@ -260,9 +239,6 @@
       }
     },
     data() {
-      // Update lastTotalPacketsCount global
-      lastTotalPacketsCount = this.total_packets
-
       // form
       // * controls the browsing mechanism in realtime.
       // * being maniuplated by the UI components.
@@ -319,6 +295,10 @@
         downloadQueue: this.queue,
         showQueue: false,
         new_records_count: 0,
+        lastTotalPacketsCount: this.total_packets,
+        totalPacketsTimeoutId: null,
+        locksTimeoutId: null,
+        queueTimeoutId: null,
       }
     },
     computed: {
@@ -335,17 +315,9 @@
         return this.form.search_string && this.form.search_string.length > 0
       },
       filteringVideoFormat() {
-        if (null === this.form.in_media_type) return false
-        const videoFormats = ['movie', 'tv episode', 'tv season']
-        let found = false
-        videoFormats.forEach(format => {
-          if (0 <= this.form.in_media_type.indexOf(format)) {
-            found = true
-            return
-          }
-        })
-        return found
-      }
+        return Array.isArray(this.form.in_media_type) &&
+            this.form.in_media_type.some(type => ['movie', 'tv episode', 'tv season'].includes(type))
+      },
     },
     watch: {
         form: {
@@ -356,14 +328,14 @@
       },
       downloadQueue: {
         deep: true,
-        handler: throttle(function () {
+        handler() {
           if (this.hasQueue()) {
             this.showQueue = true
           } else {
             this.$refs.queue.hide()
             this.showQueue = false
           }
-        }, 150),
+        }
       },
       locks: {
         deep: true,
@@ -373,29 +345,43 @@
       },
       completed: {
         deep: true,
-        handler: throttle(function (set) {
+        handler(set) {
           this.completed = set
-        }, 150),
+        }
       },
       incomplete: {
         deep: true,
-        handler: throttle(function (set) {
+        handler(set) {
           this.incomplete = set
-        }, 150),
+        },
       },
       queued: {
         deep: true,
-        handler: throttle(function (set) {
+        handler(set) {
           this.queued = set
-        }, 150),
+        }
       },
     },
     methods: {
       resetIntervals() {
-        clearAllIntervals()
-        totalPacketsTimeoutId = setTimeout(this.checkTotalPackets, totalPacketsInterval);
-        locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
-        queueTimeoutId = setTimeout(this.checkQueue, queueInterval);
+        this.clearAllIntervals()
+        this.totalPacketsTimeoutId = setTimeout(this.checkTotalPackets, totalPacketsInterval);
+        this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
+        this.queueTimeoutId = setTimeout(this.checkQueue, queueInterval);
+      },
+      clearTotalPacketsInterval() {
+        clearTimeout(this.totalPacketsTimeoutId)
+      },
+      clearLocksInterval() {
+        clearTimeout(this.locksTimeoutId)
+      },
+      clearQueueInterval() {
+        clearTimeout(this.queueTimeoutId)
+      },
+      clearAllIntervals() {
+        this.clearTotalPacketsInterval()
+        this.clearLocksInterval()
+        this.clearQueueInterval()
       },
       getBrowseState() {
         return {
@@ -427,25 +413,25 @@
       },
       checkTotalPackets() {
         this.fetchBrowse(this.updateTotalPackets)
-        clearTotalPacketsInterval()
-        totalPacketsTimeoutId = setTimeout(this.checkTotalPackets, totalPacketsInterval);
+        this.clearTotalPacketsInterval()
+        this.totalPacketsTimeoutId = setTimeout(this.checkTotalPackets, totalPacketsInterval);
       },
       checkLocks() {
         this.fetchLocks(this.packet_list)
-        clearLocksInterval()
+        this.clearLocksInterval()
         if (
           this.locks.length > 0 ||
           this.queued.length > 0 ||
           this.incomplete.length > 0 ||
           this.completed.length > 0
         ) {
-          locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
+          this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
         }
       },
       checkQueue() {
         this.fetchQueue()
-        clearQueueInterval()
-        queueTimeoutId = setTimeout(this.checkQueue, queueInterval)
+        this.clearQueueInterval()
+        this.queueTimeoutId = setTimeout(this.checkQueue, queueInterval)
       },
       hasQueue() {
         return (
@@ -459,13 +445,13 @@
       },
       updateTotalPackets(data) {
         this.total = data.meta.total
-        if (null !== lastTotalPacketsCount) {
-          let newPacketsCount = (this.total - lastTotalPacketsCount)
+        if (null !== this.lastTotalPacketsCount) {
+          let newPacketsCount = (this.total - this.lastTotalPacketsCount)
           // normalize to zero if negative.
           this.new_records_count = (newPacketsCount < 0) ? 0 : newPacketsCount
         } else {
           this.new_records_count = 0
-          lastTotalPacketsCount = this.total
+          this.lastTotalPacketsCount = this.total
         }
       },
       toggleSort(order) {
@@ -483,8 +469,8 @@
         // refresh the current results.
         this.new_records_count = 0
 
-        // Update lastTotalPacketsCount global
-        lastTotalPacketsCount = null
+        // Update lastTotalPacketsCount
+        this.lastTotalPacketsCount = null
 
         // Full inertia server page xhr request of form
         this.$inertia.get('/browse', pickBy(this.form), { preserveState: true })
@@ -611,8 +597,8 @@
         if (null === error) {
             this.locks.push(data.result.packet.file_name)
             // Schedule the next reload
-            clearLocksInterval()
-            locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
+            this.clearLocksInterval()
+            this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
         }
       },
       async requestRemove(packetId) {
@@ -666,7 +652,7 @@
                 incomplete.length <= 0 &&
                 completed.length <= 0
             ) {
-                clearLocksInterval()
+                this.clearLocksInterval()
             }
         }
       },

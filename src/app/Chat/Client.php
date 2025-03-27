@@ -684,6 +684,11 @@ class Client
     {
         $params = $this->extractDccParams($message);
 
+        if (null === $params['ip'] || null === $params['port'] || null === $params['fileName'] || null === $params['fileSize']) {
+            $this->logAndWarnDccInstructionsFailed($userName, $message);
+            return;
+        }
+
         // Check if file exists and process accordingly
         $uri = env('DOWNLOAD_DIR', '/var/download') . "/{$params['fileName']}";
         if (file_exists($uri)) {
@@ -704,6 +709,12 @@ class Client
     protected function processDccAccept(string $userName, string $message): void
     {
         $params = $this->extractDccParams($message);
+
+        if (null === $params['ip'] || null === $params['port'] || null === $params['fileName'] || null === $params['fileSize']) {
+            $this->logAndWarnDccInstructionsFailed($userName, $message);
+            return;
+        }
+
         $this->console->warn($message);
         $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
         $this->systemSend($message, "notice");
@@ -733,15 +744,27 @@ class Client
      */
     protected function extractDccParams(string $message): array
     {
-        [, , $fileName, $ip, $port, $fileSizeOrPosition] = explode(' ', $message);
+        $parts = explode(' ', $message);
 
-        return [
-            'fileName' => $fileName,
-            'ip' => $this->cleanNumericStr($ip),
-            'port' => $this->cleanNumericStr($port),
-            'fileSize' => $this->cleanNumericStr($fileSizeOrPosition),
-            'position' => isset($fileSizeOrPosition) ? $this->cleanNumericStr($fileSizeOrPosition) : null
+        $extracted =  [
+            'fileName' => null,
+            'ip' => null,
+            'port' => null,
+            'fileSize' => null,
+            'position' => null,
         ];
+
+        if (count($parts) >= 5) {
+            [, , $fileName, $ip, $port, $fileSizeOrPosition] = explode(' ', $message);
+
+            $extracted['fileName'] = $fileName;
+            $extracted['ip'] = $this->cleanNumericStr($ip);
+            $extracted['port'] = $this->cleanNumericStr($port);
+            $extracted['fileSize'] = $this->cleanNumericStr($fileSizeOrPosition);
+            $extracted['position'] = isset($fileSizeOrPosition) ? $this->cleanNumericStr($fileSizeOrPosition) : null;
+        }
+
+        return $extracted;
     }
 
     /**
@@ -778,6 +801,21 @@ class Client
         $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
         $payload = http_build_query(array_merge($params, ['bot' => $userName]));
         $this->systemSend("Dispatched to download queue | $payload", "notice");
+    }
+
+    /**
+     * Logs and warns that a DCC download job has been queued.
+     *
+     * @param string $userName
+     * @param array $params
+     * @return void
+     */
+    protected function logAndWarnDccInstructionsFailed(string $userName, string $message): void
+    {
+        $notice = "Could not connect to $userName for DCC from instructions: \"$message\"";
+        $this->console->warn($notice);
+        $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
+        $this->systemSend($notice);
     }
 
     /**
