@@ -7,7 +7,8 @@ use Illuminate\Support\Collection;
 use Inertia\Inertia,
     Inertia\Response;
 
-use App\Models\Client,
+use App\Media\HeroBanner,
+    App\Models\Client,
     App\Models\FileDownloadLock,
     App\Models\Network,
     App\Packet\DownloadQueue,
@@ -30,11 +31,12 @@ class DownloadController
     public function index(): Response
     {
         return Inertia::render('Download', [
-            'queue'     => fn () => DownloadQueue::getQueue(),
-            'locks'     => fn () => FileDownloadLock::all()->pluck('file_name')->toArray(),
-            'settings'  => fn (Settings $settings) => $settings->toArray(),
-            'networks'  => fn () => $this->getNetworkList(),
-            'instances' => fn () => $this->getNetworkClients(),
+            'settings'      => fn (Settings $settings) => $settings->toArray(), // Get settings as array.
+            'queue'         => fn () => DownloadQueue::getQueue(),
+            'locks'         => fn () => FileDownloadLock::all()->pluck('file_name')->toArray(),
+            'networks'      => fn () => $this->getNetworkList(),
+            'instances'     => fn () => $this->getNetworkClients(),
+            'hero'          => fn () => (new HeroBanner())->toSvg(),
         ]);
     }
 
