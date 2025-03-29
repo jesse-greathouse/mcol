@@ -42,6 +42,7 @@ class ClientSeeder extends Seeder
                 'nick_id'       => $nick->id,
                 'network_id'    => $network->id,
                 'enabled'       => true,
+                'meta'          => [],
             ]);
         }
     }
