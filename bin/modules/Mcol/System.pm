@@ -17,7 +17,7 @@ BEGIN {
     };
     if ($@) {
         print "Sys::Info is not installed. Installing via cpanm...\n";
-        system('cpanm', '--notest', 'Sys::Info');
+        system('sudo', 'cpanm', '--notest', 'Sys::Info');
 
         # Try again and fail hard if it still doesn't work
         eval {
