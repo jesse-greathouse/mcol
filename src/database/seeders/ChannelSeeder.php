@@ -14,10 +14,12 @@ class ChannelSeeder extends Seeder
             '#moviegods' => [
                 'topic' => '',
                 'users' => 0,
+                'meta' => [],
                 'children' => [
                     '#mg-chat' => [
                         'topic' => '',
                         'users' => 0,
+                        'meta' => [],
                     ],
                 ]
             ],
@@ -26,10 +28,12 @@ class ChannelSeeder extends Seeder
             '#ELITEWAREZ' => [
                 'topic' => '',
                 'users' => 0,
+                'meta' => [],
                 'children' => [
                     '#elite-chat' => [
                         'topic' => '',
                         'users' => 0,
+                        'meta' => [],
                     ],
                 ]
             ],
@@ -65,10 +69,10 @@ class ChannelSeeder extends Seeder
      * @param Network $network
      * @param string $channelName
      * @param array $channelData
-     * @param int|null $parentId
+     * @param ?int|null $parentId
      * @return Channel
      */
-    public function getChannelForNetworkOrGenerate(Network $network, string $channelName, array $channelData, int $parentId = null): Channel
+    public function getChannelForNetworkOrGenerate(Network $network, string $channelName, array $channelData, ?int $parentId = null): Channel
     {
         $channel = Channel::where('network_id', $network->id)->where('name', $channelName)->first();
         if (null !== $channel) return $channel;
@@ -78,6 +82,7 @@ class ChannelSeeder extends Seeder
             'name'          => $channelName,
             'topic'         => $channelData['topic'],
             'users'         => $channelData['users'],
+            'meta'          => $channelData['meta'],
             'channel_id'    => $parentId,
         ]);
     }
