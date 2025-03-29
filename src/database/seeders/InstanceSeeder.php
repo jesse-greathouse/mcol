@@ -41,7 +41,6 @@ class InstanceSeeder extends Seeder
 
             Instance::factory()->create([
                 'client_id'         => $client->id,
-                'status'            => Instance::STATUS_DOWN,
                 'desired_status'    => Instance::STATUS_UP,
                 'log_uri'           => $this->getLogUriForClient($client),
                 'enabled'           => true,
