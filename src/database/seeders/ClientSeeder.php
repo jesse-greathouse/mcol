@@ -39,7 +39,7 @@ class ClientSeeder extends Seeder
             if (null !== $client) continue;
 
             Client::factory()->create([
-                'nick'      => $nick,
+                'nick_id'   => $nick->id,
                 'network'   => $network,
                 'enabled'   => true,
             ]);
