@@ -40,7 +40,7 @@ class InstanceSeeder extends Seeder
             if (null !== $instance) continue;
 
             Instance::factory()->create([
-                'client'            => $client,
+                'client_id'         => $client->id,
                 'status'            => Instance::STATUS_DOWN,
                 'desired_status'    => Instance::STATUS_UP,
                 'log_uri'           => $this->getLogUriForClient($client),
