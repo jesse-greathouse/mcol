@@ -60,6 +60,7 @@ sub install {
     }
 
     if ($options{'rabbitmq'}) {
+        install_erlang($applicationRoot);
         install_elixir($applicationRoot);
         install_bazelisk($applicationRoot);
         install_rabbitmq($applicationRoot);
@@ -553,6 +554,31 @@ sub install_elixir {
     chdir $originalDir;
 }
 
+sub install_erlang {
+    my ($dir) = @_;
+    my $erlangVersion = 'maint-25';
+    my $originalDir = getcwd();
+    my $erlangDir = glob("$dir/opt/erlang");
+
+    if (-d $erlangDir) {
+        system('bash', '-c', "rm -rf $erlangDir");
+        command_result($?, $!, 'Removing erlang...', "rm -rf $erlangDir");
+    }
+
+    system(('bash', '-c', "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangDir"));
+    command_result($?, $!, 'Clone erlang ...', "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangDir");
+
+    chdir $erlangDir;
+
+    system(('bash', '-c', "git checkout $erlangVersion"));
+    command_result($?, $!, "Checkout erlang $erlangVersion ...", "git checkout $erlangVersion");
+
+    system(('bash', '-c', 'make clean compile'));
+    command_result($?, $!, 'Make erlang ...', 'make clean compile');
+
+    chdir $originalDir;
+}
+
 sub install_rabbitmq {
     my ($dir) = @_;
     my $rabbitmqVersion = 'v3.12.13';
@@ -560,6 +586,7 @@ sub install_rabbitmq {
     my $rabbitmqDir = glob("$dir/opt/rabbitmq");
     my $rabbitmqSbin = glob("$rabbitmqDir/bazel-out/k8-fastbuild/bin/broker-home/sbin");
     my $elixirPath = glob("$dir/opt/elixir/bin");
+    my $erlangPath = glob("$dir/opt/erlang/bin");
 
     # delete
     if (-d $rabbitmqDir) {
@@ -595,12 +622,12 @@ sub install_rabbitmq {
     print "=================================================================\n\n";
 
     # Broker
-    my $buildCmd = 'PATH="' . $elixirPath . ':' . $binDir . ':$PATH" bazel build //:broker';
+    my $buildCmd = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH" bazel build //:broker';
     system(('bash', '-c', $buildCmd));
     command_result($?, $!, 'bazel build broker...', $buildCmd);
 
     # Sbin
-    my $buildSbinCmd = 'PATH="' . $elixirPath . ':' . $binDir . ':$PATH" bazel build //:sbin-files';
+    my $buildSbinCmd = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH" bazel build //:sbin-files';
     system(('bash', '-c', $buildSbinCmd));
     command_result($?, $!, 'bazel build sbin...', $buildSbinCmd);
 
