@@ -4,6 +4,7 @@ package Mcol::Install;
 use strict;
 use File::Basename;
 use File::Copy;
+use File::Path qw(make_path);
 use Getopt::Long;
 use Cwd qw(getcwd abs_path);
 use lib(dirname(abs_path(__FILE__))  . "/modules");
