@@ -60,9 +60,9 @@ sub install {
     }
 
     if ($options{'rabbitmq'}) {
-        install_erlang($applicationRoot);
-        install_elixir($applicationRoot);
-        install_bazelisk($applicationRoot);
+        # install_erlang($applicationRoot);
+        # install_elixir($applicationRoot);
+        # install_bazelisk($applicationRoot);
         install_rabbitmq($applicationRoot);
     }
 
@@ -562,15 +562,12 @@ sub install_elixir {
         return;
     }
 
-    system(('bash', '-c', "git clone --depth 1 --branch $elixirVersion https://github.com/elixir-lang/elixir.git $dir/opt/elixir"));
+    system("git clone --depth 1 --branch $elixirVersion https://github.com/elixir-lang/elixir.git $dir/opt/elixir");
     command_result($?, $!, 'Clone elixir ...', "git clone --depth 1 --branch $elixirVersion https://github.com/elixir-lang/elixir.git $dir/opt/elixir");
 
     chdir $elixirDir;
 
-    system(('bash', '-c', "git checkout $elixirVersion"));
-    command_result($?, $!, "Checkout Elixir $elixirVersion ...", "git checkout $elixirVersion");
-
-    system(('bash', '-c', 'ERLANG_HOME="' . $erlangDir . '"', 'make clean compile'));
+    system('ERLANG_HOME="' . $erlangDir . '" make clean compile');
     command_result($?, $!, 'Make elixir ...', 'make clean compile');
 
     chdir $originalDir;
@@ -588,22 +585,45 @@ sub install_erlang {
         return;
     }
 
-    system(('bash', '-c', "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangDir"));
+    system("git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangDir");
     command_result($?, $!, 'Clone erlang ...', "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangDir");
 
     chdir $erlangDir;
 
-    system(('bash', '-c', "git checkout $erlangVersion"));
-    command_result($?, $!, "Checkout erlang $erlangVersion ...", "git checkout $erlangVersion");
+    system("./configure --prefix=$erlangDir");
+    command_result($?, $!, 'Configure erlang ...', './configure');
 
-    system(('bash', '-c', './configure' , "--prefix=$erlangDir"));
+    system("make -j$threads");
     command_result($?, $!, 'Make erlang ...', 'make');
 
-    system(('bash', '-c', 'make', "-j$threads"));
-    command_result($?, $!, 'Make erlang ...', 'make');
+    system('make install');
+    command_result($?, $!, 'Install erlang ...', 'make install');
 
-    system(('bash', '-c', 'make install'));
-    command_result($?, $!, 'Make erlang ...', 'make install');
+    # Add expected OTP_VERSION layout for Bazel rules
+    my $otp_version_file = "$erlangDir/OTP_VERSION";
+    if (-f $otp_version_file) {
+        my $otp_release = `cat $otp_version_file`;
+        chomp($otp_release);
+
+        my $releases_root = "$erlangDir/releases";
+        unless (-d $releases_root) {
+            mkdir $releases_root or die "Could not create directory $releases_root: $!";
+        }
+
+        my $release_dir = "$releases_root/$otp_release";
+        unless (-d $release_dir) {
+            mkdir $release_dir or die "Could not create directory $release_dir: $!";
+        }
+
+        my $target_link = "$release_dir/OTP_VERSION";
+        unless (-e $target_link) {
+            symlink("../../OTP_VERSION", $target_link)
+                or die "Failed to create symlink $target_link: $!";
+            print "Created symlink: $target_link → ../../OTP_VERSION\n";
+        }
+    } else {
+        warn "OTP_VERSION file not found at $otp_version_file, skipping Bazel compatibility fix.\n";
+    }
 
     chdir $originalDir;
 }
@@ -617,16 +637,17 @@ sub install_rabbitmq {
     my $erlangDir = glob("$dir/opt/erlang");
     my $erlangPath = "$erlangDir/bin";
     my $elixirPath = glob("$dir/opt/elixir/bin");
+    my $env = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH" ERLANG_HOME="' . $erlangDir . '"';
 
     # delete
     if (-d $rabbitmqDir) {
         my $deleteCmd =  "rm -rf $rabbitmqDir";
-        system('bash', '-c', $deleteCmd);
+        system($deleteCmd);
         command_result($?, $!, 'Deleting rabbitmq dir...', $deleteCmd);
     }
 
     my $cloneCmd = "git clone --depth 1 --branch $rabbitmqVersion https://github.com/rabbitmq/rabbitmq-server.git $rabbitmqDir";
-    system(('bash', '-c', $cloneCmd));
+    system($cloneCmd);
     command_result($?, $!, 'Clone rabbitmq ...', $cloneCmd);
 
     chdir $rabbitmqDir;
@@ -636,14 +657,9 @@ sub install_rabbitmq {
     print " Make and Install rabbitmq...\n";
     print "=================================================================\n\n";
 
-    # checkout
-    my $checkoutCmd = "git checkout $rabbitmqVersion";
-    system(('bash', '-c', $checkoutCmd));
-    command_result($?, $!, "Checkout rabbitmq $rabbitmqVersion ...", $checkoutCmd);
-
     # make
-    my $makeCmd = 'PATH="' . $elixirPath . ':$PATH" make package-generic-unix';
-    system(('bash', '-c', $makeCmd));
+    my $makeCmd = "$env make package-generic-unix";
+    system($makeCmd);
     command_result($?, $!, 'Make rabbitmq ...', $makeCmd);
 
     # Build rabbitmq broker and sbin
@@ -652,13 +668,13 @@ sub install_rabbitmq {
     print "=================================================================\n\n";
 
     # Broker
-    my $buildCmd = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH"', 'ERLANG_HOME="' . $erlangDir . '"', 'bazel build //:broker';
-    system(('bash', '-c', $buildCmd));
+    my $buildCmd = "$env bazel build //:broker";
+    system($buildCmd);
     command_result($?, $!, 'bazel build broker...', $buildCmd);
 
     # Sbin
-    my $buildSbinCmd = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH"', 'ERLANG_HOME="' . $erlangDir . '"', 'bazel build //:sbin-files';
-    system(('bash', '-c', $buildSbinCmd));
+    my $buildSbinCmd = "$env bazel build //:sbin-files";
+    system($buildSbinCmd);
     command_result($?, $!, 'bazel build sbin...', $buildSbinCmd);
 
     # Link Rabbitmq scripts into bin/
