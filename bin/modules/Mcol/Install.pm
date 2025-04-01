@@ -664,13 +664,18 @@ sub install_rabbitmq {
 
     # Build rabbitmq broker and sbin
     print "\n=================================================================\n";
-    print " Building rabbitmq sbin tools...\n";
+    print " Building rabbitmq broker...\n";
     print "=================================================================\n\n";
 
     # Broker
     my $buildCmd = "$env bazel build //:broker";
     system($buildCmd);
     command_result($?, $!, 'bazel build broker...', $buildCmd);
+
+    # Build rabbitmq broker and sbin
+    print "\n=================================================================\n";
+    print " Building rabbitmq sbin tools...\n";
+    print "=================================================================\n\n";
 
     # Sbin
     my $buildSbinCmd = "$env bazel build //:sbin-files";
