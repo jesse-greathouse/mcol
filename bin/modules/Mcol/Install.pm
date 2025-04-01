@@ -60,9 +60,9 @@ sub install {
     }
 
     if ($options{'rabbitmq'}) {
-        # install_erlang($applicationRoot);
-        # install_elixir($applicationRoot);
-        # install_bazelisk($applicationRoot);
+        install_erlang($applicationRoot);
+        install_elixir($applicationRoot);
+        install_bazelisk($applicationRoot);
         install_rabbitmq($applicationRoot);
     }
 
