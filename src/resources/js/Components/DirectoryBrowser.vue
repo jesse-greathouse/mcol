@@ -234,7 +234,12 @@ export default {
         if (null === error) {
             this.directoryTable = data
         } else {
-            console.log(error)
+            if (error.code === 'ERR_BAD_REQUEST') {
+                console.log(`"${this.displayUri}" has not been created yet.`)
+            } else {
+                console.error(error)
+            }
+
             this.openDir(this.parent)
         }
     },

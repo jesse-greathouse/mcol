@@ -38,11 +38,19 @@ export default {
     methods: {
         clean() {
             let cleaned = this.msg
+            // Make lower case so indexOf doesnt fail because of case.
+            let cleanedLower = cleaned.toLowerCase()
 
             // Change the text of this message because it's confusing.
             // The message is intended for a bot to tell the user that the transfer has ended.
-            if (cleaned.indexOf("You don't have a transfer running") > -1) {
-                cleaned = 'Transfer Terminated'
+            if (cleanedLower.indexOf("you don't have a transfer running") > -1) {
+                cleaned = 'The transfer has been terminated'
+            }
+
+            // Change the text of "You don't appear to be in a queue".
+            // The context of this message is a bot talking about its own queue.
+            if (cleanedLower.indexOf("you don't appear to be in a queue") > -1) {
+                cleaned = 'You were not found in the requested queue'
             }
 
             return cleaned.trim()

@@ -336,7 +336,7 @@ class Client
             } catch (UnmappedChatLogEventException) {
                 $this->console->error(
                     "Unmapped joinInfo event for channel: \"$channelName\".
-                    (This usually happens due to a truncated UDP packet.)"
+                    (This usually happens due to a truncated network message.)"
                 );
             }
         });
@@ -856,7 +856,7 @@ class Client
                 $this->parsePacketMessage($from, $channel, $message);
             } catch (UnmappedChatLogEventException) {
                 $this->console->error(
-                    sprintf("Unmapped %s event for channel: \"%s\" (This usually happens due to a truncated UDP packet.)",
+                    sprintf("Unmapped %s event for channel: \"%s\" (This usually happens due to a truncated network message.)",
                         LogMapper::EVENT_MESSAGE, $channel->getName()
                     )
                 );

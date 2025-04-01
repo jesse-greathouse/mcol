@@ -79,13 +79,8 @@ import ChatInput from '@/Components/ChatInput.vue'
 
 const maxMessageLineBuffer = 1000 // Maximum 1000 lines so we don't crash the browser.
 const chatPaneScale = .62
-
 const messageInterval = 1000 // Check chat messages every 1 seconds.
-let messageTimeoutId
-
 const eventInterval = 1500 // Check channel events every 1.5 seconds.
-let eventTimeoutId
-
 
 export default {
   components: {
@@ -115,6 +110,8 @@ export default {
         userList: [],
         shouldScrollToBottom: true,
         noticeIndex: 0,
+        messageTimeoutId: null,
+        eventTimeoutId: null,
     }
   },
   watch: {
@@ -196,12 +193,16 @@ export default {
         }
     },
     resetMessageInterval() {
-        messageTimeoutId = setTimeout(this.streamMessages, messageInterval);
+        this.messageTimeoutId = setTimeout(this.streamMessages, messageInterval);
     },
     resetEventInterval() {
-        eventTimeoutId = setTimeout(this.streamEvents, eventInterval);
+        this.eventTimeoutId = setTimeout(this.streamEvents, eventInterval);
     },
     isScrolledToBottom() {
+        if (!has(this.$refs, 'chatPane') || !this.$refs.chatPane) {
+            return false
+        }
+
         const chatPane = this.$refs.chatPane
         const scrollTop = chatPane.scrollTop
         const clientHeight = chatPane.clientHeight

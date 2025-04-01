@@ -12,9 +12,10 @@
                   :download="downloads[fileName]"
                   :svg="card"
                   :settings="settings"
-                  @call:saveDownloadDestination="saveDownloadDestination"
+                  @call:removeCompleted="removeCompleted"
                   @call:requestRemove="requestRemove"
-                />
+                  @call:requestCancel="requestCancel"
+                  @call:saveDownloadDestination="saveDownloadDestination" />
               </div>
 
               <!-- If there are not any current downloads, show the Donate Hero Banner -->
@@ -77,9 +78,12 @@
       };
     },
     mounted() {
-      initFlowbite();
-      this.refreshDashboard();
-      this.checkLocks();
+      initFlowbite()
+      this.refreshDashboard()
+      this.checkLocks()
+    },
+    updated() {
+      initFlowbite()
     },
     watch: {
       downloadQueue: {
@@ -199,6 +203,7 @@
         }
       },
       async removeCompleted(download) {
+        console.log('api call')
         const { error } = await removeCompleted(download);
         if (error === null) {
           this.fetchLocks();

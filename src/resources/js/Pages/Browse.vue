@@ -320,11 +320,11 @@
       },
     },
     watch: {
-        form: {
-            deep: true,
-            handler: throttle(function () {
-                this.refresh()
-            }, 150),
+      form: {
+        deep: true,
+        handler: throttle(function () {
+            this.refresh()
+        }, 150),
       },
       downloadQueue: {
         deep: true,

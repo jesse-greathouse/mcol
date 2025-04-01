@@ -595,12 +595,12 @@ sub install_rabbitmq {
     print "=================================================================\n\n";
 
     # Broker
-    my $buildCmd = 'PATH="' . $binDir . ':$PATH" bazel build //:broker';
+    my $buildCmd = 'PATH="' . $elixirPath . ':$PATH" bazel build //:broker';
     system(('bash', '-c', $buildCmd));
     command_result($?, $!, 'bazel build broker...', $buildCmd);
 
     # Sbin
-    my $buildSbinCmd = 'PATH="' . $binDir . ':$PATH" bazel build //:sbin-files';
+    my $buildSbinCmd = 'PATH="' . $elixirPath . ':$PATH" bazel build //:sbin-files';
     system(('bash', '-c', $buildSbinCmd));
     command_result($?, $!, 'bazel build sbin...', $buildSbinCmd);
 
