@@ -231,6 +231,27 @@ sub install_symlinks {
 
     unlink "$binDir/mix";
     symlink("$optDir/elixir/bin/mix", "$binDir/mix");
+
+    unlink "$binDir/iex";
+    symlink("$optDir/elixir/bin/iex", "$binDir/iex");
+
+    unlink "$binDir/elixirc";
+    symlink("$optDir/elixir/bin/elixirc", "$binDir/elixirc");
+
+    unlink "$binDir/erlc";
+    symlink("$optDir/erlang/bin/erlc", "$binDir/erlc");
+
+    unlink "$binDir/escript";
+    symlink("$optDir/erlang/bin/escript", "$binDir/escript");
+
+    unlink "$binDir/typer";
+    symlink("$optDir/erlang/bin/typer", "$binDir/typer");
+
+    unlink "$binDir/erl";
+    symlink("$optDir/erlang/bin/erl", "$binDir/erl");
+
+    unlink "$binDir/cerl";
+    symlink("$optDir/erlang/bin/cerl", "$binDir/cerl");
 }
 
 # installs Perl Modules.
@@ -533,11 +554,12 @@ sub install_elixir {
     my ($dir) = @_;
     my $elixirVersion = 'v1.16.3';
     my $originalDir = getcwd();
+    my $erlangPath = glob("$dir/opt/erlang/bin");
     my $elixirDir = glob("$dir/opt/elixir");
 
     if (-d $elixirDir) {
-        system('bash', '-c', "rm -rf $elixirDir");
-        command_result($?, $!, 'Removing Elixir...', "rm -rf $elixirDir");
+        print "Elixir dependency already exists, skipping...(`rm -rf $elixirDir` to rebuild)\n";
+        return;
     }
 
     system(('bash', '-c', "git clone --depth 1 --branch $elixirVersion https://github.com/elixir-lang/elixir.git $dir/opt/elixir"));
@@ -548,7 +570,7 @@ sub install_elixir {
     system(('bash', '-c', "git checkout $elixirVersion"));
     command_result($?, $!, "Checkout Elixir $elixirVersion ...", "git checkout $elixirVersion");
 
-    system(('bash', '-c', 'make clean compile'));
+    system(('bash', '-c', 'PATH="' . $erlangPath . ':$PATH"', 'make clean compile'));
     command_result($?, $!, 'Make elixir ...', 'make clean compile');
 
     chdir $originalDir;
@@ -562,8 +584,8 @@ sub install_erlang {
     my $erlangDir = glob("$dir/opt/erlang");
 
     if (-d $erlangDir) {
-        system('bash', '-c', "rm -rf $erlangDir");
-        command_result($?, $!, 'Removing erlang...', "rm -rf $erlangDir");
+        print "Erlang dependency already exists, skipping...(`rm -rf $erlangDir` to rebuild)\n";
+        return;
     }
 
     system(('bash', '-c', "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangDir"));

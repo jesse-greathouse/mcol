@@ -14,7 +14,7 @@ our @EXPORT_OK = qw(install_system_dependencies install_php install_bazelisk);
 my @systemDependencies = qw(
     supervisor authbind expect openssl build-essential intltool autoconf
     automake gcc curl pkg-config cpanminus erlang-nox erlang-src erlang-dev
-    libpcre3-dev libcurl4 libcurl4-openssl-dev libmagickwand-dev
+    libncurses-dev libpcre3-dev libcurl4t64 libcurl4-openssl-dev libmagickwand-dev
     libssl-dev libxslt1-dev libmysqlclient-dev libxml2 libxml2-dev
     libicu-dev libmagick++-dev libzip-dev libonig-dev libsodium-dev
     libglib2.0-dev libwebp-dev mysql-client imagemagick golang-go
@@ -102,8 +102,8 @@ sub install_bazelisk {
 
     # If elixir directory exists, delete it.
     if (-d $bazeliskDir) {
-        system(('bash', '-c', "rm -rf $bazeliskDir"));
-        command_result($?, $!, "Removing existing Bazelisk directory...", "rm -rf $bazeliskDir");
+        print "Bazel dependency already exists, skipping...(`rm -rf $bazeliskDir` to rebuild)\n";
+        return;
     }
 
     # Unpack
