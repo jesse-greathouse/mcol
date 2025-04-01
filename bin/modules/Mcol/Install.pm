@@ -615,7 +615,7 @@ sub install_rabbitmq {
     my $rabbitmqDir = glob("$dir/opt/rabbitmq");
     my $rabbitmqSbin = glob("$rabbitmqDir/bazel-out/k8-fastbuild/bin/broker-home/sbin");
     my $erlangDir = glob("$dir/opt/erlang");
-    my $erlangPath = "$elixirDir/bin";
+    my $erlangPath = "$erlangDir/bin";
     my $elixirPath = glob("$dir/opt/elixir/bin");
 
     # delete
