@@ -605,21 +605,19 @@ sub install_erlang {
         my $otp_release = `cat $otp_version_file`;
         chomp($otp_release);
 
-        my $releases_root = "$erlangDir/releases";
-        unless (-d $releases_root) {
-            mkdir $releases_root or die "Could not create directory $releases_root: $!";
-        }
+        # Extract major version for Bazel
+        my ($otp_major) = $otp_release =~ /^(\d+)/;
 
-        my $release_dir = "$releases_root/$otp_release";
+        my $release_dir = "$erlangDir/releases/$otp_major";
         unless (-d $release_dir) {
-            mkdir $release_dir or die "Could not create directory $release_dir: $!";
+            make_path($release_dir) or die "Could not create directory $release_dir: $!";
         }
 
-        my $target_link = "$release_dir/OTP_VERSION";
-        unless (-e $target_link) {
-            symlink("../../OTP_VERSION", $target_link)
-                or die "Failed to create symlink $target_link: $!";
-            print "Created symlink: $target_link → ../../OTP_VERSION\n";
+        my $target_file = "$release_dir/OTP_VERSION";
+        unless (-e $target_file) {
+            copy($otp_version_file, $target_file)
+                or die "Failed to copy $otp_version_file to $target_file: $!";
+            print "Copied OTP_VERSION to: $target_file\n";
         }
     } else {
         warn "OTP_VERSION file not found at $otp_version_file, skipping Bazel compatibility fix.\n";
