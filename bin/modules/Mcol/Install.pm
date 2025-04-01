@@ -573,8 +573,14 @@ sub install_erlang {
     system(('bash', '-c', "git checkout $erlangVersion"));
     command_result($?, $!, "Checkout erlang $erlangVersion ...", "git checkout $erlangVersion");
 
-    system(('bash', '-c', 'make clean compile'));
-    command_result($?, $!, 'Make erlang ...', 'make clean compile');
+    system(('bash', '-c', './configure' , "--prefix=$erlangDir"));
+    command_result($?, $!, 'Make erlang ...', 'make');
+
+    system(('bash', '-c', 'make'));
+    command_result($?, $!, 'Make erlang ...', 'make');
+
+    system(('bash', '-c', 'make install'));
+    command_result($?, $!, 'Make erlang ...', 'make install');
 
     chdir $originalDir;
 }
