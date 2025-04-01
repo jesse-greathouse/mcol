@@ -554,7 +554,7 @@ sub install_elixir {
     my ($dir) = @_;
     my $elixirVersion = 'v1.16.3';
     my $originalDir = getcwd();
-    my $erlangPath = glob("$dir/opt/erlang/bin");
+    my $erlangDir = glob("$dir/opt/erlang");
     my $elixirDir = glob("$dir/opt/elixir");
 
     if (-d $elixirDir) {
@@ -570,7 +570,7 @@ sub install_elixir {
     system(('bash', '-c', "git checkout $elixirVersion"));
     command_result($?, $!, "Checkout Elixir $elixirVersion ...", "git checkout $elixirVersion");
 
-    system(('bash', '-c', 'PATH="' . $erlangPath . ':$PATH"', 'make clean compile'));
+    system(('bash', '-c', 'ERLANG_HOME="' . $erlangDir . '"', 'make clean compile'));
     command_result($?, $!, 'Make elixir ...', 'make clean compile');
 
     chdir $originalDir;
@@ -614,8 +614,9 @@ sub install_rabbitmq {
     my $originalDir = getcwd();
     my $rabbitmqDir = glob("$dir/opt/rabbitmq");
     my $rabbitmqSbin = glob("$rabbitmqDir/bazel-out/k8-fastbuild/bin/broker-home/sbin");
+    my $erlangDir = glob("$dir/opt/erlang");
+    my $erlangPath = "$elixirDir/bin";
     my $elixirPath = glob("$dir/opt/elixir/bin");
-    my $erlangPath = glob("$dir/opt/erlang/bin");
 
     # delete
     if (-d $rabbitmqDir) {
@@ -651,12 +652,12 @@ sub install_rabbitmq {
     print "=================================================================\n\n";
 
     # Broker
-    my $buildCmd = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH" bazel build //:broker';
+    my $buildCmd = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH"', 'ERLANG_HOME="' . $erlangDir . '"', 'bazel build //:broker';
     system(('bash', '-c', $buildCmd));
     command_result($?, $!, 'bazel build broker...', $buildCmd);
 
     # Sbin
-    my $buildSbinCmd = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH" bazel build //:sbin-files';
+    my $buildSbinCmd = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH"', 'ERLANG_HOME="' . $erlangDir . '"', 'bazel build //:sbin-files';
     system(('bash', '-c', $buildSbinCmd));
     command_result($?, $!, 'bazel build sbin...', $buildSbinCmd);
 
