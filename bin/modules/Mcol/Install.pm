@@ -556,6 +556,7 @@ sub install_elixir {
 
 sub install_erlang {
     my ($dir) = @_;
+    my $threads = how_many_threads_should_i_use();
     my $erlangVersion = 'maint-25';
     my $originalDir = getcwd();
     my $erlangDir = glob("$dir/opt/erlang");
@@ -576,7 +577,7 @@ sub install_erlang {
     system(('bash', '-c', './configure' , "--prefix=$erlangDir"));
     command_result($?, $!, 'Make erlang ...', 'make');
 
-    system(('bash', '-c', 'make'));
+    system(('bash', '-c', 'make', "-j$threads"));
     command_result($?, $!, 'Make erlang ...', 'make');
 
     system(('bash', '-c', 'make install'));
