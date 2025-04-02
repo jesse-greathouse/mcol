@@ -624,6 +624,18 @@ sub install_erlang {
         warn "OTP_VERSION file not found at $otp_version_file, skipping Bazel compatibility fix.\n";
     }
 
+    # Add RabbitMQ compatibility fix: create bin/x86_64-pc-linux-gnu/erl symlink
+    my $erl_bin = "$erlangDir/bin/erl";
+    my $platform_bin_dir = "$erlangDir/bin/x86_64-pc-linux-gnu";
+    my $platform_erl = "$platform_bin_dir/erl";
+
+    unless (-e $platform_erl) {
+        make_path($platform_bin_dir);
+        symlink("../erl", $platform_erl)
+            or warn "Failed to create RabbitMQ-compatible symlink: $platform_erl → ../erl ($!)\n";
+        print "Created RabbitMQ-compatible symlink: $platform_erl → ../erl\n";
+    }
+
     chdir $originalDir;
 }
 
