@@ -5,11 +5,18 @@ use warnings;
 use Cwd qw(getcwd abs_path);
 use File::Basename;
 use lib(dirname(abs_path(__FILE__))  . "/modules");
+use Mcol::Config qw(get_configuration);
 use Mcol::Instance qw(instance_start instance_restart instance_stop instance_kill);
 use Mcol::Queue qw(queue_start queue_restart queue_stop queue_kill);
 use Mcol::Web qw(web_start web_restart web_stop web_kill);
 
 warn $@ if $@; # Handle exceptions
+
+my $binDir = abs_path(dirname(__FILE__));
+
+# Load config
+my %cfg = get_configuration();
+my $rabbitmq_nodename = $cfg{rabbitmq}{RABBITMQ_NODENAME} || 'mcol@localhost';
 
 # Action is the first arg (start, restart, stop, kill)
 my ($action) = @ARGV;
@@ -19,24 +26,46 @@ if (not defined $action) {
 }
 
 if ("start" eq $action) {
-    web_start();
-    instance_start();
     queue_start();
+
+    # Wait until RabbitMQ is accepting commands
+    my $timeout = 30;
+    my $elapsed = 0;
+
+    print "Waiting for RabbitMQ node '$rabbitmq_nodename' to become ready...\n";
+
+    while ($elapsed < $timeout) {
+        my $status = system("$binDir/rabbitmqctl --node $rabbitmq_nodename status > /dev/null 2>&1");
+        if ($status == 0) {
+            print "RabbitMQ is ready.\n";
+            last;
+        }
+        sleep 1;
+        $elapsed++;
+    }
+
+    if ($elapsed == $timeout) {
+        die "Timed out waiting for RabbitMQ to become ready.\n";
+    }
+
+    instance_start();
+    web_start();
+
 } elsif ("restart" eq $action) {
-    web_restart();
-    instance_restart();
     queue_restart();
+    instance_restart();
+    web_restart();
 } elsif ("stop" eq $action) {
-    queue_stop();
-    instance_stop();
     web_stop();
+    instance_stop();
+    queue_stop();
 } elsif ("kill" eq $action) {
-   queue_stop();
-   instance_stop();
-   web_stop();
-   queue_kill();
-   instance_kill();
-   web_kill();
+    web_stop();
+    instance_stop();
+    queue_stop();
+    web_kill();
+    instance_kill();
+    queue_kill();
 } else {
     die "Available actions are start, restart stop and kill.\n";
 }

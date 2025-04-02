@@ -137,20 +137,51 @@ sub stop_bazel {
     my $originalDir = getcwd();
     my $nodeName = $cfg{rabbitmq}{RABBITMQ_NODENAME};
 
-    # Ensure $originalDir is defined before proceeding
-    if (!defined $originalDir) {
-        die "Error: getcwd() failed to return a directory path\n";
-    }
+    die "Error: getcwd() failed\n" unless defined $originalDir;
 
+    # Graceful Rabbit shutdown
     system(('bash', '-c', 'PATH="' . $binDir . ':$PATH" rabbitmqctl --node='. $nodeName . ' shutdown'));
     command_result($?, $!, 'Shut down rabbitmq node...', 'rabbitmqctl --node='. $nodeName . ' shutdown');
 
-    chdir glob($bazelDir) or die "Failed to change to directory $bazelDir: $!";
-
+    # Bazel shutdown
+    chdir $bazelDir or die "Failed to chdir to $bazelDir";
     system(('bash', '-c', 'PATH="' . $binDir . ':$PATH" bazel shutdown'));
     command_result($?, $!, 'Shut down Bazel...', 'bazel shutdown');
+    chdir $originalDir or die "Failed to chdir back to $originalDir";
 
-    chdir glob($originalDir) or die "Failed to change back to original directory $originalDir: $!";
+    # Kill lingering Bazel Java processes
+    kill_lingering_bazel();
+
+    # Verify Bazel shut down
+    my $pid_info = `bazel info server_pid 2>/dev/null`;
+    if ($pid_info =~ /server_pid: (\d+)/) {
+        my $pid = $1;
+        if (kill 0, $pid) {
+            print "Bazel server still alive at PID $pid. Killing...\n";
+            kill 'TERM', $pid;
+            sleep(1);
+            kill 9, $pid if kill 0, $pid;
+        }
+    }
+}
+
+sub kill_lingering_bazel {
+    my $output = `ps aux | grep '[b]azel.*A-server.jar'`;
+    if ($output) {
+        print "Lingering Bazel process detected:\n$output";
+        my @pids = $output =~ /^\S+\s+(\d+)/gm;
+        for my $pid (@pids) {
+            print "Killing Bazel process $pid...\n";
+            kill 'TERM', $pid or warn "Failed to kill process $pid\n";
+            sleep(1);
+            if (kill 0, $pid) {
+                print "Process $pid still running, sending SIGKILL...\n";
+                kill 9, $pid or warn "Failed to kill process $pid with SIGKILL\n";
+            }
+        }
+    } else {
+        print "No lingering Bazel processes found.\n";
+    }
 }
 
 1;
