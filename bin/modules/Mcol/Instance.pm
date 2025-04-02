@@ -36,6 +36,7 @@ my %cfg = get_configuration();
 
 # Runs the instance manager supervisor.
 sub instance_start {
+    refresh_instance_supervisor_config();
     if ( -e $pidFile && is_pid_running($pidFile)) {
         my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'start', 'all');
         system(@cmd);
@@ -50,6 +51,7 @@ sub instance_restart {
     my $output = "The Instance Daemon was not found.\n";
 
     if ( -e $pidFile && is_pid_running($pidFile)) {
+        refresh_instance_supervisor_config();
         my @cmd = ('supervisorctl', '-c', $supervisorConfig, 'restart', 'all');
         system(@cmd);
 
@@ -116,6 +118,11 @@ sub start_daemon {
 
     sleep(5);
     print_output();
+}
+
+sub refresh_instance_supervisor_config {
+    print "Refreshing clients...\n";
+    system("$optDir/php/bin/php", "$srcDir/artisan", 'mcol:make-instance-supervisor-config');
 }
 
 sub print_output {

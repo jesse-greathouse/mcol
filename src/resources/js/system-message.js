@@ -4,7 +4,7 @@ function parseSystemMessage(line, queue = null) {
     let [ts, routingKey, msg, error] = [null, null, null, null]
 
     // Separate the message from the metadata at the last ":" colon.
-    const meta = line.split(":::");
+    const meta = line.split(":::")
 
     if (meta.length !== 3) {
         error = `Unable to parse SystemChat line: ${line}`
