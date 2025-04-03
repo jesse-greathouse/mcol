@@ -1,6 +1,6 @@
 <template>
     <div :id="download.packet.file_name"
-        class="relative z-10 overflow-visible bg-gray-50 border border-gray-200 rounded-lg p-2 shadow-sm dark:bg-gray-800 dark:border-gray-700 transition-opacity duration-500 ease-in-out"
+        class="relative overflow-visible bg-gray-50 border border-gray-200 rounded-lg p-2 shadow-sm dark:bg-gray-800 dark:border-gray-700 transition-opacity duration-500 ease-in-out"
         :style="{
             width: '800px',
             height: '200px',

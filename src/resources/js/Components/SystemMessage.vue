@@ -1,15 +1,15 @@
 <template>
-    <div class="fixed top-0 left-0 w-full h-full pointer-events-none">
-        <div
-            class="max-w-6xl m-2 absolute bottom-20 left-10 z-50 inline-block transition-opacity duration-2000"
-            :class="{
-                'opacity-0 pointer-events-none': !visible || faded,
-                'opacity-100 pointer-events-auto': visible && !faded
-            }"
-        >
-            <component v-bind:is="card" :routingKey="routingKey" :msg="msg" :network="network" :target="target" />
+    <teleport to="body">
+        <div class="fixed top-0 left-0 w-full h-full pointer-events-none">
+            <div class="max-w-6xl z-50 m-2 absolute bottom-20 left-10 inline-block transition-opacity duration-2000"
+                :class="{
+                    'opacity-0 pointer-events-none': !visible || faded,
+                    'opacity-100 pointer-events-auto': visible && !faded
+                }">
+                <component v-bind:is="card" :routingKey="routingKey" :msg="msg" :network="network" :target="target" />
+            </div>
         </div>
-    </div>
+    </teleport>
 </template>
 
 <script>
@@ -21,9 +21,9 @@ import NoticeCard from '@/Components/Cards/Notice.vue'
 import MsgCard from '@/Components/Cards/Msg.vue'
 
 const cardTypeMap = {
-    notice:     NoticeCard,
-    msg:        MsgCard,
-    default:    DefaultCard,
+    notice: NoticeCard,
+    msg: MsgCard,
+    default: DefaultCard,
 }
 
 const refreshSystemMessagesInterval = 3000 // Check system messages every 3 seconds.

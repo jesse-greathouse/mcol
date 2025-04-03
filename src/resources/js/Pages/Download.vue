@@ -40,16 +40,7 @@ import { saveDownloadDestination } from '@/Clients/download-destination';
 import DownloadCard from '@/Components/DownloadCard.vue';
 
 const refreshDashboardInterval = 10000;
-let refreshDashboardId;
-const refreshDashboard = function () {
-    clearTimeout(refreshDashboardId);
-};
-
 const locksInterval = 10000;
-let locksTimeoutId;
-const clearLocksInterval = function () {
-    clearTimeout(locksTimeoutId);
-};
 
 export default {
     components: {
@@ -72,6 +63,8 @@ export default {
             downloads: {},
             downloadCards: {},
             hasFetchedDownloadCards: false,
+            refreshDashboardId: null,
+            locksTimeoutId: null,
         };
     },
     mounted() {
@@ -151,13 +144,13 @@ export default {
         },
         async refreshDashboard() {
             await this.fetchDownloadQueue();
-            refreshDashboard();
-            refreshDashboardId = setTimeout(this.refreshDashboard, refreshDashboardInterval);
+            clearTimeout(this.refreshDashboardId)
+            this.refreshDashboardId = setTimeout(this.refreshDashboard, refreshDashboardInterval);
         },
         async checkLocks() {
             await this.fetchLocks();
-            clearLocksInterval();
-            locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
+            clearTimeout(this.locksTimeoutId)
+            this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
         },
         async fetchDownloadQueue() {
             const { data, error } = await fetchDownloadQueue();

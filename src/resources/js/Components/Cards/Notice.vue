@@ -1,5 +1,6 @@
 <template>
-    <div ref="systemMessageCard" class="p-4 bg-white border rounded-lg shadow-sm drop-shadow-md dark:bg-gray-800" :class="getCardClass()">
+    <div ref="systemMessageCard" class="z-50 p-4 bg-white border rounded-lg shadow-sm drop-shadow-md dark:bg-gray-800"
+        :class="getCardClass()">
         <!-- System Message Component -->
         <component v-bind:is="partial" :routingKey="routingKey" :msg="msg" :network="network" :target="target" />
     </div>
@@ -14,10 +15,10 @@ import NoticeQueued from '@/Components/Cards/Partials/Queued.vue'
 import ChatConsole from '../ChatConsole.vue'
 
 const partialMap = {
-    default:    DefaultNotice,
-    bullitin:   NoticeBullitin,
-    queued:     NoticeQueued,
-    card:       NoticeDownloadCard,
+    default: DefaultNotice,
+    bullitin: NoticeBullitin,
+    queued: NoticeQueued,
+    card: NoticeDownloadCard,
 }
 
 export default {
@@ -68,14 +69,14 @@ export default {
             let hasDoubleStar = this.msg.indexOf('**') > -1
             let hasStarSpaceStar = this.msg.indexOf('* *') > -1
 
-            if ( hasDoubleStar || hasStarSpaceStar) {
+            if (hasDoubleStar || hasStarSpaceStar) {
                 return [partialMap.bullitin, color]
             }
 
             return [card, color]
         },
         getCardClass() {
-            return [ `border-${this.color}-200`, `dark:border-${this.color}-700`, ]
+            return [`border-${this.color}-200`, `dark:border-${this.color}-700`,]
         }
     }
 }

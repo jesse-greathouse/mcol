@@ -1,5 +1,6 @@
 <template>
-    <div ref="systemMessageCard" class="p-4 bg-white border border-blue-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-blue-700 drop-shadow-md">
+    <div ref="systemMessageCard"
+        class="z-50 p-4 bg-white border border-blue-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-blue-700 drop-shadow-md">
         <!-- System Message Component -->
         <component v-bind:is="partial" :routingKey="routingKey" :msg="msg" :network="network" :target="target" />
     </div>
@@ -11,8 +12,8 @@ import DefaultMsg from '@/Components/Cards/Partials/Msg.vue'
 import MsgDccSend from '@/Components/Cards/Partials/MsgDccSend.vue'
 
 const partialMap = {
-    default:   DefaultMsg,
-    dccsend:   MsgDccSend,
+    default: DefaultMsg,
+    dccsend: MsgDccSend,
 }
 
 export default {
