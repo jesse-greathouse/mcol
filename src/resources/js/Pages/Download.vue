@@ -161,7 +161,9 @@ export default {
             const { data, error } = await fetchLocks(packetList);
             if (error === null) {
                 this.downloadLocks = data.locks;
-                if (data.locks.length <= 0) clearLocksInterval();
+                if (data.locks.length <= 0) {
+                    clearTimeout(this.locksTimeoutId)
+                }
             }
         },
         async saveDownloadDestination(download, uri) {
