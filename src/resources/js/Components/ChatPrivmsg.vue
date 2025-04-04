@@ -149,7 +149,10 @@ export default {
 
             // Set it to scroll again to the bottom after 1 second.
             // In case scrolling isn't complete after 1 second.
-            let timeoutId = setTimeout(() => {
+            setTimeout(() => {
+                // If we're not still on the chat page, then bail...
+                if (!this.$page.url.startsWith('/chat')) return
+
                 const refreshPane = this.$refs.privmsgPane
                 if (refreshPane) {
                     refreshPane.scrollTop = refreshPane.scrollHeight

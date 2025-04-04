@@ -65,9 +65,9 @@ import ChatInput from '@/Components/ChatInput.vue'
 import { usePageStateSync } from '@/Composables/usePageStateSync'
 
 const maxMessageLineBuffer = 1000
-const chatPaneScale = 0.62
 const messageInterval = 1000
 const eventInterval = 1500
+const chatPaneScale = 0.62
 
 export default {
     components: {
@@ -235,14 +235,20 @@ export default {
         },
         scrollToBottom() {
             const chatPane = this.$refs.chatPane
-            chatPane.scrollTop = chatPane.scrollHeight
 
-            setTimeout(() => {
-                const refreshPane = this.$refs.chatPane
-                if (refreshPane) {
-                    refreshPane.scrollTop = refreshPane.scrollHeight
-                }
-            }, 1000)
+            if (chatPane) {
+                chatPane.scrollTop = chatPane.scrollHeight
+
+                setTimeout(() => {
+                    // If we're not still on the chat page, then bail...
+                    if (!this.$page.url.startsWith('/chat')) return
+
+                    const refreshPane = this.$refs.chatPane
+                    if (refreshPane) {
+                        refreshPane.scrollTop = refreshPane.scrollHeight
+                    }
+                }, 1000)
+            }
         },
         handleOperation(operation, command, target) {
             if (command === COMMAND.PRIVMSG && target === this.channel.name) {

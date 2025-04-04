@@ -566,6 +566,7 @@ export default {
                 this.locks.push(data.result.packet.file_name)
                 // Schedule the next reload
                 this.clearLocksInterval()
+
                 this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
             }
         },
