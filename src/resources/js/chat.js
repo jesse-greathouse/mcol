@@ -305,7 +305,7 @@ function parseInput(line, commands, selectedCommand, selectedParameters = [], li
         }
     }
 
-    if (null !== command && 1 >= words.length  && has(TARGET_CONTEXT, command)) {
+    if (command && 1 >= words.length && has(TARGET_CONTEXT, command)) {
         words = parameters.concat(words)
         numParams = (words.length >= TARGET_CONTEXT[command].length) ? TARGET_CONTEXT[command].length : words.length
         parameters = words.slice(0, numParams)

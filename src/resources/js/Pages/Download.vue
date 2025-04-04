@@ -72,6 +72,9 @@ export default {
         this.refreshDashboard()
         this.checkLocks()
     },
+    beforeUnmount() {
+        this.clearAllIntervals()
+    },
     updated() {
         initFlowbite()
     },
@@ -91,6 +94,10 @@ export default {
         },
     },
     methods: {
+        clearAllIntervals() {
+            clearTimeout(this.refreshDashboardId)
+            clearTimeout(this.locksTimeoutId)
+        },
         hasCards() {
             return this.downloadCards && Object.keys(this.downloadCards).length > 0;
         },
@@ -143,21 +150,37 @@ export default {
             else console.log(error);
         },
         async refreshDashboard() {
-            await this.fetchDownloadQueue();
             clearTimeout(this.refreshDashboardId)
+
+            // If we're not still on the download page, then bail...
+            if (!this.$page.url.startsWith('/download')) return
+
+            await this.fetchDownloadQueue();
+
             this.refreshDashboardId = setTimeout(this.refreshDashboard, refreshDashboardInterval);
         },
         async checkLocks() {
-            await this.fetchLocks();
             clearTimeout(this.locksTimeoutId)
+
+            // If we're not still on the download page, then bail...
+            if (!this.$page.url.startsWith('/download')) return
+
+            await this.fetchLocks();
+
             this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
         },
         async fetchDownloadQueue() {
+            // If we're not still on the download page, then bail...
+            if (!this.$page.url.startsWith('/download')) return
+
             const { data, error } = await fetchDownloadQueue();
             if (error === null) this.downloadQueue = data;
             else console.log(error);
         },
         async fetchLocks(packetList) {
+            // If we're not still on the download page, then bail...
+            if (!this.$page.url.startsWith('/download')) return
+
             const { data, error } = await fetchLocks(packetList);
             if (error === null) {
                 this.downloadLocks = data.locks;

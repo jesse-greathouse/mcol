@@ -1,26 +1,22 @@
+import { reactive, toRaw } from 'vue'
+
 export const STATE_VERSION = 2
 
-export function usePageStateSync(key, formRef, options = {}) {
+export function usePageStateSync(key, initialState = {}, options = {}) {
   const version = options.version ?? STATE_VERSION
 
-  const loadState = () => {
-    return loadStoredPageState(key, version)
-  }
+  const saved = loadStoredPageState(key, version)
+  const state = reactive(saved ?? { ...initialState })
 
   const saveState = () => {
-    const data = {
-      ...formRef,
-      _version: version,
-    }
-    localStorage.setItem(key, JSON.stringify(data))
+    const raw = toRaw(state)
+    raw._version = version
+    localStorage.setItem(key, JSON.stringify(raw))
   }
 
-  return { loadState, saveState }
+  return { state, saveState }
 }
 
-/**
- * Load raw state from localStorage with version validation.
- */
 export function loadStoredPageState(key, version = STATE_VERSION) {
   const raw = localStorage.getItem(key)
   if (!raw) return null

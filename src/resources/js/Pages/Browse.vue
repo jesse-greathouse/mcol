@@ -204,6 +204,9 @@ export default {
         this.showQueue = (this.hasQueue()) ? true : false
         this.resetIntervals()
     },
+    beforeUnmount() {
+        this.clearAllIntervals()
+    },
     updated() {
         // In case we have arrived at a narrower result set
         // the page might be out of bounds from the previous result set
@@ -236,11 +239,10 @@ export default {
         }
 
         // Step 2: inject saved state (before Vue uses form)
-        const { loadState } = usePageStateSync('browse', form, { version: STATE_VERSION })
-        const saved = loadState()
+        const { state: browseState, saveState: saveBrowseState } = usePageStateSync('browse', form, { version: STATE_VERSION })
 
-        if (saved) {
-            Object.assign(form, saved)
+        if (browseState) {
+            Object.assign(form, browseState)
         }
 
         // Step 3: determine flags
@@ -250,6 +252,8 @@ export default {
         return {
             exclude_languages,
             exclude_dynamic_ranges,
+            browseState,
+            saveBrowseState,
             form,
             packet_list: this.packet_list,
             locks: this.locks,
@@ -334,6 +338,10 @@ export default {
     methods: {
         resetIntervals() {
             this.clearAllIntervals()
+
+            // If we're not still on the browse page, then bail...
+            if (!this.$page.url.startsWith('/browse')) return
+
             this.totalPacketsTimeoutId = setTimeout(this.checkTotalPackets, totalPacketsInterval);
             this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
             this.queueTimeoutId = setTimeout(this.checkQueue, queueInterval);
@@ -353,13 +361,23 @@ export default {
             this.clearQueueInterval()
         },
         checkTotalPackets() {
-            this.fetchBrowse(this.updateTotalPackets)
             this.clearTotalPacketsInterval()
+
+            // If we're not still on the browse page, then bail...
+            if (!this.$page.url.startsWith('/browse')) return
+
+            this.fetchBrowse(this.updateTotalPackets)
+
             this.totalPacketsTimeoutId = setTimeout(this.checkTotalPackets, totalPacketsInterval);
         },
         checkLocks() {
-            this.fetchLocks(this.packet_list)
             this.clearLocksInterval()
+
+            // If we're not still on the browse page, then bail...
+            if (!this.$page.url.startsWith('/browse')) return
+
+            this.fetchLocks(this.packet_list)
+
             if (
                 this.locks.length > 0 ||
                 this.queued.length > 0 ||
@@ -370,8 +388,13 @@ export default {
             }
         },
         checkQueue() {
-            this.fetchQueue()
             this.clearQueueInterval()
+
+            // If we're not still on the browse page, then bail...
+            if (!this.$page.url.startsWith('/browse')) return
+
+            this.fetchQueue()
+
             this.queueTimeoutId = setTimeout(this.checkQueue, queueInterval)
         },
         hasQueue() {
@@ -407,22 +430,23 @@ export default {
             this.form.page = number
         },
         refresh() {
-            // Clone the form to clean it without triggering watchers
-            const formCopy = { ...this.form }
-
-            formCopy.in_dynamic_range = (formCopy.in_dynamic_range || []).filter(Boolean)
-            formCopy.out_dynamic_range = (formCopy.out_dynamic_range || []).filter(Boolean)
-            formCopy.in_language = (formCopy.in_language || []).filter(Boolean)
-            formCopy.out_language = (formCopy.out_language || []).filter(Boolean)
+            const formCopy = {
+                ...this.form,
+                in_dynamic_range: (this.form.in_dynamic_range || []).filter(Boolean),
+                out_dynamic_range: (this.form.out_dynamic_range || []).filter(Boolean),
+                in_language: (this.form.in_language || []).filter(Boolean),
+                out_language: (this.form.out_language || []).filter(Boolean),
+            }
 
             this.new_records_count = 0
             this.lastTotalPacketsCount = null
 
-            // Use cleaned formCopy for request and localStorage
+            // Use formCopy for the query only
             this.$inertia.get('/browse', pickBy(formCopy), { preserveState: true })
 
-            const { saveState } = usePageStateSync('browse', formCopy, { version: STATE_VERSION })
-            saveState()
+            // Update the shared reactive browseState, then save it
+            Object.assign(this.browseState, formCopy)
+            this.saveBrowseState()
 
             if (this.$refs.queue) {
                 this.$refs.queue.hide()
