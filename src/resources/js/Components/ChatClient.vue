@@ -34,17 +34,14 @@
         <!-- Start Chat Area -->
         <div ref="consoleTarget" role="tabpanel" aria-labelledby="console-tab"
             class="flex flex-col w-full h-full inset-0 border-x border-gray-100">
-            <chat-console :settings="settings" :user="client.user" :network="network" :notice="notice"
-                :isActive="'console-tab' === activeTab.id" />
+            <chat-console v-bind="getConsoleProps()" />
         </div>
 
         <div v-for="channel in channels" :key="`${channel}`" :ref="`${channel}-target`" role="tabpanel"
             :aria-labelledby="`${channel}-tab`"
             class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden">
-            <chat-channel :settings="settings" :downloads="downloads" :downloadLocks="downloadLocks" :user="client.user"
-                :network="network" :notice="notice" :connection="client.connection"
-                :channel="client.channels[`#${channel}`]" :isActive="`${channel}-tab` === activeTab.id"
-                @call:xdccSend="xdccSend" @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
+            <chat-channel v-bind="getChannelProps(channel)" @call:xdccSend="xdccSend"
+                @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
                 @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
 
@@ -52,9 +49,8 @@
             :aria-labelledby="`${nick}-tab`"
             class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden"
             :class="classTabHidden(`${nick}-tab`)">
-            <chat-privmsg :settings="settings" :downloads="downloads" :downloadLocks="downloadLocks" :user="client.user"
-                :network="network" :nick="nick" :privmsgs="privmsg[nick]" :isActive="`${nick}-tab` === activeTab.id"
-                @call:xdccSend="xdccSend" @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
+            <chat-privmsg v-bind="getPrivMsgProps(nick)" @call:xdccSend="xdccSend"
+                @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
                 @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
         <!-- End Chat Area -->
@@ -63,7 +59,7 @@
 </template>
 
 <script>
-import { Tabs } from 'flowbite'
+import { nextTick } from 'vue'
 import { saveOperation } from '@/Clients/operation'
 import { streamNotice, streamPrivmsg } from '@/Clients/stream'
 import { COMMAND, parseChatLog, parseChatLine, parseChatMessage, makeIrcCommand } from '@/chat'
@@ -72,7 +68,9 @@ import { has, throttle } from '@/funcs'
 import ChatChannel from '@/Components/ChatChannel.vue'
 import ChatConsole from '@/Components/ChatConsole.vue'
 import ChatPrivmsg from '@/Components/ChatPrivmsg.vue'
-import { usePageStateSync } from '@/Composables/usePageStateSync'
+
+// composables
+import { useFlowbiteTabs } from '@/Composables/useFlowbiteTabs'
 
 const noticeInterval = 1000 // Check chat messages every 1 seconds.
 const privmsgInterval = 1000 // Check privmsg every 1 seconds.
@@ -91,8 +89,16 @@ export default {
         client: Object,
         channels: Array,
         isActive: Boolean,
+        chatState: Object,
+        saveState: Function,
     },
     data() {
+        const urlParams = new URLSearchParams(window.location.search)
+        const key = `channelTabs[${this.network}]`
+        const queryTabId = urlParams.get(key)
+
+        const defaultTabId = queryTabId || this.chatState.channelTabs?.[this.network] || 'console-tab'
+
         return {
             tabs: null,
             notice: [],
@@ -106,6 +112,7 @@ export default {
             activeTab: { id: null },
             privmsgTimeoutId: null,
             noticeTimeoutId: null,
+            defaultTabId,
         }
     },
     watch: {
@@ -117,7 +124,9 @@ export default {
         },
     },
     mounted() {
-        this.makeTabs()
+        nextTick(() => {
+            this.makeTabs()
+        })
         this.streamNotice()
         this.streamPrivmsg()
     },
@@ -149,6 +158,40 @@ export default {
                 ]
             } else {
                 return []
+            }
+        },
+        getChannelProps(channel) {
+            return {
+                settings: this.settings,
+                downloads: this.downloads,
+                downloadLocks: this.downloadLocks,
+                user: this.client.user,
+                network: this.network,
+                notice: this.notice,
+                connection: this.client.connection,
+                channel: this.client.channels[`#${channel}`],
+                isActive: `${channel}-tab` === this.activeTab.id,
+            }
+        },
+        getConsoleProps() {
+            return {
+                settings: this.settings,
+                user: this.client.user,
+                network: this.network,
+                notice: this.notice,
+                isActive: 'console-tab' === this.activeTab.id,
+            }
+        },
+        getPrivMsgProps(nick) {
+            return {
+                settings: this.settings,
+                downloads: this.downloads,
+                downloadLocks: this.downloadLocks,
+                user: this.client.user,
+                network: this.network,
+                nick: nick,
+                privmsgs: this.privmsg[nick],
+                isActive: `${nick}-tab` === this.activeTab.id,
             }
         },
         divertPrivmsg(date, message) {
@@ -272,78 +315,71 @@ export default {
             }
         },
         makeTabs() {
-            if (null !== this.tabs) {
-                this.tabs.destroy()
-            }
+            const defaultTabId = this.defaultTabId || 'console-tab'
 
-            const { state: chatState, saveState } = usePageStateSync('chat', { channelTabs: {} })
+            const tabElements = []
 
-            // Override from query string if available
-            const urlParams = new URLSearchParams(window.location.search)
-            const key = `channelTabs[${this.network}]`
-            const queryTabId = urlParams.get(key)
-
-            const defaultTabId = queryTabId || chatState.channelTabs?.[this.network] || 'console-tab'
-
-            const tabElements = [{
+            tabElements.push({
                 id: 'console-tab',
                 triggerEl: this.$refs.consoleTrigger,
                 targetEl: this.$refs.consoleTarget,
-            }]
+            })
 
             this.channels.forEach((channel) => {
-                tabElements.push({
-                    id: `${channel}-tab`,
-                    triggerEl: this.$refs[`${channel}-trigger`][0],
-                    targetEl: this.$refs[`${channel}-target`][0],
-                })
-            });
+                const trigger = this.$refs[`${channel}-trigger`]?.[0]
+                const target = this.$refs[`${channel}-target`]?.[0]
+
+                if (trigger && target) {
+                    tabElements.push({
+                        id: `${channel}-tab`,
+                        triggerEl: trigger,
+                        targetEl: target,
+                    })
+                }
+            })
 
             this.privmsgTabs.forEach((nick) => {
-                tabElements.push({
-                    id: `${nick}-tab`,
-                    triggerEl: this.$refs[`${nick}-trigger`][0],
-                    targetEl: this.$refs[`${nick}-target`][0],
-                })
-            });
+                const trigger = this.$refs[`${nick}-trigger`]?.[0]
+                const target = this.$refs[`${nick}-target`]?.[0]
 
-            this.tabs = new Tabs(this.$refs.channelTabs, tabElements, {
+                if (trigger && target) {
+                    tabElements.push({
+                        id: `${nick}-tab`,
+                        triggerEl: trigger,
+                        targetEl: target,
+                    })
+                }
+            })
+
+            this.tabs = useFlowbiteTabs({
+                tabContainerRef: this.$refs.channelTabs,
+                tabElements,
                 defaultTabId,
-                activeClasses:
-                    'text-blue-600 hover:text-blue-600 dark:text-blue-500 dark:hover:text-blue-400 border-blue-600 dark:border-blue-500',
-                inactiveClasses:
-                    'text-gray-500 hover:text-gray-600 dark:text-gray-400 border-gray-100 hover:border-gray-300 dark:border-gray-700 dark:hover:text-gray-300',
                 onShow: (tabs) => {
                     this.activeTab = tabs.getActiveTab()
 
-                    if (!chatState.channelTabs) {
-                        chatState.channelTabs = {}
-                    }
+                    this.$emit('update:channelTab', {
+                        network: this.network,
+                        tabId: this.activeTab.id,
+                    })
 
-                    chatState.channelTabs[this.network] = this.activeTab.id
-                    saveState()
-
-                    // Update only this network's channelTabs value in query string
+                    // Update URL
                     const url = new URL(window.location.href)
                     const key = `channelTabs[${this.network}]`
                     url.searchParams.set(key, this.activeTab.id)
                     window.history.replaceState({}, '', url)
-                },
-            },
-                {
-                    id: 'channel-tabs',
-                    override: true
                 }
-            )
+            })
         },
     },
     emits: [
+        'update:channelTab',
         'call:checkDownloadQueue',
-        'call:showNetwork',
+        'call:removeCompleted',
         'call:requestCancel',
         'call:requestRemove',
-        'call:removeCompleted',
-        'call:saveDownloadDestination'
-    ],
+        'call:saveDownloadDestination',
+        'call:showNetwork'
+    ]
 }
 </script>

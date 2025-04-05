@@ -19,12 +19,10 @@
                 <div>
                     <div v-for="network in networks" :ref="`${network}-target`" role="tabpanel"
                         :aria-labelledby="`${network}-tab`" class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
-                        <chat-client :settings="settings" :downloads="downloads" :downloadLocks="downloadLocks"
-                            :network="network" :client="clients[network]" :channels="listChannels(clients[network])"
-                            :isActive="`${network}-tab` === activeTab.id" @call:checkDownloadQueue="checkDownloadQueue"
-                            @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
-                            @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination"
-                            @call:showNetwork="showNetwork" />
+                        <chat-client v-bind="getClientProps(network)" @update:channelTab="handleChannelTabUpdate"
+                            @call:checkDownloadQueue="checkDownloadQueue" @call:removeCompleted="removeCompleted"
+                            @call:requestCancel="requestCancel" @call:requestRemove="requestRemove"
+                            @call:saveDownloadDestination="saveDownloadDestination" @call:showNetwork="showNetwork" />
                     </div>
                 </div>
             </div>
@@ -33,7 +31,7 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { nextTick } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import { initFlowbite, Tabs } from 'flowbite'
 import Multiselect from '@vueform/multiselect'
@@ -49,7 +47,10 @@ import { removeCompleted, requestRemove, requestCancel } from '@/Clients/rpc'
 import { cleanChannelName } from '@/format'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ChatClient from '@/Components/ChatClient.vue'
-import { usePageStateSync, STATE_VERSION } from '@/Composables/usePageStateSync'
+
+// composables
+import { useFlowbiteTabs } from '@/Composables/useFlowbiteTabs'
+import { usePageStateSync } from '@/Composables/usePageStateSync'
 
 const clientsInterval = 10000 // Check network connections every 10 seconds.
 const downloadQueueInterval = 5000; // Check download queue every 5 seconds.
@@ -78,7 +79,8 @@ export default {
             : null
 
         const { state: chatState, saveState } = usePageStateSync('chat', {
-            activeTabId: defaultTabId
+            activeTabId: defaultTabId,
+            channelTabs: {},
         })
 
         return {
@@ -92,7 +94,7 @@ export default {
             downloadQueueTimeoutId: null,
             locksTimeoutId: null,
             chatState,
-            saveChatState: saveState,
+            saveState,
         }
     },
     mounted() {
@@ -108,7 +110,9 @@ export default {
             this.chatState.activeTabId = queryTabId
         }
 
-        this.tabs = this.makeTabs()
+        nextTick(() => {
+            this.tabs = this.makeTabs()
+        })
     },
     beforeUnmount() {
         this.clearAllIntervals()
@@ -130,6 +134,19 @@ export default {
         showNetwork(network) {
             if (this.tabs) {
                 this.tabs.show(`${network}-tab`)
+            }
+        },
+        getClientProps(network) {
+            return {
+                settings: this.settings,
+                downloads: this.downloads,
+                downloadLocks: this.downloadLocks,
+                network,
+                client: this.clients[network],
+                channels: this.listChannels(this.clients[network]),
+                chatState: this.chatState,
+                saveState: this.saveState,
+                isActive: `${network}-tab` === this.activeTab.id,
             }
         },
         async checkDownloadQueue() {
@@ -252,39 +269,35 @@ export default {
             return channels
         },
         makeTabs() {
-            const tabElements = []
+            const tabElements = this.networks.map((network) => {
+                const trigger = this.$refs[`${network}-trigger`]?.[0]
+                const target = this.$refs[`${network}-target`]?.[0]
+                return (trigger && target)
+                    ? { id: `${network}-tab`, triggerEl: trigger, targetEl: target }
+                    : null
+            }).filter(Boolean)
 
-            this.networks.forEach((network) => {
-                tabElements.push({
-                    id: `${network}-tab`,
-                    triggerEl: this.$refs[`${network}-trigger`][0],
-                    targetEl: this.$refs[`${network}-target`][0],
-                })
-            })
-
-            const tabsInstance = new Tabs(this.$refs.networkTabs, tabElements, {
-                defaultTabId: this.chatState.activeTabId || tabElements[0].id,
-                activeClasses: '...',
-                inactiveClasses: '...',
+            return useFlowbiteTabs({
+                tabContainerRef: this.$refs.networkTabs,
+                tabElements,
+                defaultTabId: this.chatState.activeTabId,
                 onShow: (tabs) => {
                     this.activeTab = tabs.getActiveTab()
                     this.chatState.activeTabId = this.activeTab.id
-                    this.saveChatState()
-
+                    this.saveState()
                     const url = new URL(window.location.href)
                     url.searchParams.set('activeTabId', this.activeTab.id)
                     window.history.replaceState({}, '', url)
-                },
-            }, {
-                id: 'network-tabs',
-                override: true,
+                }
             })
+        },
+        handleChannelTabUpdate({ network, tabId }) {
+            if (!this.chatState.channelTabs) {
+                this.chatState.channelTabs = {}
+            }
 
-            // Ensure correct tab is shown manually to avoid race condition
-            // const initialTabId = this.chatState.activeTabId || tabElements[0].id
-            // tabsInstance.show(initialTabId)
-
-            return tabsInstance
+            this.chatState.channelTabs[network] = tabId
+            this.saveState()
         },
     },
 }

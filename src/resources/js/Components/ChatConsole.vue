@@ -110,9 +110,7 @@ export default {
             clearTimeout(this.consoleTimeoutId)
         },
         addLines(lines) {
-            lines.forEach((line) => {
-                this.lines.push(line)
-            })
+            this.lines = [...this.lines, ...lines]
         },
         pruneLines() {
             const linesTotal = this.lines.length

@@ -180,19 +180,19 @@ function isIrcCommand(ircCommand) {
 }
 
 function parseChatLine(line) {
-    // https://regexr.com/890ra
-    const re = /^\[(\d{4}\-\d{2}\-\d{2}T\d{2}\:\d{2}\:\d{2}[\+|\-]\d{2}\:\d{2})]\s(.*)$/s
-    let [date, message, error] = [null, null, null]
+    const re = /^\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})]\s(.*)$/s;
+    let [date, message, error] = [null, null, null];
 
-    try {
-        ([, date, message] = re.exec(line))
-    } catch(error) {
-        // Sometimes the server chunks a line in a way thats impossible to parse.
-        console.log(`couldn't parse line: ${line}`)
-        console.error(error)
+    const match = re.exec(line);
+    if (match) {
+        [, date, message] = match;
+    } else {
+        // bad formatting
+        error = `Invalid chat line format: ${line}`
+        console.warn(error);
     }
 
-    return {date, message, error}
+    return { date, message, error };
 }
 
 async function parseChatLog(data) {

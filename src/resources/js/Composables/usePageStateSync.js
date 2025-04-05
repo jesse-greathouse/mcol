@@ -2,11 +2,30 @@ import { reactive, toRaw } from 'vue'
 
 export const STATE_VERSION = 2
 
+function deepMerge(target, source) {
+  for (const key in source) {
+    if (
+      source[key] &&
+      typeof source[key] === 'object' &&
+      !Array.isArray(source[key])
+    ) {
+      target[key] = deepMerge({ ...(target[key] || {}) }, source[key])
+    } else {
+      target[key] = source[key]
+    }
+  }
+  return target
+}
+
 export function usePageStateSync(key, initialState = {}, options = {}) {
   const version = options.version ?? STATE_VERSION
 
   const saved = loadStoredPageState(key, version)
-  const state = reactive(saved ?? { ...initialState })
+
+  // Merge initialState with saved version to avoid key loss
+  const merged = deepMerge({ ...initialState }, saved ?? {})
+
+  const state = reactive(merged)
 
   const saveState = () => {
     const raw = toRaw(state)

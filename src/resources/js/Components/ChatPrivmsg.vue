@@ -125,9 +125,7 @@ export default {
             this.privmsgIndex = this.privmsgs.length
         },
         addLines(lines) {
-            lines.forEach((line) => {
-                this.lines.push(line)
-            })
+            this.lines = [...this.lines, ...lines]
         },
         isScrolledToBottom() {
             const privmsgPane = this.$refs.privmsgPane

@@ -26,10 +26,11 @@
         <div ref="chatPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3"
             :style="{ maxHeight: chatPaneHeight }">
             <div v-if="isLoading" class="p-4 text-gray-400 text-sm">Loading chat...</div>
-            <message-line v-for="(line, i) in lines" :key="`line-${i}`" :settings="settings" :downloads="downloads"
-                :downloadLocks="downloadLocks" :showDate="showDate" :line="line" :channel="channel"
-                @call:xdccSend="xdccSend" @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
-                @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination" />
+            <message-line v-for="line in lines" v-memo="[line.line]" :key="line.id" :settings="settings"
+                :downloads="downloads" :downloadLocks="downloadLocks" :showDate="showDate" :line="line"
+                :channel="channel" @call:xdccSend="xdccSend" @call:removeCompleted="removeCompleted"
+                @call:requestCancel="requestCancel" @call:requestRemove="requestRemove"
+                @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
         <!-- End Chat Pane -->
 
@@ -188,7 +189,7 @@ export default {
             clearTimeout(this.eventTimeoutId)
         },
         addLines(lines) {
-            this.lines.push(...lines)
+            this.lines = [...this.lines, ...lines]
         },
         pruneLines() {
             const linesTotal = this.lines.length

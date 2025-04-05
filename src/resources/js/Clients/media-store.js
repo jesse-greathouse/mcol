@@ -23,15 +23,13 @@ async function fetchStoreRoot(store, index = null) {
     let url = `${endpoint}/${store}`
 
     if (null !== index) {
-        const [_href,] = mergeDataIntoQueryString('get', url, {index})
-        url = hrefToUrl(_href)
+        const [href] = mergeDataIntoQueryString('get', url, {index})
+        url = hrefToUrl(href)
     }
 
     try {
-        const response = await axios.get(url, headers)
-        if (has(response.data, 'data')) {
-            data =  response.data.data
-        }
+        const response = await axios.get(url, { headers })
+        data = response.data.data ?? null
     } catch (e) {
         error = e
     }
@@ -42,19 +40,34 @@ async function fetchStoreRoot(store, index = null) {
 async function fetchUri(uri) {
     let data = null
     let error = null
-    const [_href,] = mergeDataIntoQueryString('get', endpoint, {uri})
-    const url = hrefToUrl(_href)
+    const [href] = mergeDataIntoQueryString('get', endpoint, { uri })
+    const url = hrefToUrl(href)
 
     try {
-        const response = await axios.get(url, headers)
-        if (has(response.data, 'data')) {
-            data =  response.data.data
+        const response = await axios.get(url, {
+            headers,
+            validateStatus: status => status === 400 || (status >= 200 && status < 300)
+        })
+
+        if (response.status === 400) {
+            // We reach this because we ACCEPTED 400 as a valid status.
+            // So it's not an exception — just a business logic case.
+            error = {
+                code: 'ERR_BAD_REQUEST',
+                message: `Directory (${uri}) not found`,
+                status: 400,
+                response: response.data
+            }
+        } else {
+            data = has(response.data, 'data') ? response.data.data : null
         }
-    } catch (e) {
-        error = e
+
+    } catch (error) {
+        // Handle errors, including those with status codes outside the 2xx range
+        console.error('Request failed with status:', error.response?.status);
     }
 
-    return {data, error}
+    return { data, error }
 }
 
 async function mkDir(uri) {
@@ -65,9 +78,7 @@ async function mkDir(uri) {
 
     try {
         const response = await axios.post(url, body, headers)
-        if (has(response.data, 'data')) {
-            data =  response.data.data
-        }
+        data = response.data.data ?? null
     } catch (e) {
         error = e
     }
@@ -78,14 +89,12 @@ async function mkDir(uri) {
 async function rmDir(uri) {
     let data = null
     let error = null
-    const [_href,] = mergeDataIntoQueryString('get', endpoint, {uri})
-    const url = hrefToUrl(_href)
+    const [href] = mergeDataIntoQueryString('get', endpoint, {uri})
+    const url = hrefToUrl(href)
 
     try {
-        const response = await axios.delete(url, headers)
-        if (has(response.data, 'data')) {
-            data =  response.data.data
-        }
+        const response = await axios.delete(url, { headers })
+        data = response.data.data ?? null
     } catch (e) {
         error = e
     }
