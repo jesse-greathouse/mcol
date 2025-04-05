@@ -21,6 +21,7 @@ use App\Chat\Log\Diverter as LogDiverter,
     App\Events\PacketSearchSummary as PacketSearchSummaryEvent,
     App\Exceptions\NetworkWithNoChannelException,
     App\Exceptions\UnmappedChatLogEventException,
+    App\Exceptions\MessageBrokerException,
     App\Jobs\CheckFileDownloadCompleted,
     App\Jobs\DccDownload,
     App\Jobs\GeneratePacketMeta,
@@ -44,6 +45,7 @@ use App\Chat\Log\Diverter as LogDiverter,
     App\SystemMessage;
 
 use DateTime,
+    Throwable,
     TypeError;
 
 class Client
@@ -205,8 +207,8 @@ class Client
         $this->client = new IrcClient("{$network->firstServer->host}:6667", $options, self::VERSION);
 
         $this->clientModel = ClientModel::updateOrCreate(
-            [ 'network_id' => $this->network->id, 'nick_id' => $this->nick->id ],
-            [ 'enabled' => true, 'meta' => $this->client->toJson() ],
+            ['network_id' => $this->network->id, 'nick_id' => $this->nick->id],
+            ['enabled' => true, 'meta' => $this->client->toJson()],
         );
 
         $this->assignHandlers();
@@ -224,7 +226,20 @@ class Client
         if ($this->systemMessage) {
             // Prepend the network name to the routing key.
             $routingKey = "{$this->network->name}.$routingKey";
-            $this->systemMessage->send($message, MessageQueue::SYSTEM_MESSAGE_CHAT, $routingKey);
+
+            try {
+                $this->systemMessage->send($message, MessageQueue::SYSTEM_MESSAGE_CHAT, $routingKey);
+                return;
+            } catch (Throwable $e) {
+                // MessageBrokerException is typically thrown when message has a non-UTF-8 Char
+                // This tolerates skipping a system message when its a problem for the Broker.
+                if ($e instanceof MessageBrokerException) {
+                    $this->console->warn("========[ {$this->network->name} Client to Message Broker Exception: {$e->getMessage()}");
+                    return;
+                }
+
+                throw $e;
+            }
         }
     }
 
@@ -755,7 +770,7 @@ class Client
         ];
 
         if (count($parts) >= 5) {
-            [, , $fileName, $ip, $port, $fileSizeOrPosition] = explode(' ', $message);
+            [,, $fileName, $ip, $port, $fileSizeOrPosition] = explode(' ', $message);
 
             $extracted['fileName'] = $fileName;
             $extracted['ip'] = $this->cleanNumericStr($ip);
@@ -856,8 +871,10 @@ class Client
                 $this->parsePacketMessage($from, $channel, $message);
             } catch (UnmappedChatLogEventException) {
                 $this->console->error(
-                    sprintf("Unmapped %s event for channel: \"%s\" (This usually happens due to a truncated network message.)",
-                        LogMapper::EVENT_MESSAGE, $channel->getName()
+                    sprintf(
+                        "Unmapped %s event for channel: \"%s\" (This usually happens due to a truncated network message.)",
+                        LogMapper::EVENT_MESSAGE,
+                        $channel->getName()
                     )
                 );
             }
@@ -1192,7 +1209,7 @@ class Client
 
         try {
             $this->makeSearchResult($fileName, $fileSize, $nick, $packetNumber);
-        } catch(NetworkWithNoChannelException) {
+        } catch (NetworkWithNoChannelException) {
             $this->console->warn("Unable to map $nick to a channel [NetworkWithNoChannelException]");
         }
     }
@@ -1561,7 +1578,7 @@ class Client
             $this->updateChannel($channelName);
         });
 
-        foreach($this->client->getChannels() as $channel) {
+        foreach ($this->client->getChannels() as $channel) {
             $channelName = $channel->getName();
             $namesChannelHandle = IrcClientEvent::NAMES . $channelName;
 
@@ -1655,7 +1672,7 @@ class Client
         }
 
         $this->bots[$nick] = Bot::updateOrCreate(
-            [ 'network_id' => $this->network->id, 'nick' => $nick ]
+            ['network_id' => $this->network->id, 'nick' => $nick]
         );
 
         return $this->bots[$nick];
@@ -1788,5 +1805,4 @@ class Client
         // Fetch and return the channel from the client using the channel name.
         return $this->client->getChannel($channelName);
     }
-
 }

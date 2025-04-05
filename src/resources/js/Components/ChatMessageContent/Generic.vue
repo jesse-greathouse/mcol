@@ -4,8 +4,9 @@
 
 <script>
 export default {
-  props: {
-    content: String,
-  },
+    inheritAttrs: false,
+    props: {
+        content: String,
+    },
 }
 </script>

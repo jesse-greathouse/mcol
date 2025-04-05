@@ -3,7 +3,9 @@
         <!-- Start Console Pane -->
         <div ref="consolePane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3"
             :style="{ maxHeight: consolePaneHeight }">
-            <console-line v-for="(line, i) in lines" :key="`line-${i}`" :showDate="showDate" :line="line" />
+            <div ref="bufferContainer">
+                <console-line v-for="(line, i) in lines" :key="`line-${i}`" :showDate="showDate" :line="line" />
+            </div>
         </div>
         <!-- End Console Pane -->
     </div>
@@ -86,6 +88,7 @@ export default {
         },
     },
     mounted() {
+        this.getLinesFromStorage(100)
         window.addEventListener('resize', this.handleResize);
         this.$refs.consolePane.addEventListener('scroll', this.handleScroll);
         this.scrollToBottom()
@@ -109,8 +112,13 @@ export default {
         clearAllIntervals() {
             clearTimeout(this.consoleTimeoutId)
         },
-        addLines(lines) {
-            this.lines = [...this.lines, ...lines]
+        addLines(newLines) {
+            if (!newLines?.length) return
+
+            this.lines = [...this.lines, ...newLines]
+
+            // Save only the last 30 lines
+            this.saveLinesToStorage(100)
         },
         pruneLines() {
             const linesTotal = this.lines.length
@@ -121,6 +129,28 @@ export default {
         },
         clearConsoleInterval() {
             clearTimeout(this.consoleTimeoutId)
+        },
+        getBufferHtml() {
+            return this.$refs.bufferContainer?.innerHTML || ''
+        },
+        getLinesFromStorage(max = 30) {
+            // Restore lines from storage
+            const stored = localStorage.getItem(`chat:buffer:${this.network}:console`)
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored)
+                    if (Array.isArray(parsed)) {
+                        this.lines = parsed.slice(0, max) // default 30
+                        this.isLoading = false // since lines are already showing
+                    }
+                } catch (err) {
+                    console.warn('Failed to parse chat buffer JSON', err)
+                }
+            }
+        },
+        saveLinesToStorage(max = 30) {
+            const recentLines = this.lines.slice(-max)
+            localStorage.setItem(`chat:buffer:${this.network}:console`, JSON.stringify(recentLines))
         },
         resetConsoleInterval() {
             this.clearConsoleInterval()

@@ -26,11 +26,14 @@
         <div ref="chatPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3"
             :style="{ maxHeight: chatPaneHeight }">
             <div v-if="isLoading" class="p-4 text-gray-400 text-sm">Loading chat...</div>
-            <message-line v-for="line in lines" v-memo="[line.line]" :key="line.id" :settings="settings"
-                :downloads="downloads" :downloadLocks="downloadLocks" :showDate="showDate" :line="line"
-                :channel="channel" @call:xdccSend="xdccSend" @call:removeCompleted="removeCompleted"
-                @call:requestCancel="requestCancel" @call:requestRemove="requestRemove"
-                @call:saveDownloadDestination="saveDownloadDestination" />
+            <div ref="bufferContainer">
+                <message-line v-for="line in lines" :key="line.id" :settings="settings" :downloads="downloads"
+                    :downloadLocks="downloadLocks" :showDate="showDate" :line="line" :channel="channel"
+                    @call:xdccSend="xdccSend" @call:removeCompleted="removeCompleted"
+                    @call:requestCancel="requestCancel" @call:requestRemove="requestRemove"
+                    @call:saveDownloadDestination="saveDownloadDestination" />
+
+            </div>
         </div>
         <!-- End Chat Pane -->
 
@@ -146,6 +149,7 @@ export default {
         },
     },
     mounted() {
+        this.getLinesFromStorage(30)
         window.addEventListener('resize', this.handleResize)
         this.$refs.chatPane.addEventListener('scroll', this.handleScroll)
 
@@ -188,8 +192,35 @@ export default {
             clearTimeout(this.messageTimeoutId)
             clearTimeout(this.eventTimeoutId)
         },
-        addLines(lines) {
-            this.lines = [...this.lines, ...lines]
+        addLines(newLines) {
+            if (!newLines?.length) return
+
+            this.lines = [...this.lines, ...newLines]
+
+            // Save only the last 30 lines
+            this.saveLinesToStorage(30)
+        },
+        getBufferHtml() {
+            return this.$refs.bufferContainer?.innerHTML || ''
+        },
+        getLinesFromStorage(max = 30) {
+            // Restore lines from storage
+            const stored = localStorage.getItem(`chat:buffer:${this.network}:${this.cleanChannelName}`)
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored)
+                    if (Array.isArray(parsed)) {
+                        this.lines = parsed.slice(0, max) // default 30
+                        this.isLoading = false // since lines are already showing
+                    }
+                } catch (err) {
+                    console.warn('Failed to parse chat buffer JSON', err)
+                }
+            }
+        },
+        saveLinesToStorage(max = 30) {
+            const recentLines = this.lines.slice(-max)
+            localStorage.setItem(`chat:buffer:${this.network}:${this.cleanChannelName}`, JSON.stringify(recentLines))
         },
         pruneLines() {
             const linesTotal = this.lines.length

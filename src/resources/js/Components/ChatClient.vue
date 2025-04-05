@@ -34,14 +34,14 @@
         <!-- Start Chat Area -->
         <div ref="consoleTarget" role="tabpanel" aria-labelledby="console-tab"
             class="flex flex-col w-full h-full inset-0 border-x border-gray-100">
-            <chat-console v-bind="getConsoleProps()" />
+            <chat-console :ref="el => chatPaneRefs['console'] = el" key="console" v-bind="getConsoleProps()" />
         </div>
 
         <div v-for="channel in channels" :key="`${channel}`" :ref="`${channel}-target`" role="tabpanel"
             :aria-labelledby="`${channel}-tab`"
             class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden">
-            <chat-channel v-bind="getChannelProps(channel)" @call:xdccSend="xdccSend"
-                @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
+            <chat-channel :ref="el => chatPaneRefs[channel] = el" :key="channel" v-bind="getChannelProps(channel)"
+                @call:xdccSend="xdccSend" @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
                 @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
 
@@ -49,8 +49,8 @@
             :aria-labelledby="`${nick}-tab`"
             class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden"
             :class="classTabHidden(`${nick}-tab`)">
-            <chat-privmsg v-bind="getPrivMsgProps(nick)" @call:xdccSend="xdccSend"
-                @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
+            <chat-privmsg :ref="el => chatPaneRefs[nick] = el" :key="nick" v-bind="getPrivMsgProps(nick)"
+                @call:xdccSend="xdccSend" @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
                 @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
         <!-- End Chat Area -->
@@ -102,6 +102,7 @@ export default {
         return {
             tabs: null,
             notice: [],
+            chatPaneRefs: {},
             privmsg: {},
             privmsgCount: {},
             privmsgIndex: {},
@@ -123,13 +124,15 @@ export default {
             }, 150),
         },
     },
-    mounted() {
+    async mounted() {
+        this.streamNotice()
+        this.streamPrivmsg()
+
         nextTick(() => {
             this.makeTabs()
         })
-        this.streamNotice()
-        this.streamPrivmsg()
     },
+
     beforeUnmount() {
         this.clearAllIntervals()
     },

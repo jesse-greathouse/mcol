@@ -24,11 +24,13 @@
         <!-- Start Chat Pane -->
         <div ref="privmsgPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3"
             :style="{ maxHeight: privmsgPaneHeight }">
-            <privmsg-line v-for="(line, i) in lines" :settings="settings" :downloads="downloads"
-                :downloadLocks="downloadLocks" :key="`line-${i}`" :showDate="showDate" :type="line.type"
-                :nick="line.nick" :timestamp="line.timestamp" :content="line.content"
-                @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
-                @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination" />
+            <div ref="bufferContainer">
+                <privmsg-line v-for="(line, i) in lines" :settings="settings" :downloads="downloads"
+                    :downloadLocks="downloadLocks" :key="`line-${i}`" :showDate="showDate" :type="line.type"
+                    :nick="line.nick" :timestamp="line.timestamp" :content="line.content"
+                    @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
+                    @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination" />
+            </div>
         </div>
         <!-- End Chat Pane -->
     </div>
@@ -91,6 +93,7 @@ export default {
     },
     mounted() {
         this.handlePrivmsgs()
+        this.getLinesFromStorage(200)
         window.addEventListener('resize', this.handleResize);
         this.$refs.privmsgPane.addEventListener('scroll', this.handleScroll);
         this.scrollToBottom()
@@ -124,8 +127,34 @@ export default {
 
             this.privmsgIndex = this.privmsgs.length
         },
-        addLines(lines) {
-            this.lines = [...this.lines, ...lines]
+        addLines(newLines) {
+            if (!newLines?.length) return
+
+            this.lines = [...this.lines, ...newLines]
+
+            this.saveLinesToStorage(200)
+        },
+        getBufferHtml() {
+            return this.$refs.bufferContainer?.innerHTML || ''
+        },
+        getLinesFromStorage(max = 30) {
+            // Restore lines from storage
+            const stored = localStorage.getItem(`chat:buffer:${this.network}:${this.user}`)
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored)
+                    if (Array.isArray(parsed)) {
+                        this.lines = parsed.slice(0, max) // default 30
+                        this.isLoading = false // since lines are already showing
+                    }
+                } catch (err) {
+                    console.warn('Failed to parse chat buffer JSON', err)
+                }
+            }
+        },
+        saveLinesToStorage(max = 30) {
+            const recentLines = this.lines.slice(-max)
+            localStorage.setItem(`chat:buffer:${this.network}:${this.user}`, JSON.stringify(recentLines))
         },
         isScrolledToBottom() {
             const privmsgPane = this.$refs.privmsgPane

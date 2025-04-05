@@ -1,34 +1,31 @@
 <template>
-    <packet
-        :settings="settings"
-        :content="content"
-        :packet="download"
-        :isDownloadLocked="isDownloadLocked"
-        @call:xdccSend="xdccSend"/>
+    <packet :settings="settings" :content="content" :packet="download" :isDownloadLocked="isDownloadLocked"
+        @call:xdccSend="xdccSend" />
 </template>
 
 <script>
 import Packet from '@/Components/ChatMessageContent/Packet.vue'
 
 export default {
-  components: {
-    Packet,
-  },
-  props: {
-    download: Object,
-    content: String,
-    isDownloadLocked: {
-        type: Boolean,
-        default: false,
+    inheritAttrs: false,
+    components: {
+        Packet,
     },
-  },
-  methods: {
-    xdccSend() {
-        if (!this.isDownloadLocked) {
-            this.$emit('call:xdccSend', this.download)
-        }
+    props: {
+        download: Object,
+        content: String,
+        isDownloadLocked: {
+            type: Boolean,
+            default: false,
+        },
     },
-  },
-  emits: ['call:xdccSend'],
+    methods: {
+        xdccSend() {
+            if (!this.isDownloadLocked) {
+                this.$emit('call:xdccSend', this.download)
+            }
+        },
+    },
+    emits: ['call:xdccSend'],
 }
 </script>
