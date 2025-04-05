@@ -16,6 +16,7 @@
 </template>
 
 <script>
+import { nextTick } from 'vue'
 import { has } from '@/funcs'
 import { streamConsole } from '@/Clients/stream'
 import { scaleToViewportHeight } from '@/style'
@@ -24,9 +25,9 @@ import ConsoleLine from '@/Components/ChatConsoleLine.vue'
 import ChatInput from '@/Components/ChatInput.vue'
 import { usePageStateSync } from '@/Composables/usePageStateSync'
 
-const maxMessageLineBuffer = 1000 // Maximum 1000 lines so we don't crash the browser.
+const maxMessageLineBuffer = 1000
 const consolePaneScale = .70
-const consoleInterval = 60000 // Check console every 60 seconds.
+const consoleInterval = 60000
 
 export default {
     components: {
@@ -60,26 +61,22 @@ export default {
             shouldScrollToBottom: true,
             noticeIndex: 0,
             consoleTimeoutId: null,
+            pendingStorageSave: false,
+            saveRequestId: null,
         }
     },
     watch: {
-        isActive: {
-            handler: function () {
-                if (this.isActive) {
-                    this.scrollToBottom()
-                }
-            },
+        isActive(val) {
+            if (val) this.scrollToBottom()
         },
         notice: {
             deep: true,
-            handler: function () {
-                // Skip all the notices that came before.
-                if (0 < this.noticeIndex) {
-                    // Break off any new notices and add them to lines
+            handler() {
+                if (this.noticeIndex > 0) {
                     const diff = this.notice.length - this.noticeIndex
-                    if (0 < diff) {
+                    if (diff > 0) {
                         const lines = this.notice.slice(this.noticeIndex)
-                        const objects = lines.map(str => ({ type: 'notice', line: str }));
+                        const objects = lines.map(str => ({ type: 'notice', line: str }))
                         this.addLines(objects)
                     }
                 }
@@ -89,24 +86,31 @@ export default {
     },
     mounted() {
         this.getLinesFromStorage(100)
-        window.addEventListener('resize', this.handleResize);
-        this.$refs.consolePane.addEventListener('scroll', this.handleScroll);
+        window.addEventListener('resize', this.handleResize)
+        this.$refs.consolePane.addEventListener('scroll', this.handleScroll)
         this.scrollToBottom()
         this.streamConsole()
     },
     beforeUnmount() {
         this.clearAllIntervals()
+
+        if (this.saveRequestId) {
+            if ('cancelIdleCallback' in window) {
+                cancelIdleCallback(this.saveRequestId)
+            } else {
+                clearTimeout(this.saveRequestId)
+            }
+        }
+
+        this.$refs.consolePane?.removeEventListener('scroll', this.handleScroll)
+        window.removeEventListener('resize', this.handleResize)
     },
     updated() {
         if (this.shouldScrollToBottom) {
-            this.scrollToBottom()
+            nextTick(() => this.scrollToBottom())
         }
 
         this.pruneLines()
-    },
-    beforeUnmount() {
-        this.$refs.consolePane.removeEventListener('scroll', this.handleScroll);
-        window.removeEventListener('resize', this.handleResize);
     },
     methods: {
         clearAllIntervals() {
@@ -115,103 +119,102 @@ export default {
         addLines(newLines) {
             if (!newLines?.length) return
 
-            this.lines = [...this.lines, ...newLines]
+            const wasAtBottom = this.shouldScrollToBottom
+            this.lines.push(...newLines)
 
-            // Save only the last 30 lines
-            this.saveLinesToStorage(100)
+            if (wasAtBottom) {
+                nextTick(() => this.scrollToBottom())
+            }
+
+            if (!this.pendingStorageSave) {
+                this.pendingStorageSave = true
+
+                const saveFn = () => {
+                    this.saveLinesToStorage(100)
+                    this.pendingStorageSave = false
+                    this.saveRequestId = null
+                }
+
+                if ('requestIdleCallback' in window) {
+                    this.saveRequestId = requestIdleCallback(saveFn, { timeout: 2000 })
+                } else {
+                    this.saveRequestId = setTimeout(saveFn, 1000)
+                }
+            }
         },
         pruneLines() {
             const linesTotal = this.lines.length
-            if (linesTotal > maxMessageLineBuffer) {
-                const overBuffer = maxMessageLineBuffer - linesTotal
+            const overBuffer = linesTotal - maxMessageLineBuffer
+            if (overBuffer > 0) {
                 this.lines = this.lines.slice(overBuffer)
             }
-        },
-        clearConsoleInterval() {
-            clearTimeout(this.consoleTimeoutId)
         },
         getBufferHtml() {
             return this.$refs.bufferContainer?.innerHTML || ''
         },
-        getLinesFromStorage(max = 30) {
-            // Restore lines from storage
+        getLinesFromStorage(max = 100) {
             const stored = localStorage.getItem(`chat:buffer:${this.network}:console`)
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored)
                     if (Array.isArray(parsed)) {
-                        this.lines = parsed.slice(0, max) // default 30
-                        this.isLoading = false // since lines are already showing
+                        this.lines = parsed.slice(0, max)
                     }
                 } catch (err) {
-                    console.warn('Failed to parse chat buffer JSON', err)
+                    console.warn('Failed to parse console buffer JSON', err)
                 }
             }
         },
-        saveLinesToStorage(max = 30) {
+        saveLinesToStorage(max = 100) {
             const recentLines = this.lines.slice(-max)
-            localStorage.setItem(`chat:buffer:${this.network}:console`, JSON.stringify(recentLines))
+            try {
+                localStorage.setItem(`chat:buffer:${this.network}:console`, JSON.stringify(recentLines))
+            } catch (e) {
+                console.warn('Failed to save console buffer:', e)
+            }
         },
         resetConsoleInterval() {
             this.clearConsoleInterval()
-
-            // If we're not still on the chat page, then bail...
             if (!this.$page.url.startsWith('/chat')) return
-
-            this.consoleTimeoutId = setTimeout(this.streamConsole, consoleInterval);
+            this.consoleTimeoutId = setTimeout(this.streamConsole, consoleInterval)
+        },
+        clearConsoleInterval() {
+            clearTimeout(this.consoleTimeoutId)
         },
         isScrolledToBottom() {
             const consolePane = this.$refs.consolePane
-            if (!consolePane) {
-                return false
-            }
+            if (!consolePane) return false
 
             const scrollTop = consolePane.scrollTop
             const clientHeight = consolePane.clientHeight
             const scrollHeight = consolePane.scrollHeight
+            const scrollbarWidth = consolePane.offsetWidth - consolePane.clientWidth
 
-            // Adjust for horizontal scrollbar width
-            const horizontalScrollbarWidth = consolePane.offsetWidth - consolePane.clientWidth
-
-            return scrollTop + clientHeight >= scrollHeight - horizontalScrollbarWidth
+            return scrollTop + clientHeight >= scrollHeight - scrollbarWidth
         },
         scrollToBottom() {
-            const consolePane = this.$refs.consolePane
-            const lastChildElement = consolePane.lastElementChild
-            lastChildElement?.scrollIntoView({
-                behavior: 'smooth',
-            })
-        },
-        handleScroll() {
-            // If we're not still on the chat page, then bail...
-            if (!this.$page.url.startsWith('/chat')) return
+            const pane = this.$refs.consolePane
+            if (!pane) return
+            pane.scrollTop = pane.scrollHeight
 
-            this.shouldScrollToBottom = this.isScrolledToBottom()
-        },
-        scrollToBottom() {
-            const consolePane = this.$refs.consolePane
-            consolePane.scrollTop = consolePane.scrollHeight;
-
-            // Set it to scroll again to the bottom after 1 second.
-            // In case scrolling isn't complete after 1 second.
             setTimeout(() => {
-                // If we're not still on the chat page, then bail...
                 if (!this.$page.url.startsWith('/chat')) return
-
                 const refreshPane = this.$refs.consolePane
                 if (refreshPane) {
                     refreshPane.scrollTop = refreshPane.scrollHeight
                 }
-            }, 1000);
+            }, 1000)
+        },
+        handleScroll() {
+            this.shouldScrollToBottom = this.isScrolledToBottom()
         },
         async streamConsole() {
             this.shouldScrollToBottom = this.isScrolledToBottom()
             await streamConsole(this.network, this.consoleOffset, async (chunk) => {
                 const { lines, meta, parseError } = await parseChatLog(chunk)
-                if (null !== parseError) return
+                if (parseError !== null) return
 
-                const objects = lines.map(str => ({ type: 'console', line: str }));
-
+                const objects = lines.map(str => ({ type: 'console', line: str }))
                 this.addLines(objects)
 
                 if (has(meta, 'offset')) {
@@ -227,7 +230,10 @@ export default {
         handleResize() {
             this.consolePaneHeight = this.scaleToViewportHeight(consolePaneScale)
         },
+        handleOperation(operation, command, target) {
+            this.$emit('call:handleOperation', operation, command, target)
+        },
     },
-    emits: [],
+    emits: ['call:handleOperation'],
 }
 </script>

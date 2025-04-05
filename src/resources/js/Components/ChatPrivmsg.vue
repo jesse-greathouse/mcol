@@ -42,6 +42,7 @@
 </template>
 
 <script>
+import { nextTick } from 'vue'
 import { scaleToViewportHeight } from '@/style'
 import { makeChatLogDate, formatISODate } from '@/format'
 import { COMMAND } from '@/chat'
@@ -67,22 +68,19 @@ export default {
     },
     data() {
         return {
-            COMMAND: COMMAND,
+            COMMAND,
             privmsgPaneHeight: this.scaleToViewportHeight(privmsgPaneScale),
             lines: [],
             showDate: true,
-            userList: [],
             shouldScrollToBottom: true,
             privmsgIndex: 0,
+            pendingStorageSave: false,
+            saveRequestId: null,
         }
     },
     watch: {
-        isActive: {
-            handler: function () {
-                if (this.isActive) {
-                    this.scrollToBottom()
-                }
-            },
+        isActive(val) {
+            if (val) this.scrollToBottom()
         },
         privmsgs: {
             deep: true,
@@ -92,36 +90,40 @@ export default {
         },
     },
     mounted() {
-        this.handlePrivmsgs()
         this.getLinesFromStorage(200)
-        window.addEventListener('resize', this.handleResize);
-        this.$refs.privmsgPane.addEventListener('scroll', this.handleScroll);
+        this.handlePrivmsgs()
+        window.addEventListener('resize', this.handleResize)
+        this.$refs.privmsgPane.addEventListener('scroll', this.handleScroll)
         this.scrollToBottom()
     },
     updated() {
         if (this.shouldScrollToBottom) {
-            this.scrollToBottom()
+            nextTick(() => this.scrollToBottom())
         }
     },
     beforeUnmount() {
-        this.$refs.privmsgPane.removeEventListener('scroll', this.handleScroll);
-        window.removeEventListener('resize', this.handleResize);
-    },
-    computed: {
+        if (this.saveRequestId) {
+            if ('cancelIdleCallback' in window) {
+                cancelIdleCallback(this.saveRequestId)
+            } else {
+                clearTimeout(this.saveRequestId)
+            }
+        }
+
+        window.removeEventListener('resize', this.handleResize)
+        this.$refs.privmsgPane?.removeEventListener('scroll', this.handleScroll)
     },
     methods: {
         handlePrivmsgs() {
-            // Break off any new notices and add them to lines
             const diff = this.privmsgs.length - this.privmsgIndex
-            if (0 < diff) {
+            if (diff > 0) {
                 const lines = this.privmsgs.slice(this.privmsgIndex)
                 const objects = lines.map(privmsg => ({
                     type: 'privmsg',
                     content: privmsg.content,
                     nick: this.nick,
-                    timestamp: privmsg.timestamp
+                    timestamp: privmsg.timestamp,
                 }))
-
                 this.addLines(objects)
             }
 
@@ -130,65 +132,75 @@ export default {
         addLines(newLines) {
             if (!newLines?.length) return
 
-            this.lines = [...this.lines, ...newLines]
+            const wasAtBottom = this.shouldScrollToBottom
+            this.lines.push(...newLines)
 
-            this.saveLinesToStorage(200)
+            if (wasAtBottom) {
+                nextTick(() => this.scrollToBottom())
+            }
+
+            if (!this.pendingStorageSave) {
+                this.pendingStorageSave = true
+
+                const saveFn = () => {
+                    this.saveLinesToStorage(200)
+                    this.pendingStorageSave = false
+                    this.saveRequestId = null
+                }
+
+                if ('requestIdleCallback' in window) {
+                    this.saveRequestId = requestIdleCallback(saveFn, { timeout: 2000 })
+                } else {
+                    this.saveRequestId = setTimeout(saveFn, 1000)
+                }
+            }
         },
-        getBufferHtml() {
-            return this.$refs.bufferContainer?.innerHTML || ''
-        },
-        getLinesFromStorage(max = 30) {
-            // Restore lines from storage
-            const stored = localStorage.getItem(`chat:buffer:${this.network}:${this.user}`)
+        getLinesFromStorage(max = 200) {
+            const stored = localStorage.getItem(`chat:buffer:${this.network}:${this.nick}`)
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored)
                     if (Array.isArray(parsed)) {
-                        this.lines = parsed.slice(0, max) // default 30
-                        this.isLoading = false // since lines are already showing
+                        this.lines = parsed.slice(0, max)
                     }
                 } catch (err) {
                     console.warn('Failed to parse chat buffer JSON', err)
                 }
             }
         },
-        saveLinesToStorage(max = 30) {
+        saveLinesToStorage(max = 200) {
             const recentLines = this.lines.slice(-max)
-            localStorage.setItem(`chat:buffer:${this.network}:${this.user}`, JSON.stringify(recentLines))
+            try {
+                localStorage.setItem(`chat:buffer:${this.network}:${this.nick}`, JSON.stringify(recentLines))
+            } catch (e) {
+                console.warn('Failed to save chat buffer:', e)
+            }
         },
         isScrolledToBottom() {
             const privmsgPane = this.$refs.privmsgPane
+            if (!privmsgPane) return false
+
             const scrollTop = privmsgPane.scrollTop
             const clientHeight = privmsgPane.clientHeight
             const scrollHeight = privmsgPane.scrollHeight
+            const scrollbarWidth = privmsgPane.offsetWidth - privmsgPane.clientWidth
 
-            // Adjust for horizontal scrollbar width
-            const horizontalScrollbarWidth = privmsgPane.offsetWidth - privmsgPane.clientWidth
-
-            return scrollTop + clientHeight >= scrollHeight - horizontalScrollbarWidth
+            return scrollTop + clientHeight >= scrollHeight - scrollbarWidth
         },
         handleScroll() {
             this.shouldScrollToBottom = this.isScrolledToBottom()
         },
         scrollToBottom() {
-            const privmsgPane = this.$refs.privmsgPane
-            privmsgPane.scrollTop = privmsgPane.scrollHeight;
+            const pane = this.$refs.privmsgPane
+            if (!pane) return
+            pane.scrollTop = pane.scrollHeight
 
-            // Set it to scroll again to the bottom after 1 second.
-            // In case scrolling isn't complete after 1 second.
             setTimeout(() => {
-                // If we're not still on the chat page, then bail...
                 if (!this.$page.url.startsWith('/chat')) return
-
-                const refreshPane = this.$refs.privmsgPane
-                if (refreshPane) {
-                    refreshPane.scrollTop = refreshPane.scrollHeight
-                }
-            }, 1000);
+                this.$refs.privmsgPane.scrollTop = this.$refs.privmsgPane.scrollHeight
+            }, 1000)
         },
         handleOperation(operation, command, target) {
-            // If its a PRIVMSG targeting this channel, add it to lines.
-            // IRC protocol does not add user input to the output feeds.
             if (command === COMMAND.PRIVMSG && target === this.nick) {
                 const [, , ...parts] = operation.command.split(' ')
                 const msg = parts.join(' ')
@@ -199,13 +211,12 @@ export default {
                     type: 'usermessage',
                     content: msg,
                     nick: this.user,
-                    timestamp: timestamp,
+                    timestamp,
                 }
 
                 this.addLines([line])
             }
 
-            // Send the operation up to the client for further post-processing.
             this.$emit('call:handleOperation', operation, command, target)
         },
         scaleToViewportHeight,
@@ -226,7 +237,11 @@ export default {
         },
     },
     emits: [
-        'call:handleOperation', 'call:requestCancel', 'call:requestRemove', 'call:removeCompleted', 'call:saveDownloadDestination'
+        'call:handleOperation',
+        'call:requestCancel',
+        'call:requestRemove',
+        'call:removeCompleted',
+        'call:saveDownloadDestination',
     ],
 }
 </script>

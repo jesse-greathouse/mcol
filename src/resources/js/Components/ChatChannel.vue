@@ -58,6 +58,7 @@
 </template>
 
 <script>
+import { nextTick } from 'vue'
 import { has, throttle } from '@/funcs'
 import { streamMessage, streamEvent } from '@/Clients/stream'
 import { scaleToViewportHeight } from '@/style'
@@ -110,6 +111,7 @@ export default {
             cleanChannelName: cleaned,
             chatPaneHeight: this.scaleToViewportHeight(chatPaneScale),
             lines: [],
+            pendingStorageSave: false,
             isLoading: true,
             showDate: true,
             userList: [],
@@ -117,6 +119,7 @@ export default {
             noticeIndex: 0,
             messageTimeoutId: null,
             eventTimeoutId: null,
+            saveRequestId: null, // for canceling the idle callback if needed
         }
     },
     watch: {
@@ -163,14 +166,17 @@ export default {
     },
     updated() {
         if (this.shouldScrollToBottom) {
-            this.scrollToBottom()
+            nextTick(() => {
+                this.scrollToBottom()
+            })
         }
 
         this.pruneLines()
     },
     beforeUnmount() {
-        this.$refs.chatPane.removeEventListener('scroll', this.handleScroll)
-        window.removeEventListener('resize', this.handleResize)
+        this.clearAllIntervals();
+        window.removeEventListener('resize', this.handleResize);
+        this.$refs.chatPane?.removeEventListener('scroll', this.handleScroll);
     },
     computed: {
         channelStatus() {
@@ -191,14 +197,41 @@ export default {
         clearAllIntervals() {
             clearTimeout(this.messageTimeoutId)
             clearTimeout(this.eventTimeoutId)
+            if (this.saveRequestId) {
+                if ('cancelIdleCallback' in window) {
+                    cancelIdleCallback(this.saveRequestId)
+                } else {
+                    clearTimeout(this.saveRequestId)
+                }
+            }
         },
         addLines(newLines) {
-            if (!newLines?.length) return
+            if (!newLines?.length) return;
 
-            this.lines = [...this.lines, ...newLines]
+            const wasAtBottom = this.shouldScrollToBottom
+            this.lines.push(...newLines)
 
-            // Save only the last 30 lines
-            this.saveLinesToStorage(30)
+            if (wasAtBottom) {
+                nextTick(() => this.scrollToBottom())
+            }
+
+            // Schedule a save if not already scheduled
+            if (!this.pendingStorageSave) {
+                this.pendingStorageSave = true;
+
+                const saveFn = () => {
+                    this.saveLinesToStorage(30);
+                    this.pendingStorageSave = false;
+                    this.saveRequestId = null;
+                };
+
+                if ('requestIdleCallback' in window) {
+                    this.saveRequestId = requestIdleCallback(saveFn, { timeout: 2000 });
+                } else {
+                    // Fallback: throttle via setTimeout if idleCallback not supported
+                    this.saveRequestId = setTimeout(saveFn, 1000);
+                }
+            }
         },
         getBufferHtml() {
             return this.$refs.bufferContainer?.innerHTML || ''
@@ -219,14 +252,20 @@ export default {
             }
         },
         saveLinesToStorage(max = 30) {
-            const recentLines = this.lines.slice(-max)
-            localStorage.setItem(`chat:buffer:${this.network}:${this.cleanChannelName}`, JSON.stringify(recentLines))
+            const recentLines = this.lines.slice(-max);
+            try {
+                localStorage.setItem(`chat:buffer:${this.network}:${this.cleanChannelName}`, JSON.stringify(recentLines));
+            } catch (e) {
+                console.warn('Failed to save chat buffer:', e);
+            }
         },
         pruneLines() {
             const linesTotal = this.lines.length
             if (linesTotal > maxMessageLineBuffer) {
-                const overBuffer = maxMessageLineBuffer - linesTotal
-                this.lines = this.lines.slice(overBuffer)
+                const overBuffer = linesTotal - maxMessageLineBuffer
+                if (overBuffer > 0) {
+                    this.lines = this.lines.slice(overBuffer)
+                }
             }
         },
         resetMessageInterval() {
