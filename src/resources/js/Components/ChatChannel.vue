@@ -32,7 +32,6 @@
                     @call:xdccSend="xdccSend" @call:removeCompleted="removeCompleted"
                     @call:requestCancel="requestCancel" @call:requestRemove="requestRemove"
                     @call:saveDownloadDestination="saveDownloadDestination" />
-
             </div>
         </div>
         <!-- End Chat Pane -->
@@ -40,7 +39,7 @@
         <!-- Start User List-->
         <div class="flex flex-col overflow-y-auto overflow-x-hidden w-96 px-3" :style="{ maxHeight: chatPaneHeight }">
             <ul class="flex flex-col items-center justify-start gap-1 w-full">
-                <li v-for="user in userList" class="w-full block">
+                <li v-for="user in userList" :key="user" class="w-full block">
                     <button type="button" aria-selected="false"
                         class="block px-3 w-full text-left rounded-md border border-gray-400 hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300">
                         {{ user }}
@@ -117,8 +116,8 @@ export default {
             userList: [],
             shouldScrollToBottom: true,
             noticeIndex: 0,
-            messageTimeoutId: null,
-            eventTimeoutId: null,
+            messageIntervalId: null,
+            eventIntervalId: null,
             saveRequestId: null, // for canceling the idle callback if needed
         }
     },
@@ -143,7 +142,12 @@ export default {
                     const diff = this.notice.length - this.noticeIndex
                     if (0 < diff) {
                         const lines = this.notice.slice(this.noticeIndex)
-                        const objects = lines.map(str => ({ type: 'notice', line: str }))
+                        const ts = Date.now()
+                        const objects = lines.map((str, idx) => ({
+                            id: `${this.network}-${this.cleanChannelName}-notice-${ts}-${idx}`,
+                            type: 'notice',
+                            line: str,
+                        }))
                         this.addLines(objects)
                     }
                 }
@@ -158,8 +162,21 @@ export default {
 
         this.userList = this.makeUserList()
         this.scrollToBottom()
-        this.streamMessages()
-        this.streamEvents()
+
+        this.streamMessages() // initial fetch
+        this.streamEvents()   // initial fetch
+
+        this.messageIntervalId = setInterval(() => {
+            if (this.onChatPage()) {
+                this.streamMessages()
+            }
+        }, messageInterval)
+
+        this.eventIntervalId = setInterval(() => {
+            if (this.onChatPage()) {
+                this.streamEvents()
+            }
+        }, eventInterval)
     },
     beforeUnmount() {
         this.clearAllIntervals()
@@ -195,8 +212,9 @@ export default {
     },
     methods: {
         clearAllIntervals() {
-            clearTimeout(this.messageTimeoutId)
-            clearTimeout(this.eventTimeoutId)
+            clearInterval(this.messageIntervalId)
+            clearInterval(this.eventIntervalId)
+
             if (this.saveRequestId) {
                 if ('cancelIdleCallback' in window) {
                     cancelIdleCallback(this.saveRequestId)
@@ -268,22 +286,6 @@ export default {
                 }
             }
         },
-        resetMessageInterval() {
-            clearTimeout(this.messageTimeoutId)
-
-            // If we're not still on the chat page, then bail...
-            if (!this.$page.url.startsWith('/chat')) return
-
-            this.messageTimeoutId = setTimeout(this.streamMessages, messageInterval)
-        },
-        resetEventInterval() {
-            clearTimeout(this.eventTimeoutId)
-
-            // If we're not still on the chat page, then bail...
-            if (!this.$page.url.startsWith('/chat')) return
-
-            this.eventTimeoutId = setTimeout(this.streamEvents, eventInterval)
-        },
         isScrolledToBottom() {
             // If we're not still on the chat page, then bail...
             if (!this.$page.url.startsWith('/chat')) return
@@ -326,8 +328,10 @@ export default {
                 const [, , ...parts] = operation.command.split(' ')
                 const msg = parts.join(' ')
                 const date = makeChatLogDate()
+                const ts = Date.now()
 
                 const line = {
+                    id: `${this.network}-${this.user}-usermessage-${ts}`,
                     type: 'usermessage',
                     line: `[${date}] ${this.user}: ${msg}`
                 }
@@ -342,7 +346,12 @@ export default {
                 const { lines, meta, parseError } = await parseChatLog(chunk)
                 if (parseError !== null) return
 
-                const objects = lines.map(str => ({ type: 'message', line: str }))
+                const objects = lines.map((str, idx) => ({
+                    id: `${this.network}-${this.cleanChannelName}-message-${this.messageOffset}-${idx}`,
+                    type: 'message',
+                    line: str,
+                }))
+
                 this.addLines(objects)
 
                 if (this.isLoading) {
@@ -354,16 +363,18 @@ export default {
                     this.offsetState.messageOffset = meta.offset
                     this.saveOffsetState()
                 }
-
-                this.resetMessageInterval()
             })
         },
         async streamEvents() {
             await streamEvent(this.network, this.cleanChannelName, this.eventOffset, async (chunk) => {
                 const { lines, meta, parseError } = await parseChatLog(chunk)
                 if (parseError !== null) return
-
-                const objects = lines.map(str => ({ type: 'event', line: str }))
+                const ts = Date.now()
+                const objects = lines.map((str, idx) => ({
+                    id: `${this.network}-${this.cleanChannelName}-event-${ts}-${idx}`,
+                    type: 'event',
+                    line: str,
+                }))
 
                 if (this.eventOffset > 0) {
                     this.addLines(objects)
@@ -374,13 +385,14 @@ export default {
                     this.offsetState.eventOffset = meta.offset
                     this.saveOffsetState()
                 }
-
-                this.resetEventInterval()
             })
         },
         scaleToViewportHeight,
         handleResize() {
             this.chatPaneHeight = this.scaleToViewportHeight(chatPaneScale)
+        },
+        onChatPage() {
+            return this.$page.url.startsWith('/chat')
         },
         makeUserList() {
             const list = []

@@ -63,8 +63,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <directory-browser-row v-for="file in directoryTable" :settings="settings" :file="file"
-                        @call:openDir="openDir" />
+                    <directory-browser-row v-for="file in directoryTable" :key="file.uri" :settings="settings"
+                        :file="file" @call:openDir="openDir" />
                 </tbody>
             </table>
             <div v-if="isLoading" role="status" class="absolute -translate-x-1/2 -translate-y-1/2 top-2/4 left-1/2">

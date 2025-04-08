@@ -7,7 +7,8 @@
                 <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
                     <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" ref="networkTabs"
                         id="network-tabs" role="tablist">
-                        <li v-for="network in networks" :ref="`${network}-tab`" role="presentation">
+                        <li v-for="network in networks" :key="`chat-network-${network}-tab`" :ref="`${network}-tab`"
+                            role="presentation">
                             <button type="button" :ref="`${network}-trigger`" role="tab"
                                 :aria-controls="`${network}-tab`" aria-selected="false"
                                 class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300">
@@ -17,8 +18,9 @@
                     </ul>
                 </div>
                 <div>
-                    <div v-for="network in networks" :ref="`${network}-target`" role="tabpanel"
-                        :aria-labelledby="`${network}-tab`" class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <div v-for="network in networks" :key="`chat-network-${network}-panel`" :ref="`${network}-target`"
+                        role="tabpanel" :aria-labelledby="`${network}-tab`"
+                        class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
                         <chat-client v-bind="getClientProps(network)" @update:channelTab="handleChannelTabUpdate"
                             @call:checkDownloadQueue="checkDownloadQueue" @call:removeCompleted="removeCompleted"
                             @call:requestCancel="requestCancel" @call:requestRemove="requestRemove"
@@ -90,22 +92,19 @@ export default {
             tabs: null,
             activeTab: { id: null },
             downloadLocks: this.locks,
-            clientsTimeoutId: null,
-            downloadQueueTimeoutId: null,
-            locksTimeoutId: null,
+            clientsIntervalId: null,
+            downloadQueueIntervalId: null,
+            locksIntervalId: null,
             chatState,
             saveState,
         }
     },
     mounted() {
         initFlowbite()
-        this.checkDownloadQueue()
-        this.checkClients()
-        this.checkLocks()
+        this.startPollingLoops()
 
         const urlParams = new URLSearchParams(window.location.search)
         const queryTabId = urlParams.get('activeTabId')
-
         if (queryTabId && this.networks.includes(queryTabId.replace(/-tab$/, ''))) {
             this.chatState.activeTabId = queryTabId
         }
@@ -126,10 +125,42 @@ export default {
         },
     },
     methods: {
+        startPollingLoops() {
+            if (this.clientsIntervalId === null) {
+                this.fetchClients()
+                this.clientsIntervalId = setInterval(() => {
+                    if (this.onChatPage()) {
+                        this.fetchClients()
+                    }
+                }, clientsInterval)
+            }
+
+            if (this.downloadQueueIntervalId === null) {
+                this.fetchDownloadQueue()
+                this.downloadQueueIntervalId = setInterval(() => {
+                    if (this.onChatPage()) {
+                        this.fetchDownloadQueue()
+                    }
+                }, downloadQueueInterval)
+            }
+
+            if (this.locksIntervalId === null) {
+                this.fetchLocks()
+                this.locksIntervalId = setInterval(() => {
+                    if (this.onChatPage()) {
+                        this.fetchLocks()
+                    }
+                }, locksInterval)
+            }
+        },
         clearAllIntervals() {
-            clearTimeout(this.clientsTimeoutId)
-            clearTimeout(this.downloadQueueTimeoutId)
-            clearTimeout(this.locksTimeoutId)
+            clearInterval(this.clientsIntervalId)
+            clearInterval(this.downloadQueueIntervalId)
+            clearInterval(this.locksIntervalId)
+
+            this.clientsIntervalId = null
+            this.downloadQueueIntervalId = null
+            this.locksIntervalId = null
         },
         showNetwork(network) {
             if (this.tabs) {
@@ -148,36 +179,6 @@ export default {
                 saveState: this.saveState,
                 isActive: `${network}-tab` === this.activeTab.id,
             }
-        },
-        async checkDownloadQueue() {
-            clearTimeout(this.downloadQueueTimeoutId)
-
-            // If we're not still on the chat page, then bail...
-            if (!this.$page.url.startsWith('/chat')) return
-
-            await this.fetchDownloadQueue()
-
-            this.downloadQueueTimeoutId = setTimeout(this.checkDownloadQueue, downloadQueueInterval)
-        },
-        async checkClients() {
-            clearTimeout(this.clientsTimeoutId)
-
-            // If we're not still on the chat page, then bail...
-            if (!this.$page.url.startsWith('/chat')) return
-
-            await this.fetchClients()
-
-            this.clientsTimeoutId = setTimeout(this.checkClients, clientsInterval)
-        },
-        async checkLocks() {
-            clearTimeout(this.locksTimeoutId)
-
-            // If we're not still on the chat page, then bail...
-            if (!this.$page.url.startsWith('/chat')) return
-
-            await this.fetchLocks()
-
-            this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval)
         },
         async fetchClients() {
             const { data, error } = await fetchNetworkClients()
@@ -290,6 +291,9 @@ export default {
                     window.history.replaceState({}, '', url)
                 }
             })
+        },
+        onChatPage() {
+            return this.$page.url.startsWith('/chat')
         },
         handleChannelTabUpdate({ network, tabId }) {
             if (!this.chatState.channelTabs) {

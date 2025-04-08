@@ -32,12 +32,12 @@
         <!-- End Navigation Area -->
 
         <!-- Start Chat Area -->
-        <div ref="consoleTarget" role="tabpanel" aria-labelledby="console-tab"
+        <div ref="consoleTarget" key="console-panel" role="tabpanel" aria-labelledby="console-tab"
             class="flex flex-col w-full h-full inset-0 border-x border-gray-100">
             <chat-console :ref="el => chatPaneRefs['console'] = el" key="console" v-bind="getConsoleProps()" />
         </div>
 
-        <div v-for="channel in channels" :key="`${channel}`" :ref="`${channel}-target`" role="tabpanel"
+        <div v-for="channel in channels" :key="`${channel}-panel`" :ref="`${channel}-target`" role="tabpanel"
             :aria-labelledby="`${channel}-tab`"
             class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden">
             <chat-channel :ref="el => chatPaneRefs[channel] = el" :key="channel" v-bind="getChannelProps(channel)"
@@ -45,7 +45,7 @@
                 @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination" />
         </div>
 
-        <div v-for="nick in privmsgTabs" :key="`${nick}`" :ref="`${nick}-target`" role="tabpanel"
+        <div v-for="nick in privmsgTabs" :key="`${nick}-panel`" :ref="`${nick}-target`" role="tabpanel"
             :aria-labelledby="`${nick}-tab`"
             class="flex flex-col w-full h-full max-h-full inset-0 border-x border-gray-100 overflow-x-hidden"
             :class="classTabHidden(`${nick}-tab`)">
@@ -111,8 +111,8 @@ export default {
             privmsgOffset: 0,
             firstPrivmsgLoad: true,
             activeTab: { id: null },
-            privmsgTimeoutId: null,
-            noticeTimeoutId: null,
+            privmsgIntervalId: null,
+            noticeIntervalId: null,
             defaultTabId,
         }
     },
@@ -128,18 +128,31 @@ export default {
         this.streamNotice()
         this.streamPrivmsg()
 
+        this.noticeIntervalId = setInterval(() => {
+            if (this.onChatPage()) {
+                this.streamNotice()
+            }
+        }, noticeInterval)
+
+        this.privmsgIntervalId = setInterval(() => {
+            if (this.onChatPage()) {
+                this.streamPrivmsg()
+            }
+        }, privmsgInterval)
+
         nextTick(() => {
             this.makeTabs()
         })
     },
-
     beforeUnmount() {
         this.clearAllIntervals()
     },
     methods: {
         clearAllIntervals() {
-            clearTimeout(this.privmsgTimeoutId)
-            clearTimeout(this.noticeTimeoutId)
+            clearInterval(this.noticeIntervalId)
+            clearInterval(this.privmsgIntervalId)
+            this.noticeIntervalId = null
+            this.privmsgIntervalId = null
         },
         addNotice(notice) {
             this.notice = [...this.notice, ...notice]
@@ -245,22 +258,6 @@ export default {
                 this.tabs.show(activeTabId)
             }, 1000);
         },
-        resetNoticetInterval() {
-            clearTimeout(this.noticeTimeoutId)
-
-            // If we're not still on the chat page, then bail...
-            if (!this.$page.url.startsWith('/chat')) return
-
-            this.noticeTimeoutId = setTimeout(this.streamNotice, noticeInterval);
-        },
-        resetPrivmsgInterval() {
-            clearTimeout(this.privmsgTimeoutId)
-
-            // If we're not still on the chat page, then bail...
-            if (!this.$page.url.startsWith('/chat')) return
-
-            this.privmsgTimeoutId = setTimeout(this.streamPrivmsg, privmsgInterval);
-        },
         removeCompleted(download) {
             this.$emit('call:removeCompleted', download)
         },
@@ -283,8 +280,6 @@ export default {
                 if (has(meta, 'offset')) {
                     this.noticeOffset = meta.offset
                 }
-
-                this.resetNoticetInterval()
             })
         },
         async streamPrivmsg() {
@@ -297,8 +292,6 @@ export default {
                 if (has(meta, 'offset')) {
                     this.privmsgOffset = meta.offset
                 }
-
-                this.resetPrivmsgInterval()
             })
         },
         async saveOperation(command) {
@@ -316,6 +309,9 @@ export default {
             if (await this.saveOperation(command)) {
                 this.$emit('call:checkDownloadQueue')
             }
+        },
+        onChatPage() {
+            return this.$page.url.startsWith('/chat')
         },
         makeTabs() {
             const defaultTabId = this.defaultTabId || 'console-tab'

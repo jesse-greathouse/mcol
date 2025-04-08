@@ -3,9 +3,9 @@
         <chat-command class="!relative left-5 top-4 z-10" :target="targetId" :selected="command"
             @update:selected="selected => { command = selected }" />
 
-        <chat-parameter v-for="(parameter, index) in parameters" :key="index" class="multiselect-gray"
-            :parameter="parameter" :optionList="parameterLists[index]"
-            @update:selected="value => { parameters[index] = value }" />
+        <chat-parameter v-for="(parameter, idx) in parameters" :key="`parameter-${idx}`" class="multiselect-gray"
+            :parameter="parameter" :optionList="parameterLists[idx]"
+            @update:selected="value => { parameters[idx] = value }" />
 
         <button type="submit"
             class="!absolute right-5 top-3 z-10 select-none rounded text-white bg-blue-700 hover:bg-blue-800 focus:ring-none focus:outline-none font-medium text-center px-2 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"

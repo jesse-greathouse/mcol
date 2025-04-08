@@ -25,11 +25,11 @@
         <div ref="privmsgPane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3"
             :style="{ maxHeight: privmsgPaneHeight }">
             <div ref="bufferContainer">
-                <privmsg-line v-for="(line, i) in lines" :settings="settings" :downloads="downloads"
-                    :downloadLocks="downloadLocks" :key="`line-${i}`" :showDate="showDate" :type="line.type"
-                    :nick="line.nick" :timestamp="line.timestamp" :content="line.content"
-                    @call:removeCompleted="removeCompleted" @call:requestCancel="requestCancel"
-                    @call:requestRemove="requestRemove" @call:saveDownloadDestination="saveDownloadDestination" />
+                <privmsg-line v-for="line in lines" :key="line.id" :settings="settings" :downloads="downloads"
+                    :downloadLocks="downloadLocks" :showDate="showDate" :type="line.type" :nick="line.nick"
+                    :timestamp="line.timestamp" :content="line.content" @call:removeCompleted="removeCompleted"
+                    @call:requestCancel="requestCancel" @call:requestRemove="requestRemove"
+                    @call:saveDownloadDestination="saveDownloadDestination" />
             </div>
         </div>
         <!-- End Chat Pane -->
@@ -118,7 +118,8 @@ export default {
             const diff = this.privmsgs.length - this.privmsgIndex
             if (diff > 0) {
                 const lines = this.privmsgs.slice(this.privmsgIndex)
-                const objects = lines.map(privmsg => ({
+                const objects = lines.map((privmsg, idx) => ({
+                    id: `${this.network}-${this.nick}-privmsg-${this.privmsgIndex}-${idx}`,
                     type: 'privmsg',
                     content: privmsg.content,
                     nick: this.nick,

@@ -4,7 +4,7 @@
         <div ref="consolePane" class="flex flex-col content-end overflow-y-auto scroll-smooth w-full max-w-full mr-3"
             :style="{ maxHeight: consolePaneHeight }">
             <div ref="bufferContainer">
-                <console-line v-for="(line, i) in lines" :key="`line-${i}`" :showDate="showDate" :line="line" />
+                <console-line v-for="line in lines" :key="line.id" :showDate="showDate" :line="line" />
             </div>
         </div>
         <!-- End Console Pane -->
@@ -60,7 +60,7 @@ export default {
             showDate: true,
             shouldScrollToBottom: true,
             noticeIndex: 0,
-            consoleTimeoutId: null,
+            consoleIntervalId: null,
             pendingStorageSave: false,
             saveRequestId: null,
         }
@@ -76,7 +76,12 @@ export default {
                     const diff = this.notice.length - this.noticeIndex
                     if (diff > 0) {
                         const lines = this.notice.slice(this.noticeIndex)
-                        const objects = lines.map(str => ({ type: 'notice', line: str }))
+                        const ts = Date.now()
+                        const objects = lines.map((str, idx) => ({
+                            id: `${this.network}-notice-${ts}-${idx}`,
+                            type: 'notice',
+                            line: str,
+                        }))
                         this.addLines(objects)
                     }
                 }
@@ -89,18 +94,16 @@ export default {
         window.addEventListener('resize', this.handleResize)
         this.$refs.consolePane.addEventListener('scroll', this.handleScroll)
         this.scrollToBottom()
+
         this.streamConsole()
+        this.consoleIntervalId = setInterval(() => {
+            if (this.onChatPage()) {
+                this.streamConsole()
+            }
+        }, consoleInterval)
     },
     beforeUnmount() {
         this.clearAllIntervals()
-
-        if (this.saveRequestId) {
-            if ('cancelIdleCallback' in window) {
-                cancelIdleCallback(this.saveRequestId)
-            } else {
-                clearTimeout(this.saveRequestId)
-            }
-        }
 
         this.$refs.consolePane?.removeEventListener('scroll', this.handleScroll)
         window.removeEventListener('resize', this.handleResize)
@@ -114,7 +117,16 @@ export default {
     },
     methods: {
         clearAllIntervals() {
-            clearTimeout(this.consoleTimeoutId)
+            clearInterval(this.consoleIntervalId)
+            this.consoleIntervalId = null
+
+            if (this.saveRequestId) {
+                if ('cancelIdleCallback' in window) {
+                    cancelIdleCallback(this.saveRequestId)
+                } else {
+                    clearTimeout(this.saveRequestId)
+                }
+            }
         },
         addLines(newLines) {
             if (!newLines?.length) return
@@ -173,14 +185,6 @@ export default {
                 console.warn('Failed to save console buffer:', e)
             }
         },
-        resetConsoleInterval() {
-            this.clearConsoleInterval()
-            if (!this.$page.url.startsWith('/chat')) return
-            this.consoleTimeoutId = setTimeout(this.streamConsole, consoleInterval)
-        },
-        clearConsoleInterval() {
-            clearTimeout(this.consoleTimeoutId)
-        },
         isScrolledToBottom() {
             const consolePane = this.$refs.consolePane
             if (!consolePane) return false
@@ -208,13 +212,22 @@ export default {
         handleScroll() {
             this.shouldScrollToBottom = this.isScrolledToBottom()
         },
+        onChatPage() {
+            return this.$page.url.startsWith('/chat')
+        },
         async streamConsole() {
             this.shouldScrollToBottom = this.isScrolledToBottom()
             await streamConsole(this.network, this.consoleOffset, async (chunk) => {
                 const { lines, meta, parseError } = await parseChatLog(chunk)
                 if (parseError !== null) return
 
-                const objects = lines.map(str => ({ type: 'console', line: str }))
+                const ts = Date.now()
+                const objects = lines.map((str, idx) => ({
+                    id: `${this.network}-console-${ts}-${idx}`,
+                    type: 'console',
+                    line: str,
+                }))
+
                 this.addLines(objects)
 
                 if (has(meta, 'offset')) {
@@ -222,8 +235,6 @@ export default {
                     this.offsetState.consoleOffset = meta.offset
                     this.saveOffsetState()
                 }
-
-                this.resetConsoleInterval()
             })
         },
         scaleToViewportHeight,
