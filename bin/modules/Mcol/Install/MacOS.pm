@@ -9,6 +9,7 @@ use lib dirname(abs_path(__FILE__)) . "/modules";
 use Mcol::Utility qw(command_result);
 use Mcol::System qw(how_many_threads_should_i_use);
 use Exporter 'import';
+use POSIX qw(uname);
 
 our @EXPORT_OK = qw(install_system_dependencies install_php install_bazelisk);
 
@@ -17,7 +18,7 @@ my $applicationRoot = abs_path(dirname($bin));
 my @systemDependencies = qw(
     intltool autoconf automake expect gcc pcre2 curl libiconv pkg-config
     openssl@3.0 mysql-client oniguruma libxml2 icu4c imagemagick mysql
-    libsodium libzip glib webp
+    libsodium libzip glib webp go cpanminus
 );
 
 # ====================================
@@ -28,12 +29,28 @@ my @systemDependencies = qw(
 sub install_system_dependencies {
     print "Brew is required for updating and installing system dependencies.\n";
 
-    system('brew upgrade');
+    # Update/Upgrade Homebrew
+    system('brew', 'upgrade');
     command_result($?, $!, "Updated system dependencies...");
 
-    # Install all dependencies in one command to minimize the system calls.
-    system('brew install', @systemDependencies);
-    command_result($?, $!, "Installed system dependencies...", 'brew install', @systemDependencies);
+    # Filter system dependencies to only install what's missing
+    my @to_install;
+    foreach my $pkg (@systemDependencies) {
+        my $check = system("brew list $pkg > /dev/null 2>&1");
+        if ($check != 0) {
+            push @to_install, $pkg;
+        } else {
+            print "✓ $pkg already installed, skipping.\n";
+        }
+    }
+
+    # Install only what's needed
+    if (@to_install) {
+        system('brew', 'install', @to_install);
+        command_result($?, $!, "Installed missing dependencies...", 'brew install', @to_install);
+    } else {
+        print "All system dependencies already installed.\n";
+    }
 
     install_pip();
     install_supervisor();
@@ -91,24 +108,38 @@ sub install_php {
 
 # Installs Pip if not already installed.
 sub install_pip {
-    my $pipStatus = `python3 -m pip --version`;
-    return if $pipStatus =~ /^pip/;  # No need to install if pip is already present
+    # Check if pip is already available
+    my $pipStatus = `python3 -m pip --version 2>&1`;
+    if ($? == 0 && $pipStatus =~ /^pip\s+\d+\./) {
+        print "✓ Pip already installed: $pipStatus";
+        return;
+    }
+
+    print "Installing pip using get-pip.py...\n";
 
     my $pipInstallScript = 'get-pip.py';
-    system("curl https://bootstrap.pypa.io/$pipInstallScript -o $pipInstallScript");
-    command_result($?, $!, "Downloaded Pip...");
+    system("curl -sS https://bootstrap.pypa.io/$pipInstallScript -o $pipInstallScript");
+    command_result($?, $!, "Downloaded pip installer...");
 
     system("chmod +x $pipInstallScript");
-    command_result($?, $!, "Gave Pip Installer Execute Permission...");
+    command_result($?, $!, "Made pip installer executable...");
 
     system("python3 $pipInstallScript");
-    command_result($?, $!, "Installed Pip...");
+    command_result($?, $!, "Installed pip...");
 
     unlink($pipInstallScript);
 }
 
-# Installs Supervisor using pip.
+# Installs Supervisor using pip, if not already installed.
 sub install_supervisor {
+    my $check = system('python3', '-m', 'pip', 'show', 'supervisor') == 0;
+
+    if ($check) {
+        print "✓ Supervisor already installed (via pip), skipping.\n";
+        return;
+    }
+
+    print "Installing Supervisor via pip...\n";
     system('python3', '-m', 'pip', 'install', 'supervisor');
     command_result($?, $!, "Installed Supervisor...", 'python3', '-m', 'pip', 'install', 'supervisor');
 }
@@ -116,6 +147,8 @@ sub install_supervisor {
 # installs Bazelisk.
 sub install_bazelisk {
     my ($dir) = @_;
+    my ($sysname, $nodename, $release, $version, $machine) = uname();
+    my $arch = ($machine eq 'arm64') ? 'arm64' : 'amd64';
     my $originalDir = getcwd();
     my $bazeliskDir = "$dir/opt/bazelisk/";
 
@@ -135,7 +168,6 @@ sub install_bazelisk {
 
     chdir glob($bazeliskDir);
 
-
     # Install Bazelisk
     print "\n=================================================================\n";
     print " Installing Bazelisk....\n";
@@ -146,8 +178,9 @@ sub install_bazelisk {
     command_result($?, $!, 'Install Bazelisk...', 'go install github.com/bazelbuild/bazelisk@latest');
 
     # Binary
-    system('bash', '-c', "GOOS=darwin GOARCH=amd64 go build -o $dir/bin/bazel");
-    command_result($?, $!, 'Build Bazelisk...', "GOOS=linux GOARCH=amd64 go build -o $dir/bin/bazel");
+    my $buildCmd = "GOOS=darwin GOARCH=$arch go build -o $dir/bin/bazel";
+    system('bash', '-c', $buildCmd);
+    command_result($?, $!, 'Build Bazelisk...', $buildCmd);
 
     system('bash', '-c', "$dir/bin/bazel version");
     command_result($?, $!, 'Run Bazelisk...', "$dir/bin/bazel version");

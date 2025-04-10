@@ -1,5 +1,11 @@
 #!/usr/bin/perl
 
+warn <<"END";
+[WARNING] CentOS support in this installer is deprecated and no longer maintained.
+          You're welcome to attempt using or fixing it, but don't expect success.
+          Consider switching to a supported OS like Ubuntu, macOS.
+END
+
 package Mcol::Install::CentOS;
 use strict;
 use Cwd qw(getcwd abs_path);
