@@ -14,7 +14,7 @@ return [
     | and production domains which access your API via a frontend SPA.
     |
     */
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
+    'stateful' => explode(',', (string) env('SANCTUM_STATEFUL_DOMAINS', sprintf(
         '%s%s',
         'hera:8080',
         Sanctum::currentApplicationUrlWithPort()

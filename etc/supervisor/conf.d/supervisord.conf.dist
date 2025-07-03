@@ -30,6 +30,21 @@ autostart = true
 autorestart = false
 priority=1
 
+[program:storage_link]
+process_name=%(ENV_APP_NAME)s_web_%(program_name)s
+environment=PATH="%(ENV_BIN)s:%(ENV_OPT)s/php/sbin:%(ENV_PATH)s"
+directory=%(ENV_SRC)s
+command=php artisan storage:link
+redirect_stderr=true
+stdout_events_enabled=true
+stderr_logfile=%(ENV_LOG_DIR)s/error.log
+stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
+startsecs = 0
+exitcodes = 0
+autostart = true
+autorestart = false
+priority=2
+
 [program:dhp]
 process_name=%(ENV_APP_NAME)s_web_%(program_name)s
 environment=ETC="%(ENV_ETC)s",PATH="%(ENV_BIN)s:%(ENV_PATH)s"
@@ -43,7 +58,7 @@ startsecs = 0
 exitcodes = 0
 autostart = true
 autorestart = false
-priority=2
+priority=3
 
 [program:php]
 process_name=%(ENV_APP_NAME)s_web_%(program_name)s
@@ -56,7 +71,7 @@ stderr_logfile=%(ENV_LOG_DIR)s/error.log
 stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
 autostart = true
 autorestart = true
-priority=3
+priority=4
 
 [program:nginx]
 process_name=%(ENV_APP_NAME)s_web_%(program_name)s
@@ -69,4 +84,4 @@ stderr_logfile=%(ENV_LOG_DIR)s/error.log
 stdout_logfile=%(ENV_LOG_DIR)s/supervisord.log
 autostart=true
 autorestart=true
-priority=4
+priority=5

@@ -314,6 +314,13 @@ sub assign_dynamic_config {
     $cfg{laravel}{LOG_DIR} //= $logDir;
 
     # Redis configuration inheritance for Laravel
+    $cfg{laravel}{LOG} //= $errorLog;
+    $cfg{laravel}{DIR} //= $applicationRoot;
+    $cfg{laravel}{BIN} //= $binDir;
+    $cfg{laravel}{VAR} //= $varDir;
+    $cfg{laravel}{ETC} //= $etcDir;
+    $cfg{laravel}{WEB} //= "$applicationRoot/src/public";
+    $cfg{laravel}{SRC} //= "$applicationRoot/src";
     $cfg{laravel}{REDIS_HOST} //= $cfg{redis}{REDIS_HOST} // $defaults{redis}{REDIS_HOST};
     $cfg{laravel}{REDIS_PORT} //= $cfg{redis}{REDIS_PORT} // $defaults{redis}{REDIS_PORT};
     $cfg{laravel}{REDIS_PASSWORD} //= $cfg{redis}{REDIS_PASSWORD} // $defaults{redis}{REDIS_PASSWORD};

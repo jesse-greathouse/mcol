@@ -48,7 +48,10 @@ abstract class Data
         $this->init();
         $this->configure($config);
         $cached = Yaml::parseFile($this->getPath(), $this->config['flags']);
-        $this->storable = (null !== $cached) ? $cached : $this->storable;
+
+        $this->storable = is_array($cached)
+            ? array_merge($this->storable, $cached)
+            : $this->storable;
     }
 
     /**
@@ -149,10 +152,10 @@ abstract class Data
     */
     public function __get(string $name): mixed
     {
-        if (isset($this->storable[$name])) {
+        if (array_key_exists($name, $this->storable)) {
             return $this->storable[$name];
         } else {
-            $class = self::class;
+            $class = static::class;
             throw new DataStoreInvalidPropertyException("Accessed invalid property: $name on $class");
         }
     }

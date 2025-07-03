@@ -14,6 +14,7 @@ final class MediaStoreSettings extends Data
     const MUSIC_KEY = 'music';
     const GAME_KEY = 'games';
     const APPLICATION_KEY = 'applications';
+    const XXX_KEY = 'xxx';
 
     /**
      * The body of data values that can be stored and retrieved.
@@ -27,6 +28,7 @@ final class MediaStoreSettings extends Data
         self::MUSIC_KEY         => [],
         self::GAME_KEY          => [],
         self::APPLICATION_KEY   => [],
+        self::XXX_KEY           => [],
     ];
 
     /**

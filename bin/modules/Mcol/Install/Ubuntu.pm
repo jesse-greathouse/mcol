@@ -12,12 +12,12 @@ use Exporter 'import';
 our @EXPORT_OK = qw(install_system_dependencies install_php install_bazelisk);
 
 my @systemDependencies = qw(
-    supervisor authbind expect openssl build-essential intltool autoconf
-    automake gcc curl pkg-config cpanminus libncurses-dev libpcre3-dev
-    libcurl4t64 libcurl4-openssl-dev libmagickwand-dev libssl-dev libxslt1-dev
-    libmysqlclient-dev libxml2 libxml2-dev libicu-dev libmagick++-dev
-    libzip-dev libonig-dev libsodium-dev libglib2.0-dev libwebp-dev
-    mysql-client imagemagick golang-go
+    supervisor authbind expect openssl build-essential intltool autoconf unixodbc-dev
+    automake gcc curl pkg-config cpanminus libncurses-dev libpcre3-dev libgl1-mesa-dev
+    libcurl4t64 libcurl4-openssl-dev libmagickwand-dev libssl-dev libxslt1-dev default-jdk
+    libmysqlclient-dev libxml2 libxml2-dev libicu-dev libmagick++-dev libglu1-mesa-dev
+    libzip-dev libonig-dev libsodium-dev libglib2.0-dev libwebp-dev libwxgtk3.2-dev
+    mysql-client imagemagick golang-go xsltproc fop libxml2-utils libexpat1-dev libwxgtk-webview3.2-dev
 );
 
 # ====================================

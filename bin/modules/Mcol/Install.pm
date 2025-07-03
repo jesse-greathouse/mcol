@@ -568,7 +568,7 @@ sub install_elixir {
 
     chdir $elixirDir;
 
-    system('ERLANG_HOME="' . $erlangDir . '" make clean compile');
+    system("ERLANG_HOME=\"$erlangDir\" PATH=\"$erlangDir/bin:\$PATH\" make clean compile");
     command_result($?, $!, 'Make elixir ...', 'make clean compile');
 
     chdir $originalDir;
@@ -648,7 +648,26 @@ sub install_rabbitmq {
     my $erlangDir = glob("$dir/opt/erlang");
     my $erlangPath = "$erlangDir/bin";
     my $elixirPath = glob("$dir/opt/elixir/bin");
-    my $env = 'PATH="' . $erlangPath . ':' . $elixirPath . ':' . $binDir . ':$PATH" ERLANG_HOME="' . $erlangDir . '"';
+    my $otpRelease = '25';
+    local %ENV = %ENV;  # localize to avoid leaking changes
+    $ENV{PATH} = "$erlangPath:$elixirPath:$binDir:$ENV{PATH}";
+    $ENV{ERLANG_HOME} = $erlangDir;
+    $ENV{OTP_VERSION} = $otpRelease;
+
+    # Ensure OTP_VERSION file exists (required by Bazel's Erlang rules)
+    my $otpVersion = `"$erlangPath/erl" -noshell -eval 'io:format("~s", [erlang:system_info(otp_release)]), halt().'`;
+    chomp $otpVersion;
+
+    my $otpFileDir = "$erlangDir/releases/$otpRelease";
+    my $otpVersionFile = "$otpFileDir/OTP_VERSION";
+
+    unless (-e $otpVersionFile) {
+        print "Creating missing OTP_VERSION file at $otpVersionFile...\n";
+        make_path($otpFileDir) unless -d $otpFileDir;
+        open(my $fh, '>', $otpVersionFile) or die "Cannot create $otpVersionFile: $!";
+        print $fh $otpVersion;
+        close($fh);
+    }
 
     # delete
     if (-d $rabbitmqDir) {
@@ -669,7 +688,7 @@ sub install_rabbitmq {
     print "=================================================================\n\n";
 
     # make
-    my $makeCmd = "$env make package-generic-unix";
+    my $makeCmd = "make package-generic-unix";
     system($makeCmd);
     command_result($?, $!, 'Make rabbitmq ...', $makeCmd);
 
@@ -679,7 +698,7 @@ sub install_rabbitmq {
     print "=================================================================\n\n";
 
     # Broker
-    my $buildCmd = "$env bazel build //:broker";
+    my $buildCmd = "bazel build //:broker --verbose_failures";
     system($buildCmd);
     command_result($?, $!, 'bazel build broker...', $buildCmd);
 
@@ -689,7 +708,7 @@ sub install_rabbitmq {
     print "=================================================================\n\n";
 
     # Sbin
-    my $buildSbinCmd = "$env bazel build //:sbin-files";
+    my $buildSbinCmd = "bazel build //:sbin-files";
     system($buildSbinCmd);
     command_result($?, $!, 'bazel build sbin...', $buildSbinCmd);
 
