@@ -5,27 +5,26 @@
         <completed-icon />
       </div>
       <div class="col-span-7 py-6 px-0" tabindex="-1">
-        <fwb-progress :progress="100" color="green" :label="packet.file_name"  />
+        <fwb-progress :progress="100" color="green" :label="packet.file_name" />
       </div>
-      <div class="col-span-3 py-6 px-0 place-self-center"  tabindex="-1">
+      <div class="col-span-3 py-6 px-0 place-self-center" tabindex="-1">
         <save-download-button
-            context="browse-table"
-            :download="download"
-            :settings="settings"
-            @call:saveDownloadDestination="saveDownloadDestination" />
-        <cancel-completed-download-button
-            :download="download"
-            @call:removeCompleted="remove" />
+          context="browse-table"
+          :download="download"
+          :settings="settings"
+          @call:saveDownloadDestination="saveDownloadDestination"
+        />
+        <cancel-completed-download-button :download="download" @call:removeCompleted="remove" />
       </div>
     </div>
   </td>
 </template>
 
 <script>
-import { FwbProgress } from 'flowbite-vue'
-import CompletedIcon from '@/Components/CompletedIcon.vue'
-import SaveDownloadButton from '@/Components/SaveDownloadButton.vue'
-import CancelCompletedDownloadButton from '@/Components/CancelCompletedDownloadButton.vue'
+import { FwbProgress } from 'flowbite-vue';
+import CompletedIcon from '@/Components/CompletedIcon.vue';
+import SaveDownloadButton from '@/Components/SaveDownloadButton.vue';
+import CancelCompletedDownloadButton from '@/Components/CancelCompletedDownloadButton.vue';
 
 export default {
   components: {
@@ -43,17 +42,17 @@ export default {
     return {
       confirmRemoveId: `table-popup-remove-confirm-${this.download.id}`,
       cancelDisabled: false,
-    }
+    };
   },
   methods: {
     saveDownloadDestination(download, uri) {
-      this.$emit('call:saveDownloadDestination', download, uri)
+      this.$emit('call:saveDownloadDestination', download, uri);
     },
     remove() {
-      this.cancelDisabled = true
-      this.$emit('call:removeCompleted', this.download)
-    }
+      this.cancelDisabled = true;
+      this.$emit('call:removeCompleted', this.download);
+    },
   },
   emits: ['call:removeCompleted', 'call:saveDownloadDestination'],
-}
+};
 </script>

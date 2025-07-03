@@ -1,103 +1,106 @@
 {
-    "name": "jesse-greathouse/mcol",
-    "type": "project",
-    "description": "The Media Collector.",
-    "keywords": ["IRC", "XDCC"],
-    "license": "GNU GPL",
-    "repositories": [
-        {
-          "type": "vcs",
-          "url": "git@github.com:jesse-greathouse/php-irc-client.git"
-        },
-        {
-            "type": "vcs",
-            "url": "git@github.com:jesse-greathouse/Stringy.git"
-        },
-        {
-            "type": "vcs",
-            "url": "git@github.com:jesse-greathouse/portable-utf8.git"
-        },
-        {
-            "type": "vcs",
-            "url": "git@github.com:jesse-greathouse/server.git"
-        }
+  "name": "jesse-greathouse/mcol",
+  "type": "project",
+  "description": "The Media Collector.",
+  "keywords": [
+    "IRC",
+    "XDCC"
+  ],
+  "license": "GNU GPL",
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@github.com:jesse-greathouse/php-irc-client.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:jesse-greathouse/Stringy.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:jesse-greathouse/portable-utf8.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:jesse-greathouse/server.git"
+    }
+  ],
+  "require": {
+    "php": "^8.4",
+    "ext-msgpack": "*",
+    "ext-rar": "*",
+    "ext-redis": "*",
+    "deerdama/console-zoo-laravel": "^1.4",
+    "doctrine/dbal": "^3.6",
+    "guzzlehttp/guzzle": "^7.2",
+    "inertiajs/inertia-laravel": "^2.0.1",
+    "jesse-greathouse/php-irc-client": "dev-main",
+    "jesse-greathouse/portable-utf8": "dev-master",
+    "jesse-greathouse/stringy": "dev-master",
+    "laravel/dusk": "^8.0",
+    "laravel/framework": "^12.0",
+    "laravel/jetstream": "^5.0",
+    "laravel/passport": "^12.0",
+    "laravel/sanctum": "^4.0",
+    "laravel/scout": "^10.0",
+    "laravel/tinker": "^2.9",
+    "php-amqplib/php-amqplib": "^3.7",
+    "sajya/server": "dev-feature/Laravel-12",
+    "splitbrain/php-archive": "^1.3",
+    "symfony/yaml": "^7.1",
+    "tightenco/ziggy": "^2.0"
+  },
+  "require-dev": {
+    "fakerphp/faker": "^1.9.1",
+    "laravel/pint": "^1.0",
+    "laravel/sail": "^1.18",
+    "mockery/mockery": "^1.4.4",
+    "nunomaduro/collision": "^8.6",
+    "phpunit/phpunit": "^11.0",
+    "spatie/laravel-ignition": "^2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/",
+      "Mcol\\": "lib/Mcol",
+      "Database\\Factories\\": "database/factories/",
+      "Database\\Seeders\\": "database/seeders/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+      "@php artisan package:discover --ansi"
     ],
-    "require": {
-        "php": "^8.4",
-        "ext-msgpack": "*",
-        "ext-rar": "*",
-        "ext-redis": "*",
-        "deerdama/console-zoo-laravel": "^1.4",
-        "doctrine/dbal": "^3.6",
-        "guzzlehttp/guzzle": "^7.2",
-        "inertiajs/inertia-laravel": "^2.0.1",
-        "jesse-greathouse/php-irc-client": "dev-main",
-        "jesse-greathouse/portable-utf8": "dev-master",
-        "jesse-greathouse/stringy": "dev-master",
-        "laravel/dusk": "^8.0",
-        "laravel/framework": "^12.0",
-        "laravel/jetstream": "^5.0",
-        "laravel/passport": "^12.0",
-        "laravel/sanctum": "^4.0",
-        "laravel/scout": "^10.0",
-        "laravel/tinker": "^2.9",
-        "php-amqplib/php-amqplib": "^3.7",
-        "sajya/server": "dev-feature/Laravel-12",
-        "splitbrain/php-archive": "^1.3",
-        "symfony/yaml": "^7.1",
-        "tightenco/ziggy": "^2.0"
-    },
-    "require-dev": {
-        "fakerphp/faker": "^1.9.1",
-        "laravel/pint": "^1.0",
-        "laravel/sail": "^1.18",
-        "mockery/mockery": "^1.4.4",
-        "nunomaduro/collision": "^8.6",
-        "phpunit/phpunit": "^11.0",
-        "spatie/laravel-ignition": "^2.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "App\\": "app/",
-            "Mcol\\": "lib/Mcol",
-            "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/"
-        }
-    },
-    "scripts": {
-        "post-autoload-dump": [
-            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
-        ],
-        "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
-        ],
-        "post-root-package-install": [
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
-        ],
-        "post-create-project-cmd": [
-            "@php artisan key:generate --ansi"
-        ]
-    },
-    "extra": {
-        "laravel": {
-            "dont-discover": []
-        }
-    },
-    "config": {
-        "optimize-autoloader": true,
-        "preferred-install": "dist",
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true,
-            "php-http/discovery": true
-        }
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true
+    "post-update-cmd": [
+      "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+    ],
+    "post-root-package-install": [
+      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+    ],
+    "post-create-project-cmd": [
+      "@php artisan key:generate --ansi"
+    ]
+  },
+  "extra": {
+    "laravel": {
+      "dont-discover": []
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true,
+      "php-http/discovery": true
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
 }
