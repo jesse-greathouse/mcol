@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Procedures;
 
-use Sajya\Server\Procedure;
-
+use App\Exceptions\InvalidPacketException;
+use App\Jobs\DownloadRequest;
+use App\Models\Packet;
 use Illuminate\Http\Request;
-
-use App\Exceptions\InvalidPacketException,
-    App\Jobs\DownloadRequest,
-    App\Models\Packet;
+use Sajya\Server\Procedure;
 
 class DownloadProcedure extends Procedure
 {
@@ -20,8 +18,7 @@ class DownloadProcedure extends Procedure
     /**
      * Execute the procedure to handle download requests.
      *
-     * @param Request $request The HTTP request containing the packet ID.
-     *
+     * @param  Request  $request  The HTTP request containing the packet ID.
      * @return array<string, mixed> The packet data or an error message.
      *
      * @throws InvalidPacketException If the packet is not found in the database.

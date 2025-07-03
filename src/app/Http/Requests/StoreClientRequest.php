@@ -2,13 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Client;
+use App\Models\Network;
+use App\Models\Nick;
 use Illuminate\Foundation\Http\FormRequest;
-
 use Illuminate\Validation\Validator;
-
-use App\Models\Client,
-    App\Models\Nick,
-    App\Models\Network;
 
 /**
  * Class StoreClientRequest
@@ -19,8 +17,6 @@ class StoreClientRequest extends FormRequest
 {
     /**
      * Determines if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -74,13 +70,10 @@ class StoreClientRequest extends FormRequest
 
     /**
      * Validate if the Nick exists.
-     *
-     * @param Validator $validator
-     * @return void
      */
     protected function validateNick(Validator $validator): void
     {
-        if (!$this->nickExists($validator)) {
+        if (! $this->nickExists($validator)) {
             $validated = $validator->validated();
             $id = $validated['nick'];
             $validator->errors()->add(
@@ -92,13 +85,10 @@ class StoreClientRequest extends FormRequest
 
     /**
      * Validate if the Network exists.
-     *
-     * @param Validator $validator
-     * @return void
      */
     protected function validateNetwork(Validator $validator): void
     {
-        if (!$this->networkExists($validator)) {
+        if (! $this->networkExists($validator)) {
             $validated = $validator->validated();
             $id = $validated['network'];
             $validator->errors()->add(
@@ -110,9 +100,6 @@ class StoreClientRequest extends FormRequest
 
     /**
      * Validate if the combination of Nick and Network already exists.
-     *
-     * @param Validator $validator
-     * @return void
      */
     protected function validateCombination(Validator $validator): void
     {
@@ -133,9 +120,6 @@ class StoreClientRequest extends FormRequest
 
     /**
      * Check if the Network exists in the database.
-     *
-     * @param Validator $validator
-     * @return bool
      */
     protected function networkExists(Validator $validator): bool
     {
@@ -147,9 +131,6 @@ class StoreClientRequest extends FormRequest
 
     /**
      * Check if the Nick exists in the database.
-     *
-     * @param Validator $validator
-     * @return bool
      */
     protected function nickExists(Validator $validator): bool
     {
@@ -161,9 +142,6 @@ class StoreClientRequest extends FormRequest
 
     /**
      * Check if a combination of Nick and Network already exists in the database.
-     *
-     * @param Validator $validator
-     * @return bool
      */
     protected function combinationExists(Validator $validator): bool
     {

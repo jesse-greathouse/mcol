@@ -2,26 +2,24 @@
 
 namespace App\Jobs;
 
-use Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Foundation\Queue\Queueable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
-
-use App\Exceptions\MediaMetadataUnableToMatchException,
-    App\Media\Application,
-    App\Media\Book,
-    App\Media\Game,
-    App\Media\MediaType,
-    App\Media\Movie,
-    App\Media\Music,
-    App\Media\Porn,
-    App\Media\TvEpisode,
-    App\Media\TvSeason,
-    App\Models\Packet;
-
+use App\Exceptions\MediaMetadataUnableToMatchException;
+use App\Media\Application;
+use App\Media\Book;
+use App\Media\Game;
+use App\Media\MediaType;
+use App\Media\Movie;
+use App\Media\Music;
+use App\Media\Porn;
+use App\Media\TvEpisode;
+use App\Media\TvSeason;
+use App\Models\Packet;
 use Exception;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Job to generate and save metadata for packets.
@@ -49,14 +47,14 @@ class GeneratePacketMeta implements ShouldQueue
      * @var array
      */
     const MEDIA_MAP = [
-        MediaType::APPLICATION  => Application::class,
-        MediaType::BOOK         => Book::class,
-        MediaType::GAME         => Game::class,
-        MediaType::MOVIE        => Movie::class,
-        MediaType::MUSIC        => Music::class,
-        MediaType::PORN         => Porn::class,
-        MediaType::TV_EPISODE   => TvEpisode::class,
-        MediaType::TV_SEASON    => TvSeason::class,
+        MediaType::APPLICATION => Application::class,
+        MediaType::BOOK => Book::class,
+        MediaType::GAME => Game::class,
+        MediaType::MOVIE => Movie::class,
+        MediaType::MUSIC => Music::class,
+        MediaType::PORN => Porn::class,
+        MediaType::TV_EPISODE => TvEpisode::class,
+        MediaType::TV_SEASON => TvSeason::class,
     ];
 
     /**
@@ -75,24 +73,21 @@ class GeneratePacketMeta implements ShouldQueue
 
     /**
      * Create a new job instance.
-     *
-     * @param Packet|null $packet
      */
-    public function __construct(Packet $packet = null)
+    public function __construct(?Packet $packet = null)
     {
         $this->packet = $packet;
     }
 
     /**
      * Execute the job.
-     *
-     * @return void
      */
     public function handle(): void
     {
         // Execute for a single requested packet object.
         if ($this->packet !== null) {
             $this->processMetaForPacket($this->packet);
+
             return;
         }
 
@@ -104,15 +99,12 @@ class GeneratePacketMeta implements ShouldQueue
 
     /**
      * Process the metadata for a given packet.
-     *
-     * @param Packet $packet
-     * @return void
      */
     private function processMetaForPacket(Packet $packet): void
     {
         $meta = $this->generateMetaForPacket($packet);
 
-        if (!empty($meta)) {
+        if (! empty($meta)) {
             $packet->meta = $meta;
             $packet = $this->applyMetadataOptimization($packet, $meta);
             $packet->save();
@@ -121,9 +113,6 @@ class GeneratePacketMeta implements ShouldQueue
 
     /**
      * Generate metadata for a packet based on its media type.
-     *
-     * @param Packet $packet
-     * @return array
      */
     private function generateMetaForPacket(Packet $packet): array
     {
@@ -135,7 +124,7 @@ class GeneratePacketMeta implements ShouldQueue
             try {
                 $media = new $mediaClass($packet->file_name);
                 $meta = $media->toArray();
-            } catch(MediaMetadataUnableToMatchException $e) {
+            } catch (MediaMetadataUnableToMatchException $e) {
                 // Use custom reporting on MediaMetadataUnableToMatchException
                 $e->report();
             } catch (Exception $e) {
@@ -148,10 +137,6 @@ class GeneratePacketMeta implements ShouldQueue
 
     /**
      * Apply optimizations to the packet using the provided metadata.
-     *
-     * @param Packet $packet
-     * @param array $meta
-     * @return Packet
      */
     private function applyMetadataOptimization(Packet $packet, array $meta): Packet
     {

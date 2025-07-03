@@ -1,10 +1,9 @@
 <?php
 
+use App\Http\Resources\PacketSearchResultCollection;
+use App\Http\Resources\PacketSearchResultResource;
+use App\Models\PacketSearchResult;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\PacketSearchResult,
-    App\Http\Resources\PacketSearchResultCollection,
-    App\Http\Resources\PacketSearchResultResource;
 
 // GET /api/fileextension
 Route::middleware('auth:sanctum')->get('/packet-search-result', function () {

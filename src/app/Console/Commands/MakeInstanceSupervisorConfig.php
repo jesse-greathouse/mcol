@@ -2,12 +2,11 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command,
-    Illuminate\Support\Collection;
-
 use App\Models\Client;
+use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 
-if (!defined('DS')) {
+if (! defined('DS')) {
     define('DS', DIRECTORY_SEPARATOR);
 }
 
@@ -34,8 +33,8 @@ class MakeInstanceSupervisorConfig extends Command
     {
         foreach ($this->getClients() as $client) {
             $etcDir = env('ETC', '/etc');
-            $instanceConfigDir = $etcDir . DS . 'supervisor' . DS . 'instances';
-            $clientConfigFile = $instanceConfigDir . DS . $client->network->name . '.conf';
+            $instanceConfigDir = $etcDir.DS.'supervisor'.DS.'instances';
+            $clientConfigFile = $instanceConfigDir.DS.$client->network->name.'.conf';
 
             if (file_exists($clientConfigFile)) {
                 unlink($clientConfigFile);

@@ -2,9 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-
 use App\Jobs\GenerateFileFirstAppearance as GenerateFileFirstAppearanceJob;
+use Illuminate\Console\Command;
 
 /**
  * Command to populate the first appearances table from the Packets table.

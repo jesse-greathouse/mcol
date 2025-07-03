@@ -2,14 +2,13 @@
 
 namespace App;
 
-use App\Exceptions\DirectoryDirectionSortIllegalOptionException,
-    App\Exceptions\DirectorySortIllegalOptionException,
-    App\Exceptions\InvalidDirectoryException;
-
-use \FilesystemIterator,
-    \DirectoryIterator,
-    \RecursiveDirectoryIterator,
-    \RecursiveIteratorIterator;
+use App\Exceptions\DirectoryDirectionSortIllegalOptionException;
+use App\Exceptions\DirectorySortIllegalOptionException;
+use App\Exceptions\InvalidDirectoryException;
+use DirectoryIterator;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 trait FileSystem
 {
@@ -17,11 +16,15 @@ trait FileSystem
     const DOT_MASK = '/.*(\.\/|\.\\|\.\.).*/';
 
     const SORT_FILENAME = 'filename';
+
     const SORT_MODIFIED = 'modified';
+
     const SORT_DEFAULT = self::SORT_FILENAME;
 
     const DIRECTION_SORT_ASC = 'asc';
+
     const DIRECTION_SORT_DESC = 'desc';
+
     const DIRECTION_SORT_DEFAULT = self::DIRECTION_SORT_ASC;
 
     const SORT_OPTIONS = [
@@ -43,59 +46,58 @@ trait FileSystem
      * Make the path work recursively
      *
      * @param  string  $path  location of where the data files will be stored.
-     * @return bool
      */
     public function preparePath(string $path): bool
     {
-        if (is_dir($path)) return true;
+        if (is_dir($path)) {
+            return true;
+        }
 
-        $prev_path = substr($path, 0, strrpos($path, DIRECTORY_SEPARATOR, -2) + 1 );
+        $prev_path = substr($path, 0, strrpos($path, DIRECTORY_SEPARATOR, -2) + 1);
         $return = $this->preparePath($prev_path);
+
         return ($return && is_writable($prev_path)) ? mkdir($path) : false;
     }
 
     /**
      * Returns true if the supplied uri has dots followed by a slash.
      * A Safety concern for backing out of designated directories into system files.
-     *
-     * @param string $uri
-     * @return bool
      */
     public function hasDotSlash(string $uri): bool
     {
         $matches = [];
+
         return (preg_match(self::DOT_MASK, $uri, $matches)) ? true : false;
     }
 
     /**
      * List Directory Contents
      *
-     * @param string $uri
-     * @param string $sort
-     * @param string $direction
+     * @param  string  $sort
+     * @param  string  $direction
      * @return array<int, SplFileInfo>
      */
     public function list(string $uri, $sort = null, $direction = null): array
     {
-        if (null === $sort) {
+        if ($sort === null) {
             $sort = self::SORT_DEFAULT;
         } else {
-            if (!in_array($sort, self::SORT_OPTIONS)) {
+            if (! in_array($sort, self::SORT_OPTIONS)) {
                 $options = implode(', ', self::SORT_OPTIONS);
                 throw new DirectorySortIllegalOptionException("Sorting by: \"$sort\" is not an option. (Available options are: \"$options\".)");
             }
         }
 
-        if (null === $direction) {
+        if ($direction === null) {
             $direction = self::DIRECTION_SORT_DEFAULT;
         } else {
-            if (!in_array($direction, self::DIRECTION_SORT_OPTIONS)) {
+            if (! in_array($direction, self::DIRECTION_SORT_OPTIONS)) {
                 $options = implode(', ', self::DIRECTION_SORT_OPTIONS);
                 throw new DirectoryDirectionSortIllegalOptionException("Sorting direction: \"$direction\" is not an option. (Available options are: \"$options\".)");
             }
         }
 
-        if (!is_dir($uri)) {
+        if (! is_dir($uri)) {
             throw new InvalidDirectoryException("Could not list contents of: \"$uri\", it is not a directory.");
         }
 
@@ -103,7 +105,9 @@ trait FileSystem
         $ls = [];
 
         foreach (new DirectoryIterator($uri) as $file) {
-            if ($file->isDot()) continue;
+            if ($file->isDot()) {
+                continue;
+            }
             $ls[$file->$sortMethod()] = $file->getFileInfo();
         }
 
@@ -116,7 +120,6 @@ trait FileSystem
      * Sorts an array of objects product by the list() method.
      *
      * @param array<string, SplFileInfo>
-     * @param string $sort
      * @return array<int, SplFileInfo>
      */
     private function sort(array $ls, string $sort, string $direction): array
@@ -132,7 +135,7 @@ trait FileSystem
         // Separate the Directories from the files to put the directories on top.
         $directories = [];
         $files = [];
-        foreach($ls as $key => $val) {
+        foreach ($ls as $key => $val) {
             if ($val->isDir()) {
                 $directories[] = $val;
             } else {
@@ -145,9 +148,6 @@ trait FileSystem
 
     /**
      * Removes the contents of the directory, without removing the directory.
-     *
-     * @param string $uri
-     * @return void
      */
     public function rmContents(string $uri): void
     {
@@ -156,7 +156,7 @@ trait FileSystem
 
         foreach ($rii as $di) {
             $full = $di->getPathname();
-            if ($di->isDir() ) {
+            if ($di->isDir()) {
                 $this->recursiveRm($full);
             } else {
                 unlink($full);
@@ -166,14 +166,12 @@ trait FileSystem
 
     /**
      * Deletes the file, or recursively removes the directly.
-     *
-     * @param string $uri
-     * @return void
      */
     public function recursiveRm(string $uri): void
     {
-        if (!is_dir($uri)) {
+        if (! is_dir($uri)) {
             unlink($uri);
+
             return;
         }
 
@@ -182,7 +180,7 @@ trait FileSystem
 
         foreach ($rii as $di) {
             $full = $di->getPathname();
-            if (is_dir($full) ) {
+            if (is_dir($full)) {
                 $this->recursiveRm($full);
             } else {
                 unlink($full);
@@ -194,9 +192,6 @@ trait FileSystem
 
     /**
      * Removes the trailing slash from a uri if it has one
-     *
-     * @param string $uri
-     * @return string
      */
     public function withoutTrailingSlash(string $uri): string
     {
@@ -206,5 +201,4 @@ trait FileSystem
 
         return $uri;
     }
-
 }

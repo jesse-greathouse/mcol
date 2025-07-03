@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Rule,
-    Illuminate\Validation\Validator;
-
 use App\Models\Network;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Request for storing a user's nickname, validating network existence and other data.
@@ -45,7 +44,7 @@ class StoreNickRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                if (!$this->networkExists($validator)) {
+                if (! $this->networkExists($validator)) {
                     $validated = $validator->validated();
                     $id = $validated['network'];
                     $validator->errors()->add(
@@ -53,15 +52,14 @@ class StoreNickRequest extends FormRequest
                         "Network with id: $id was not found."
                     );
                 }
-            }
+            },
         ];
     }
 
     /**
      * Check if the network exists in the database.
      *
-     * @param \Illuminate\Validation\Validator $validator The current validator instance.
-     *
+     * @param  \Illuminate\Validation\Validator  $validator  The current validator instance.
      * @return bool True if the network exists, otherwise false.
      */
     public function networkExists(Validator $validator): bool

@@ -2,9 +2,8 @@
 
 namespace App\Providers;
 
-use App\SystemMessage,
-    App\RabbitMQ\RabbitMQ;
-
+use App\RabbitMQ\RabbitMQ;
+use App\SystemMessage;
 use Illuminate\Support\ServiceProvider;
 
 /**

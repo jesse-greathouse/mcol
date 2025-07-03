@@ -2,10 +2,9 @@
 
 namespace App;
 
+use App\Exceptions\SettingsIllegalStoreException;
+use App\Exceptions\SettingsInvalidPropertyException;
 use Illuminate\Contracts\Foundation\Application;
-
-use App\Exceptions\SettingsIllegalStoreException,
-    App\Exceptions\SettingsInvalidPropertyException;
 
 final class Settings
 {
@@ -19,14 +18,11 @@ final class Settings
 
     /**
      * Instantiates all the stores.
-     *
-     * @param array $config
-     * @return void
      */
     private function buildStores(array $config): void
     {
-        forEach($config['stores'] as $key => $store) {
-            if (!is_array($store) || !isset($store['class']) || !class_exists($store['class'])) {
+        foreach ($config['stores'] as $key => $store) {
+            if (! is_array($store) || ! isset($store['class']) || ! class_exists($store['class'])) {
                 throw new SettingsIllegalStoreException("Store: $key has an incorrect configuration.");
             }
 
@@ -38,14 +34,12 @@ final class Settings
 
     /**
      * Returns the stores object as an array.
-     *
-     * @return array
      */
     public function toArray(): array
     {
         $res = [];
 
-        foreach($this->stores as $key => $store) {
+        foreach ($this->stores as $key => $store) {
             $res[$key] = $store->toArray();
         }
 
@@ -53,22 +47,16 @@ final class Settings
     }
 
     /**
-    * Magic function to dynamically check if a property is set.
-    *
-    * @param string $name
-    * @return boolean
-    */
+     * Magic function to dynamically check if a property is set.
+     */
     public function __isset(string $name): bool
     {
         return isset($this->stores[$name]);
     }
 
     /**
-    * Magic function to retrieve stores as poperties of a Settings instance.
-    *
-    * @param string $name
-    * @return mixed
-    */
+     * Magic function to retrieve stores as poperties of a Settings instance.
+     */
     public function __get(string $name): mixed
     {
         if (isset($this->stores[$name])) {
@@ -80,8 +68,6 @@ final class Settings
 
     /**
      * Returns all stores as an associative array.
-     *
-     * @return array
      */
     public function getStores(): array
     {

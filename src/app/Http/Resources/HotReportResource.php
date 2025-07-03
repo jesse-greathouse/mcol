@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request,
-    Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Resource representation of a Hot Report.
@@ -13,7 +13,7 @@ class HotReportResource extends JsonResource
     /**
      * Transform the resource into an array.
      *
-     * @param Request $request The incoming request instance.
+     * @param  Request  $request  The incoming request instance.
      * @return array<string, mixed> The transformed resource data.
      */
     public function toArray(Request $request): array

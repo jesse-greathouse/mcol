@@ -2,8 +2,8 @@
 
 namespace App\RabbitMQ;
 
-use PhpAmqpLib\Channel\AMQPChannel,
-    PhpAmqpLib\Exception\AMQPRuntimeException;
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Exception\AMQPRuntimeException;
 
 /**
  * Class Exchange
@@ -21,14 +21,15 @@ final class Exchange
     /**
      * Exchange constructor.
      *
-     * @param Connection $connection The RabbitMQ connection instance.
+     * @param  Connection  $connection  The RabbitMQ connection instance.
+     *
      * @throws \RuntimeException If no valid AMQP channel is available.
      */
     public function __construct(Connection $connection)
     {
         $channel = $connection->getChannel();
-        if (!$channel instanceof AMQPChannel) {
-            throw new \RuntimeException("Error: No valid connection available");
+        if (! $channel instanceof AMQPChannel) {
+            throw new \RuntimeException('Error: No valid connection available');
         }
 
         $this->channel = $channel;
@@ -37,14 +38,14 @@ final class Exchange
     /**
      * Declare an exchange in RabbitMQ.
      *
-     * @param string $exchange Exchange name.
-     * @param string $type Exchange type (direct, fanout, topic, headers).
-     * @param bool $passive Whether to check if the exchange exists without modifying it.
-     * @param bool $durable Whether the exchange survives a broker restart.
-     * @param bool $autoDelete Whether the exchange is deleted when no queues are bound.
-     * @param bool $internal Whether the exchange is used only internally by RabbitMQ.
-     * @param bool $wait Whether the server should respond to the declaration.
-     * @param array $properties Additional properties for the exchange.
+     * @param  string  $exchange  Exchange name.
+     * @param  string  $type  Exchange type (direct, fanout, topic, headers).
+     * @param  bool  $passive  Whether to check if the exchange exists without modifying it.
+     * @param  bool  $durable  Whether the exchange survives a broker restart.
+     * @param  bool  $autoDelete  Whether the exchange is deleted when no queues are bound.
+     * @param  bool  $internal  Whether the exchange is used only internally by RabbitMQ.
+     * @param  bool  $wait  Whether the server should respond to the declaration.
+     * @param  array  $properties  Additional properties for the exchange.
      *
      * @throws AMQPException If an error occurs while declaring the exchange.
      */
@@ -70,7 +71,7 @@ final class Exchange
                 $properties
             );
         } catch (AMQPRuntimeException $ex) {
-            throw new AMQPRuntimeException("Error creating exchange: " . $ex->getMessage(), $ex->getCode(), $ex);
+            throw new AMQPRuntimeException('Error creating exchange: '.$ex->getMessage(), $ex->getCode(), $ex);
         }
     }
 }

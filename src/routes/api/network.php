@@ -1,12 +1,11 @@
 <?php
 
+use App\Http\Requests\ApiStoreNetworkRequest;
+use App\Http\Resources\NetworkCollection;
+use App\Http\Resources\NetworkResource;
+use App\Models\Client;
+use App\Models\Network;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Client,
-    App\Models\Network,
-    App\Http\Requests\ApiStoreNetworkRequest,
-    App\Http\Resources\NetworkCollection,
-    App\Http\Resources\NetworkResource;
 
 // Gets a collection of clients per network.
 // GET /api/network/clients
@@ -15,7 +14,7 @@ Route::middleware('auth:sanctum')->get('/network/clients', function () {
     $clients = [];
     $networks = Network::all()->pluck('name');
 
-    foreach($networks as $network) {
+    foreach ($networks as $network) {
         $client = Client::join('networks', 'networks.id', '=', 'clients.network_id')
             ->where('clients.enabled', true)
             ->where('networks.name', $network)
@@ -67,6 +66,6 @@ Route::middleware('auth:sanctum')->delete('/network/{id}', function (string $id)
 
     return response()->json([
         'success' => true,
-        'message' => "Network: $name with id: $id was deleted."
+        'message' => "Network: $name with id: $id was deleted.",
     ]);
 });

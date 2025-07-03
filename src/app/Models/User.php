@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory,
-    Illuminate\Foundation\Auth\User as Authenticatable,
-    Illuminate\Notifications\Notifiable;
-
-use Laravel\Fortify\TwoFactorAuthenticatable,
-    Laravel\Jetstream\HasProfilePhoto,
-    Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Jetstream\HasProfilePhoto;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * Class User
@@ -16,8 +15,6 @@ use Laravel\Fortify\TwoFactorAuthenticatable,
  * The User model represents an authenticated user in the system.
  * It includes authentication, notifications, profile photo handling,
  * and two-factor authentication features.
- *
- * @package App\Models
  */
 class User extends Authenticatable
 {
@@ -64,7 +61,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime', // Cast the email verification date to datetime
-            'password'          => 'hashed', // Ensure password is hashed
+            'password' => 'hashed', // Ensure password is hashed
         ];
     }
 }

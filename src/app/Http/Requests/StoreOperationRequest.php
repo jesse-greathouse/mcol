@@ -2,12 +2,11 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Validator;
-
-use App\Models\Operation,
-    App\Models\Instance,
-    App\Models\Network;
+use App\Models\Instance;
+use App\Models\Network;
+use App\Models\Operation;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * StoreOperationRequest validates the data for storing operations.
@@ -30,11 +29,11 @@ class StoreOperationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'command'   => 'required',
-            'network'   => 'nullable|max:255',
-            'status'    => 'nullable|max:255',
-            'enabled'   => 'nullable|in:0,1',
-            'instance'  => 'nullable|numeric',
+            'command' => 'required',
+            'network' => 'nullable|max:255',
+            'status' => 'nullable|max:255',
+            'enabled' => 'nullable|in:0,1',
+            'instance' => 'nullable|numeric',
         ];
     }
 
@@ -53,7 +52,7 @@ class StoreOperationRequest extends FormRequest
                 }
             },
             function (Validator $validator) {
-                if (!$this->instanceExists($validator)) {
+                if (! $this->instanceExists($validator)) {
                     $validated = $validator->validated();
                     $id = $validated['instance'];
                     $validator->errors()->add(
@@ -63,7 +62,7 @@ class StoreOperationRequest extends FormRequest
                 }
             },
             function (Validator $validator) {
-                if (!$this->isValidStatus($validator)) {
+                if (! $this->isValidStatus($validator)) {
                     $validated = $validator->validated();
                     $status = $validated['status'];
                     $pending = Operation::STATUS_PENDING;
@@ -75,15 +74,12 @@ class StoreOperationRequest extends FormRequest
                         "Status: $status is not valid. (Valid statuses are: $validStatuses)"
                     );
                 }
-            }
+            },
         ];
     }
 
     /**
      * Check if the network exists.
-     *
-     * @param Validator $validator
-     * @return bool
      */
     public function networkExists(Validator $validator): bool
     {
@@ -96,9 +92,6 @@ class StoreOperationRequest extends FormRequest
 
     /**
      * Retrieve the instance associated with the given network name.
-     *
-     * @param string $networkName
-     * @return Instance|null
      */
     public function getInstanceByNetworkName(string $networkName): ?Instance
     {
@@ -111,9 +104,6 @@ class StoreOperationRequest extends FormRequest
 
     /**
      * Check if the instance exists.
-     *
-     * @param Validator $validator
-     * @return bool
      */
     public function instanceExists(Validator $validator): bool
     {
@@ -126,9 +116,6 @@ class StoreOperationRequest extends FormRequest
 
     /**
      * Check if the status is valid.
-     *
-     * @param Validator $validator
-     * @return bool
      */
     public function isValidStatus(Validator $validator): bool
     {

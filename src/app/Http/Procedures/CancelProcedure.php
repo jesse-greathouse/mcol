@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Procedures;
 
-use Sajya\Server\Procedure;
-
+use App\Exceptions\UnknownBotException;
+use App\Jobs\CancelRequest;
+use App\Models\Bot;
 use Illuminate\Http\Request;
-
-use App\Exceptions\UnknownBotException,
-    App\Jobs\CancelRequest,
-    App\Models\Bot;
+use Sajya\Server\Procedure;
 
 /**
  * Class CancelProcedure
@@ -27,9 +25,9 @@ class CancelProcedure extends Procedure
     /**
      * Execute the procedure to cancel the bot request.
      *
-     * @param Request $request The incoming request.
-     *
+     * @param  Request  $request  The incoming request.
      * @return array|string|int Response data with bot information or an error.
+     *
      * @throws UnknownBotException If the bot with the provided ID cannot be found.
      */
     public function request(Request $request): array|string|int
@@ -39,7 +37,7 @@ class CancelProcedure extends Procedure
         // Fetch bot by ID efficiently and handle not found case
         $bot = Bot::find($id);
 
-        if (null === $bot) {
+        if ($bot === null) {
             throw new UnknownBotException("Bot: {$id} was not found.");
         }
 

@@ -14,7 +14,7 @@ interface MessageInterface
     /**
      * Handles an incoming RabbitMQ message.
      *
-     * @param AMQPMessage $message The received AMQP message.
+     * @param  AMQPMessage  $message  The received AMQP message.
      */
     public function handleMessage(AMQPMessage $message): void;
 }

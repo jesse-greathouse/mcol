@@ -2,16 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory,
-    Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class FileDownloadLock
  *
  * Represents a model for the file download lock.
  * This class manages the locking mechanism for file downloads to avoid concurrent access issues.
- *
- * @package App\Models
  */
 class FileDownloadLock extends Model
 {

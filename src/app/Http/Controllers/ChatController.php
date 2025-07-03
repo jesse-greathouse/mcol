@@ -2,38 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
+use App\Models\FileDownloadLock;
+use App\Models\Network;
+use App\Packet\DownloadQueue;
+use App\Settings;
 use Illuminate\Support\Collection;
-
-use Inertia\Inertia,
-    Inertia\Response;
-
-use App\Models\Client,
-    App\Models\FileDownloadLock,
-    App\Models\Network,
-    App\Packet\DownloadQueue,
-    App\Settings;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ChatController
 {
     /**
      * Holds a collection of Network names.
-     *
-     * @var Collection
      */
     private ?Collection $networkList = null;
 
     /**
      * Main view for the Chat page.
-     *
-     * @return Response
      */
     public function index(): Response
     {
         return Inertia::render('Chat', [
-            'queue'     => fn () => DownloadQueue::getQueue(),
-            'locks'     => fn () => FileDownloadLock::all()->pluck('file_name')->toArray(),
-            'settings'  => fn (Settings $settings) => $settings->toArray(),
-            'networks'  => fn () => $this->getNetworkList(),
+            'queue' => fn () => DownloadQueue::getQueue(),
+            'locks' => fn () => FileDownloadLock::all()->pluck('file_name')->toArray(),
+            'settings' => fn (Settings $settings) => $settings->toArray(),
+            'networks' => fn () => $this->getNetworkList(),
             'instances' => fn () => $this->getNetworkClients(),
         ]);
     }
@@ -66,8 +60,6 @@ class ChatController
 
     /**
      * Ensures the networkList is populated.
-     *
-     * @return Collection
      */
     private function getNetworkList(): Collection
     {

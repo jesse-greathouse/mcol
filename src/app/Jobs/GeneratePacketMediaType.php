@@ -2,14 +2,13 @@
 
 namespace App\Jobs;
 
-use Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Foundation\Queue\Queueable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels;
-
-use App\Models\Packet,
-    App\Packet\MediaType\MediaTypeGuesser;
+use App\Models\Packet;
+use App\Packet\MediaType\MediaTypeGuesser;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 
 /**
  * Class responsible for generating and updating media type for packets.
@@ -27,15 +26,13 @@ class GeneratePacketMediaType implements ShouldQueue
 
     /**
      * Flag to determine if this is a full run (will process every packet).
-     *
-     * @var bool
      */
     public bool $isFull;
 
     /**
      * Create a new job instance.
      *
-     * @param bool $full Flag to indicate if this is a full run.
+     * @param  bool  $full  Flag to indicate if this is a full run.
      */
     public function __construct(bool $full)
     {
@@ -44,8 +41,6 @@ class GeneratePacketMediaType implements ShouldQueue
 
     /**
      * Execute the job.
-     *
-     * @return void
      */
     public function handle(): void
     {

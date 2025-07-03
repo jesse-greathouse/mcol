@@ -2,14 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Store\MediaStoreSettings;
+use Deerdama\ConsoleZoo\ConsoleZoo;
 use Illuminate\Console\Command;
 
-use Deerdama\ConsoleZoo\ConsoleZoo;
-
-use App\Store\MediaStoreSettings;
-
 // Define DS constant for cross-platform compatibility if not already defined
-if (!defined('DS')) {
+if (! defined('DS')) {
     define('DS', DIRECTORY_SEPARATOR);
 }
 
@@ -18,10 +16,10 @@ class ConfigureMediaStoreSettings extends Command
     use ConsoleZoo;
 
     // Define the default directories for Windows systems
-    const DEFAULT_WINDOWS_VAR_DIR = '%APPDATA%' .  DS . 'var';
+    const DEFAULT_WINDOWS_VAR_DIR = '%APPDATA%'.DS.'var';
 
     // Define the default directories for Unix-like systems
-    const DEFAULT_UNIX_LIKE_VAR_DIR = '$HOME' .  DS . 'var';
+    const DEFAULT_UNIX_LIKE_VAR_DIR = '$HOME'.DS.'var';
 
     /** @var string The command signature. */
     protected $signature = 'mcol:media-store-settings';
@@ -31,7 +29,6 @@ class ConfigureMediaStoreSettings extends Command
 
     /**
      * Execute the console command.
-     * @return void
      */
     public function handle(): void
     {
@@ -40,7 +37,7 @@ class ConfigureMediaStoreSettings extends Command
 
         foreach ($store->getKeys() as $key) {
             $default = $store->{$key};
-            $prompt = "Set the value of: " . ucfirst($key);
+            $prompt = 'Set the value of: '.ucfirst($key);
 
             if (is_array($default)) {
                 $default = implode(',', $default);
@@ -50,7 +47,7 @@ class ConfigureMediaStoreSettings extends Command
             $store->{$key} = explode(',', $input);
         }
 
-        $this->zoo("The Media Store settings will be saved with the following...", [
+        $this->zoo('The Media Store settings will be saved with the following...', [
             'color' => 'light_blue_bright_2',
             'icons' => ['sparkles'],
             'bold',
@@ -62,17 +59,16 @@ class ConfigureMediaStoreSettings extends Command
 
         if ($this->confirm('Do you wish to continue?')) {
             $store->save();
-            $this->warn("Media Store settings saved.");
+            $this->warn('Media Store settings saved.');
         } else {
-            $this->warn("Exiting without saving...");
+            $this->warn('Exiting without saving...');
         }
     }
 
     /**
      * Display data in a table format.
      *
-     * @param array $data Key-value pairs to display.
-     * @return void
+     * @param  array  $data  Key-value pairs to display.
      */
     private function displayTable(array $data): void
     {
@@ -104,7 +100,7 @@ class ConfigureMediaStoreSettings extends Command
     /**
      * Replaces system-specific variables with their actual values.
      *
-     * @param string $path The path containing system variables.
+     * @param  string  $path  The path containing system variables.
      * @return string The path with system variables replaced.
      */
     private function replaceSystemVariables(string $path): string

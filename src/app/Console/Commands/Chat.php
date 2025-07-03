@@ -2,13 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Client;
+use App\Models\Instance;
+use App\Models\Network;
+use App\Models\Nick;
+use App\Models\Operation;
 use Illuminate\Console\Command;
-
-use App\Models\Client,
-    App\Models\Instance,
-    App\Models\Nick,
-    App\Models\Operation,
-    App\Models\Network;
 
 class Chat extends Command
 {
@@ -38,15 +37,17 @@ class Chat extends Command
         $network = $this->getNetwork();
         $target = $this->getTarget();
 
-        if (!$network || !$target) {
+        if (! $network || ! $target) {
             $this->error('Invalid input.');
+
             return;
         }
 
         $nick = $this->getNickForNetwork();
 
-        if (!$nick) {
+        if (! $nick) {
             $this->error('Invalid nick. Cannot continue.');
+
             return;
         }
 
@@ -66,16 +67,13 @@ class Chat extends Command
             'command' => $this->getMessage(),
         ]);
 
-        if (!$operation) {
+        if (! $operation) {
             $this->error('Operation could not be completed.');
         }
     }
 
     /**
      * Formats the message to be issued in the operation.
-     *
-     * @param string $message
-     * @return string
      */
     public function filterMessage(string $message): string
     {
@@ -84,22 +82,19 @@ class Chat extends Command
 
     /**
      * Retrieves the Nick instance for the current network.
-     *
-     * @return Nick|null
      */
     public function getNickForNetwork(): ?Nick
     {
-        if (!$this->nick) {
+        if (! $this->nick) {
             $network = $this->getNetwork();
             $this->nick = $network ? Client::where('network_id', $network->id)->value('nick') : null;
         }
+
         return $this->nick;
     }
 
     /**
      * Retrieves the Network instance.
-     *
-     * @return Network|null
      */
     public function getNetwork(): ?Network
     {
@@ -108,8 +103,6 @@ class Chat extends Command
 
     /**
      * Retrieves the chat message.
-     *
-     * @return string
      */
     public function getMessage(): string
     {
@@ -118,8 +111,6 @@ class Chat extends Command
 
     /**
      * Retrieves the chat target (user or room).
-     *
-     * @return string
      */
     public function getTarget(): string
     {

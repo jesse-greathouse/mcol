@@ -2,13 +2,12 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\InteractsWithSockets,
-    Illuminate\Broadcasting\PrivateChannel,
-    Illuminate\Contracts\Events\ShouldDispatchAfterCommit,
-    Illuminate\Foundation\Events\Dispatchable,
-    Illuminate\Queue\SerializesModels;
-
 use App\Models\HotReport;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
 
 /**
  * Event triggered when a hot report summary is to be broadcasted.
@@ -25,7 +24,7 @@ class HotReportSummary implements ShouldDispatchAfterCommit
     /**
      * Constructor for the HotReportSummary event.
      *
-     * @param HotReport $hotReport The hot report to be included in the summary.
+     * @param  HotReport  $hotReport  The hot report to be included in the summary.
      */
     public function __construct(HotReport $hotReport)
     {

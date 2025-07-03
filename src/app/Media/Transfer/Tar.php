@@ -3,16 +3,14 @@
 namespace App\Media\Transfer;
 
 use App\Exceptions\TransferTarFileException;
-
+use Exception;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use splitbrain\PHPArchive\Tar as TarArchive;
 
-use Exception,
-    FilesystemIterator,
-    RecursiveDirectoryIterator,
-    RecursiveIteratorIterator;
-
 // Define DS constant for cross-platform compatibility if not already defined
-if (!defined('DS')) {
+if (! defined('DS')) {
     define('DS', DIRECTORY_SEPARATOR);
 }
 
@@ -27,11 +25,9 @@ final class Tar extends Transfer implements TransferInterface
     /**
      * Transfers files with a .tar archive.
      *
-     * @param ?string|null $uri The URI of the source file to transfer. Defaults to null.
+     * @param  ?string|null  $uri  The URI of the source file to transfer. Defaults to null.
      *
      * @throws TransferTarFileException If there is an error extracting or copying the .tar archive files.
-     *
-     * @return void
      */
     public function transfer(?string $uri = null): void
     {
@@ -39,7 +35,7 @@ final class Tar extends Transfer implements TransferInterface
         $tmpPath = $this->manager->getTmpPath();
 
         // tEST the current uri to be something useable
-        if (!$tmpPath = $this->manager->getTmpPath()) {
+        if (! $tmpPath = $this->manager->getTmpPath()) {
             return;
         }
 
@@ -53,11 +49,9 @@ final class Tar extends Transfer implements TransferInterface
     /**
      * Extracts the .tar archive to the specified temporary path.
      *
-     * @param string $tmpPath The temporary path where files will be extracted.
+     * @param  string  $tmpPath  The temporary path where files will be extracted.
      *
      * @throws TransferTarFileException If there is an error extracting the .tar archive.
-     *
-     * @return void
      */
     private function extractTar(string $tmpPath): void
     {
@@ -65,22 +59,20 @@ final class Tar extends Transfer implements TransferInterface
 
         try {
             // Open the .tar archive and extract its contents
-            $tar = new TarArchive();
+            $tar = new TarArchive;
             $tar->open($file);
             $tar->extract($tmpPath);
         } catch (Exception $e) {
-            throw new TransferTarFileException("Error extracting TAR file: " . $e->getMessage());
+            throw new TransferTarFileException('Error extracting TAR file: '.$e->getMessage());
         }
     }
 
     /**
      * Copies the extracted files to the destination.
      *
-     * @param string $tmpPath The temporary path where files are extracted.
+     * @param  string  $tmpPath  The temporary path where files are extracted.
      *
      * @throws TransferTarFileException If there is an error copying the extracted files.
-     *
-     * @return void
      */
     private function copyExtractedFiles(string $tmpPath): void
     {
@@ -95,7 +87,7 @@ final class Tar extends Transfer implements TransferInterface
                     continue;
                 }
 
-                $uri = $di->getPath() . DS . $di->getFilename();
+                $uri = $di->getPath().DS.$di->getFilename();
 
                 // Remove the tmp path from the path to leave just the uri of the file.
                 $fileName = str_replace($tmpPath, '', $uri);
@@ -112,7 +104,7 @@ final class Tar extends Transfer implements TransferInterface
                 $copyFile->transfer($uri, $tmpPath);
             }
         } catch (Exception $e) {
-            throw new TransferTarFileException("Error copying extracted files: " . $e->getMessage());
+            throw new TransferTarFileException('Error copying extracted files: '.$e->getMessage());
         }
     }
 }

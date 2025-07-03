@@ -1,15 +1,13 @@
 <?php
 
+use App\Http\Controllers\BrowseController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DownloadController;
+use App\Http\Controllers\DownloadProgressController;
+use App\Http\Controllers\DownloadQueueController;
+use App\Http\Controllers\TokenController;
 use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\BrowseController,
-    App\Http\Controllers\ChatController,
-    App\Http\Controllers\DashboardController,
-    App\Http\Controllers\DownloadController,
-    App\Http\Controllers\DownloadProgressController,
-    App\Http\Controllers\DownloadQueueController,
-    App\Http\Controllers\TokenController;
-
 
 // Force all traffic to authenticate first.
 Route::redirect('/', 'login');

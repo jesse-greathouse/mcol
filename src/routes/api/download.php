@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Requests\ApiStoreDownloadRequest;
+use App\Http\Resources\DownloadCollection;
+use App\Http\Resources\DownloadResource;
+use App\Models\Download;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Download,
-    App\Http\Requests\ApiStoreDownloadRequest,
-    App\Http\Resources\DownloadCollection,
-    App\Http\Resources\DownloadResource;
 
 // GET /api/download
 Route::middleware('auth:sanctum')->get('/download', function () {
@@ -17,7 +16,7 @@ Route::middleware('auth:sanctum')->post('/download', function (ApiStoreDownloadR
     $validated = $request->validated();
 
     $inputs = [
-        'file_uri'  => $validated['file_uri'],
+        'file_uri' => $validated['file_uri'],
         'packet_id' => $validated['packet'],
     ];
 
@@ -46,7 +45,7 @@ Route::middleware('auth:sanctum')->post('/download', function (ApiStoreDownloadR
     }
 
     $download = Download::create($inputs);
- 
+
     return redirect("/api/download/{$download->id}");
 });
 
@@ -100,6 +99,6 @@ Route::middleware('auth:sanctum')->delete('/download/{id}', function (string $id
 
     return response()->json([
         'success' => true,
-        'message' => "Download: $file with id: $id was deleted."
+        'message' => "Download: $file with id: $id was deleted.",
     ]);
 });

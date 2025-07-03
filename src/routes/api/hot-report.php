@@ -1,10 +1,9 @@
 <?php
 
+use App\Http\Resources\HotReportCollection;
+use App\Http\Resources\HotReportResource;
+use App\Models\HotReport;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\HotReport,
-    App\Http\Resources\HotReportCollection,
-    App\Http\Resources\HotReportResource;
 
 // GET /api/fileextension
 Route::middleware('auth:sanctum')->get('/hot-report', function () {

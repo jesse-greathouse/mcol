@@ -2,12 +2,11 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\InteractsWithSockets,
-    Illuminate\Broadcasting\PrivateChannel,
-    Illuminate\Foundation\Events\Dispatchable,
-    Illuminate\Queue\SerializesModels;
-
 use App\Models\PacketSearchResult as SearchResult;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
 
 /**
  * Event triggered when a packet search result is to be broadcasted.
@@ -24,7 +23,7 @@ class PacketSearchResult
     /**
      * Constructor for the PacketSearchResult event.
      *
-     * @param SearchResult $packetSearchResult The search result to be included in the event.
+     * @param  SearchResult  $packetSearchResult  The search result to be included in the event.
      */
     public function __construct(SearchResult $packetSearchResult)
     {

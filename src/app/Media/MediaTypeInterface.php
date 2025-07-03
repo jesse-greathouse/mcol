@@ -18,15 +18,13 @@ interface MediaTypeInterface
     /**
      * Matches the media metadata from the file name.
      *
-     * @param string $fileName the name of the file with which to perform the data extraction.
+     * @param  string  $fileName  the name of the file with which to perform the data extraction.
      * @return void.
      */
     public function match(string $fileName): void;
 
     /**
      * Maps the media type to a specific transformation or logic.
-     *
-     * @return void
      */
     public function map(): void;
 }

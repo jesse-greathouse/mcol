@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Procedures;
 
-use Sajya\Server\Procedure;
-
+use App\Exceptions\InvalidPacketException;
+use App\Jobs\RemoveRequest;
+use App\Models\Packet;
 use Illuminate\Http\Request;
-
-use App\Exceptions\InvalidPacketException,
-    App\Jobs\RemoveRequest,
-    App\Models\Packet;
+use Sajya\Server\Procedure;
 
 /**
  * Handles the removal procedure for a given packet.
@@ -25,9 +23,9 @@ class RemoveProcedure extends Procedure
     /**
      * Executes the procedure to remove a packet.
      *
-     * @param Request $request The request containing the packet ID.
+     * @param  Request  $request  The request containing the packet ID.
+     * @return array|string|int The result, which includes the packet data if found.
      *
-     * @return array|string|integer The result, which includes the packet data if found.
      * @throws InvalidPacketException If the packet is not found.
      */
     public function request(Request $request): array|string|int
@@ -39,7 +37,7 @@ class RemoveProcedure extends Procedure
         $packet = Packet::find($id);
 
         // If packet is not found, throw an exception
-        if (null === $packet) {
+        if ($packet === null) {
             throw new InvalidPacketException("Packet with id: $id was not found.");
         }
 

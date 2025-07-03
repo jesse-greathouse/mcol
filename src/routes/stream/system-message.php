@@ -1,10 +1,9 @@
 <?php
 
-use Illuminate\Http\Exceptions\HttpResponseException,
-    Illuminate\Support\Facades\Route;
-
-use App\Http\Requests\StreamSystemMessageRequest,
-    App\SystemMessage;
+use App\Http\Requests\StreamSystemMessageRequest;
+use App\SystemMessage;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Route;
 
 // GET /stream/message
 Route::middleware('auth:sanctum')->get('/system-message', function (StreamSystemMessageRequest $request, SystemMessage $systemMessage) {
@@ -21,10 +20,12 @@ Route::middleware('auth:sanctum')->get('/system-message', function (StreamSystem
             // Formats the line like: [2025-03-14T20:09:28+00:00][system.message.chat.Network.notice] ** Welcome Back!'
             foreach ($systemMessage->fetch($queue, $routingKey) as $msg) {
                 $txt = json_decode($msg->getBody(), true, 512, JSON_THROW_ON_ERROR);
-                printf("%s:::%s:::%s\n", $ts, $msg->getRoutingKey(), $txt); ob_flush(); flush();
+                printf("%s:::%s:::%s\n", $ts, $msg->getRoutingKey(), $txt);
+                ob_flush();
+                flush();
             }
         } catch (Throwable $e) {
-            throw new HttpResponseException(response()->make(sprintf("%s:::%s:::%s\n", $ts, 'error',$e->getMessage()), 500));
+            throw new HttpResponseException(response()->make(sprintf("%s:::%s:::%s\n", $ts, 'error', $e->getMessage()), 500));
         }
     }, 200, [
         'X-Accel-Buffering' => 'no',

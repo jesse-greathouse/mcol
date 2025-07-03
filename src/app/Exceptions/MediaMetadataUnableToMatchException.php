@@ -2,16 +2,13 @@
 
 namespace App\Exceptions;
 
-use Illuminate\Support\Facades\Log;
-
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class MediaMetadataUnableToMatchException extends Exception
 {
-/**
+    /**
      * Report or log an exception.
-     *
-     * @return bool
      */
     public function report(): bool
     {

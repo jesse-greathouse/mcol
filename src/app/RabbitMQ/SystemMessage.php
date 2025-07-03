@@ -24,7 +24,7 @@ class SystemMessage implements MessageInterface
     /**
      * Constructs the SystemMessage instance.
      *
-     * @param ?callable $callback Optional callback function for message handling.
+     * @param  ?callable  $callback  Optional callback function for message handling.
      */
     public function __construct(?callable $callback = null)
     {
@@ -34,7 +34,7 @@ class SystemMessage implements MessageInterface
     /**
      * Handles an incoming RabbitMQ message.
      *
-     * @param AMQPMessage $message The received AMQP message.
+     * @param  AMQPMessage  $message  The received AMQP message.
      */
     public function handleMessage(AMQPMessage $message): void
     {

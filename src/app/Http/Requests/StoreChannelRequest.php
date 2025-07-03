@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Validator;
-
-use App\Models\Channel,
-    App\Models\Network;
+use App\Models\Channel;
+use App\Models\Network;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * Request class for storing a channel.
@@ -53,22 +52,21 @@ class StoreChannelRequest extends FormRequest
             },
             function (Validator $validator) {
                 $this->validateParentExistence($validator);
-            }
+            },
         ];
     }
 
     /**
      * Validate that the network exists in the database.
      *
-     * @param Validator $validator The validator instance.
-     * @return void
+     * @param  Validator  $validator  The validator instance.
      */
     private function validateNetworkExistence(Validator $validator): void
     {
         $validated = $validator->validated();
         $networkId = $validated['network'];
 
-        if (!Network::find($networkId)) {
+        if (! Network::find($networkId)) {
             $validator->errors()->add('network', "Network with ID: $networkId was not found.");
         }
     }
@@ -76,8 +74,7 @@ class StoreChannelRequest extends FormRequest
     /**
      * Validate that the parent channel exists in the database.
      *
-     * @param Validator $validator The validator instance.
-     * @return void
+     * @param  Validator  $validator  The validator instance.
      */
     private function validateParentExistence(Validator $validator): void
     {
@@ -85,7 +82,7 @@ class StoreChannelRequest extends FormRequest
         $parentId = $validated['parent'];
 
         // Skip validation if parent is not set
-        if (isset($parentId) && null !== $parentId && !Channel::find($parentId)) {
+        if (isset($parentId) && $parentId !== null && ! Channel::find($parentId)) {
             $validator->errors()->add('parent', "Parent channel with ID: $parentId was not found.");
         }
     }

@@ -2,30 +2,27 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldBeUnique,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels;
-
-use App\Exceptions\InvalidClientException,
-    App\Jobs\CheckFileDownloadScheduled,
-    App\Models\Client,
-    App\Models\Download,
-    App\Models\FileDownloadLock,
-    App\Models\Instance,
-    App\Models\Operation,
-    App\Models\Packet;
-
+use App\Exceptions\InvalidClientException;
+use App\Models\Client;
+use App\Models\Download;
+use App\Models\FileDownloadLock;
+use App\Models\Instance;
+use App\Models\Operation;
+use App\Models\Packet;
 use DateTime;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 
 /**
  * Class DownloadRequest
  *
  * Handles the downloading request process, checking locks, archiving, and queuing operations.
  */
-class DownloadRequest implements ShouldQueue, ShouldBeUnique
+class DownloadRequest implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -50,17 +47,16 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
      *
      * @var Packet
      */
-    public function __construct(public Packet $packet){}
+    public function __construct(public Packet $packet) {}
 
     /**
      * Execute the job.
-     *
-     * @return void
      */
     public function handle(): void
     {
         if ($this->isFileDownloadLocked()) {
             $this->fail("The file: {$this->packet->file_name} is locked for downloading.");
+
             return;
         }
 
@@ -81,8 +77,6 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
 
     /**
      * Helper method to create the operation for the download, including client and instance creation.
-     *
-     * @return void
      */
     protected function createOperation(): void
     {
@@ -110,13 +104,12 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
      * Get the client associated with the packet's network.
      *
      * @throws InvalidClientException
-     * @return Client|null
      */
     public function getClient(): ?Client
     {
         $client = Client::where('network_id', $this->packet->network->id)->first();
 
-        if (null === $client) {
+        if ($client === null) {
             throw new InvalidClientException("Client for network: {$this->packet->network->name} not found.");
         }
 
@@ -125,8 +118,6 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
 
     /**
      * Get the unique ID for the job.
-     *
-     * @return string
      */
     public function uniqueId(): string
     {
@@ -135,8 +126,6 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
 
     /**
      * Removes queued downloads associated with this packet.
-     *
-     * @return void
      */
     protected function archiveDownloads(): void
     {
@@ -151,8 +140,6 @@ class DownloadRequest implements ShouldQueue, ShouldBeUnique
     /**
      * Checks if there is a download lock on the file.
      * Download locks prevent a file from being simultaneously downloaded from multiple sources.
-     *
-     * @return bool
      */
     public function isFileDownloadLocked(): bool
     {

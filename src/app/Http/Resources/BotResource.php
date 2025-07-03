@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request,
-    Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Class BotResource
@@ -15,7 +15,7 @@ class BotResource extends JsonResource
     /**
      * Transform the resource into an array.
      *
-     * @param Request $request The current HTTP request instance.
+     * @param  Request  $request  The current HTTP request instance.
      * @return array<string, mixed> Transformed bot data.
      */
     public function toArray(Request $request): array

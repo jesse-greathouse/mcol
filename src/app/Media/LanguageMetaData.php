@@ -6,7 +6,7 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
 
 trait LanguageMetaData
 {
-    /** @var array<string> $expandedLanguages */
+    /** @var array<string> */
     private array $expandedLanguages = [];
 
     /**
@@ -14,8 +14,9 @@ trait LanguageMetaData
      * Returns an empty string if no match is found.
      * Throws an exception if preg_match fails.
      *
-     * @param string $fileName The file name to extract language from.
+     * @param  string  $fileName  The file name to extract language from.
      * @return string The matched language in lowercase, or an empty string if no match.
+     *
      * @throws MediaMetadataUnableToMatchException If preg_match fails.
      */
     public function getLanguage(string $fileName): string
@@ -31,8 +32,8 @@ trait LanguageMetaData
      * Returns the language if matched, or false if no match.
      * Throws an exception if preg_match fails.
      *
-     * @param string $fileName
      * @return string|false The matched language in lowercase, or false if no match.
+     *
      * @throws MediaMetadataUnableToMatchException
      */
     private function matchLanguage(string $fileName)
@@ -73,6 +74,6 @@ trait LanguageMetaData
         $escapedLanguages = array_map('preg_quote', $this->expandedLanguages);
 
         // Ensure the language is surrounded by dots, spaces, dashes, or underscores
-        return '/(?<=^|[.\s\-_])(' . implode('|', $escapedLanguages) . ')(?=[.\s\-_]|$)/i';
+        return '/(?<=^|[.\s\-_])('.implode('|', $escapedLanguages).')(?=[.\s\-_]|$)/i';
     }
 }

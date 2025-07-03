@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Validator;
-
 use App\Models\Download;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * StoreDownloadDestinationRequest handles the validation for storing download destinations.
@@ -52,7 +51,7 @@ class StoreDownloadDestinationRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
-                if (!$this->downloadExists($validator)) {
+                if (! $this->downloadExists($validator)) {
                     $validated = $validator->validated();
                     $id = $validated['download'];
                     $validator->errors()->add(
@@ -60,15 +59,14 @@ class StoreDownloadDestinationRequest extends FormRequest
                         "Download with id: $id was not found."
                     );
                 }
-            }
+            },
         ];
     }
 
     /**
      * Check if the download exists.
      *
-     * @param Validator $validator The validator instance.
-     *
+     * @param  Validator  $validator  The validator instance.
      * @return bool True if the download exists, otherwise false.
      */
     public function downloadExists(Validator $validator): bool

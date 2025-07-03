@@ -8,16 +8,18 @@ namespace App\Media;
  * Provides constants and methods related to supported media languages.
  * This class serves as a reference for media language codes and offers utility methods
  * to retrieve lists of languages and their expanded variants.
- *
- * @package App\Media
  */
 final class MediaLanguage
 {
     // Language constants
     const CHINESE = 'chinese';
+
     const FRENCH = 'french';
+
     const GERMAN = 'german';
+
     const JAPANESE = 'japanese';
+
     const KOREAN = 'korean';
 
     /**

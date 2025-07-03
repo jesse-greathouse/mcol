@@ -2,12 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-
-use App\Jobs\GeneratePacketMeta as GeneratePacketMetaJob,
-    App\Models\Packet;
-
+use App\Jobs\GeneratePacketMeta as GeneratePacketMetaJob;
+use App\Models\Packet;
 use Exception;
+use Illuminate\Console\Command;
 
 class GeneratePacketMeta extends Command
 {
@@ -36,7 +34,7 @@ class GeneratePacketMeta extends Command
         if ($this->option('packet')) {
             $id = intval($this->option('packet'));
             $packet = Packet::find($id);
-            if (null === $packet) {
+            if ($packet === null) {
                 throw new Exception("Packet with id: $id could not be found.");
             }
 
@@ -44,6 +42,6 @@ class GeneratePacketMeta extends Command
         }
 
         GeneratePacketMetaJob::dispatch($packet)->onQueue($queue);
-        $this->warn("Queued job for Generating Packet Meta.");
+        $this->warn('Queued job for Generating Packet Meta.');
     }
 }

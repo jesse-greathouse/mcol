@@ -2,14 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\SystemMessage,
-    App\RabbitMQ\Consumer;
-
-use PhpAmqpLib\Message\AMQPMessage;
-
-use Illuminate\Console\Command;
-
+use App\SystemMessage;
 use Exception;
+use Illuminate\Console\Command;
+use PhpAmqpLib\Message\AMQPMessage;
 
 class SystemMessagesConsumer extends Command
 {
@@ -42,30 +38,28 @@ class SystemMessagesConsumer extends Command
      */
     public function handle(SystemMessage $systemMessage)
     {
-        $this->info("Checking System Messages...");
+        $this->info('Checking System Messages...');
 
         try {
             $systemMessage->consume(
                 $this->getQueue(),
-                function(AMQPMessage $msg) {
-                    $this->info($msg->getRoutingKey() . ': ' . json_decode($msg->getBody(), true));
+                function (AMQPMessage $msg) {
+                    $this->info($msg->getRoutingKey().': '.json_decode($msg->getBody(), true));
                 },
                 $this->getRoutingKey()
 
             );
         } catch (Exception $ex) {
-            $this->error("StstemMessage Error: " . $ex->getMessage());
+            $this->error('StstemMessage Error: '.$ex->getMessage());
         }
     }
 
     /**
      * Returns the name of the RoutingKey.
-     *
-     * @return string
      */
     protected function getRoutingKey(): string
     {
-        if (null === $this->routingKey) {
+        if ($this->routingKey === null) {
             $routingKey = $this->argument('routingKey');
 
             // Flatten to a string if it's an array.
@@ -74,7 +68,7 @@ class SystemMessagesConsumer extends Command
             }
 
             // If it's null or an empty string, just wildcard the queue.
-            if (null === $routingKey || '' === trim($routingKey)) {
+            if ($routingKey === null || trim($routingKey) === '') {
                 $routingKey = '';
             }
 
@@ -84,15 +78,12 @@ class SystemMessagesConsumer extends Command
         return $this->routingKey;
     }
 
-
     /**
      * Returns the name of the Queue.
-     *
-     * @return string
      */
     protected function getQueue(): string
     {
-        if (null === $this->queue) {
+        if ($this->queue === null) {
             $queue = $this->argument('queue');
 
             // Flatten to a string if it's an array.
@@ -101,7 +92,7 @@ class SystemMessagesConsumer extends Command
             }
 
             // If it's null or an empty string, just wildcard the queue.
-            if (null === $queue || '' === trim($queue)) {
+            if ($queue === null || trim($queue) === '') {
                 $queue = '';
             }
 

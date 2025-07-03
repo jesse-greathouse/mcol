@@ -11,7 +11,7 @@ trait ExtensionMetaData
      * which is considered the extension. The extension is truncated to a maximum of
      * 8 characters to ensure it fits within the database limits.
      *
-     * @param string $fileName The full file name (e.g., 'example.txt').
+     * @param  string  $fileName  The full file name (e.g., 'example.txt').
      * @return string|null The file extension, truncated to a maximum of 8 characters, or null if no extension exists.
      */
     public function getExtension(string $fileName): ?string

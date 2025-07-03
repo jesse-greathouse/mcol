@@ -10,7 +10,7 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
  */
 final class Movie extends Media implements MediaTypeInterface
 {
-    use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
+    use DynamicRangeMetaData, ExtensionMetaData, LanguageMetaData;
 
     // https://www.phpliveregex.com/p/Mxs
     const STANDARD_MASK = '/^[\d{2}]*(.*)(\d{4}).*(480[p]?|720[p]?|1080[p]?|2160[p]?)(.*)$/is';
@@ -67,7 +67,8 @@ final class Movie extends Media implements MediaTypeInterface
     /**
      * Matches the media metadata from the file name.
      *
-     * @param string $fileName The name of the file to extract metadata from.
+     * @param  string  $fileName  The name of the file to extract metadata from.
+     *
      * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
      */
     public function match(string $fileName): void
@@ -86,12 +87,10 @@ final class Movie extends Media implements MediaTypeInterface
     /**
      * Maps the result of regex matching to object properties.
      * Attempts to match the media filename with the resolution mask or fallback to the no-resolution mask.
-     *
-     * @return void
      */
     public function map(): void
     {
-        if (null === $this->metaData) {
+        if ($this->metaData === null) {
             return;
         }
 
@@ -114,14 +113,14 @@ final class Movie extends Media implements MediaTypeInterface
     public function toArray(): array
     {
         return [
-            'title'             => $this->title,
-            'year'              => $this->year,
-            'resolution'        => $this->resolution,
-            'tags'              => $this->tags,
-            'extension'         => $this->extension,
-            'language'          => $this->language,
-            'is_hdr'            => $this->isHdr,
-            'is_dolby_vision'   => $this->isDolbyVision,
+            'title' => $this->title,
+            'year' => $this->year,
+            'resolution' => $this->resolution,
+            'tags' => $this->tags,
+            'extension' => $this->extension,
+            'language' => $this->language,
+            'is_hdr' => $this->isHdr,
+            'is_dolby_vision' => $this->isDolbyVision,
         ];
     }
 
@@ -141,6 +140,7 @@ final class Movie extends Media implements MediaTypeInterface
                 ->withYear($match[2])           // Year.
                 ->withResolution($match[3])    // Video resolution.
                 ->withTags($match[4]);         // Tags (e.g., format, quality indicators).
+
             return true;
         }
 
@@ -162,6 +162,7 @@ final class Movie extends Media implements MediaTypeInterface
                 ->withYear($match[2])           // Year.
                 ->withResolution(null)          // Video resolution.
                 ->withTags($match[3]);         // Tags (e.g., format, quality indicators).
+
             return true;
         }
 
@@ -183,6 +184,7 @@ final class Movie extends Media implements MediaTypeInterface
                 ->withYear($match[2])           // Year.
                 ->withResolution(null)          // Video resolution.
                 ->withTags($match[3]);         // Tags (e.g., format, quality indicators).
+
             return true;
         }
 
@@ -204,6 +206,7 @@ final class Movie extends Media implements MediaTypeInterface
                 ->withYear(null)        // Year.
                 ->withResolution(null)  // Video resolution.
                 ->withTags(null);       // Tags (e.g., format, quality indicators).
+
             return true;
         }
 

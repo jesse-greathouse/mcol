@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Rule,
-    Illuminate\Validation\Validator;
-
 use App\Models\Network;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * StoreBotRequest handles the validation of the data for storing a bot.
@@ -15,8 +14,6 @@ class StoreBotRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -45,7 +42,7 @@ class StoreBotRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
-                if (!$this->networkExists($validator)) {
+                if (! $this->networkExists($validator)) {
                     $validated = $validator->validated();
                     $id = $validated['network'];
                     $validator->errors()->add(
@@ -53,15 +50,12 @@ class StoreBotRequest extends FormRequest
                         "Network with id: $id was not found."
                     );
                 }
-            }
+            },
         ];
     }
 
     /**
      * Check if the network exists.
-     *
-     * @param Validator $validator
-     * @return bool
      */
     public function networkExists(Validator $validator): bool
     {

@@ -2,12 +2,12 @@
 
 namespace App\Media\Transfer;
 
-use App\Exceptions\TransferFileUriNotFoundException,
-    App\FileSystem,
-    App\Media\TransferManager;
+use App\Exceptions\TransferFileUriNotFoundException;
+use App\FileSystem;
+use App\Media\TransferManager;
 
 // Define DS constant for cross-platform compatibility if not already defined
-if (!defined('DS')) {
+if (! defined('DS')) {
     define('DS', DIRECTORY_SEPARATOR);
 }
 
@@ -20,15 +20,11 @@ abstract class Transfer
 
     /**
      * Holds the TransferManager instance.
-     *
-     * @var TransferManager
      */
     protected TransferManager $manager;
 
     /**
      * Array of options.
-     *
-     * @var array
      */
     protected array $options = [];
 
@@ -41,16 +37,11 @@ abstract class Transfer
 
     /**
      * Tracks whether the transfer is completed.
-     *
-     * @var bool
      */
     protected bool $completed = false;
 
     /**
      * Transfer constructor.
-     *
-     * @param TransferManager $manager
-     * @param array $options
      */
     public function __construct(TransferManager $manager, array $options = [])
     {
@@ -63,16 +54,16 @@ abstract class Transfer
      *
      * If the file already exists in the manifest, it is replaced with the latest details.
      *
-     * @param string $fileName Partial path to the file.
-     * @return void
+     * @param  string  $fileName  Partial path to the file.
+     *
      * @throws TransferFileUriNotFoundException If the file cannot be found in either the temporary or download directory.
      */
     public function addToManifest(string $fileName): void
     {
         $tmpDir = $this->manager->getTmpPath();
-        $tmpUri = $tmpDir . DS . $fileName;
+        $tmpUri = $tmpDir.DS.$fileName;
         $downloadDir = $this->manager->getDownloadDir();
-        $downloadUri = $downloadDir . DS . $fileName;
+        $downloadUri = $downloadDir.DS.$fileName;
 
         if (file_exists($downloadUri)) {
             $uri = $downloadUri;
@@ -87,7 +78,7 @@ abstract class Transfer
 
         // Assign file details to manifest using $fileName as the key
         $this->manifest[$fileName] = [
-            'uri'  => $uri,
+            'uri' => $uri,
             'name' => $fileName,
             'size' => $size,
         ];
@@ -103,18 +94,18 @@ abstract class Transfer
      */
     public function isCompleted(): bool
     {
-        if (!$this->completed) {
+        if (! $this->completed) {
             $destinationPath = $this->manager->getDestinationPath();
 
             // Verify each file's existence and size.
             foreach ($this->manifest as $fileName => $file) {
-                $destinationUri = $destinationPath . DS . $fileName;
+                $destinationUri = $destinationPath.DS.$fileName;
 
                 // Remove any cached stat data for the destination file.
                 clearstatcache(true, $destinationUri);
 
                 // If file is missing or size is incorrect, transfer is incomplete.
-                if (!file_exists($destinationUri) || filesize($destinationUri) !== $file['size']) {
+                if (! file_exists($destinationUri) || filesize($destinationUri) !== $file['size']) {
                     return false;
                 }
             }
@@ -127,8 +118,6 @@ abstract class Transfer
 
     /**
      * Removes all temporary files.
-     *
-     * @return void
      */
     public function cleanup(): void
     {

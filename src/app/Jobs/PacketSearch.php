@@ -2,21 +2,20 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldBeUnique,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels;
+use App\Exceptions\InvalidClientException;
+use App\Models\Channel;
+use App\Models\Client;
+use App\Models\Instance;
+use App\Models\Network;
+use App\Models\Operation;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 
-use App\Exceptions\InvalidClientException,
-    App\Models\Client,
-    App\Models\Channel,
-    App\Models\Instance,
-    App\Models\Network,
-    App\Models\Operation;
-
-class PacketSearch implements ShouldQueue, ShouldBeUnique
+class PacketSearch implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -27,29 +26,25 @@ class PacketSearch implements ShouldQueue, ShouldBeUnique
 
     /**
      * The number of seconds after which the job's unique lock will be released.
-     *
-     * @var int
      */
     public int $uniqueFor = 1;
 
     /**
      * Create a new job instance.
      *
-     * @param Network $network The network associated with the job.
-     * @param Channel $channel The channel to which the command will be sent.
-     * @param string $search The search term to be used in the command.
+     * @param  Network  $network  The network associated with the job.
+     * @param  Channel  $channel  The channel to which the command will be sent.
+     * @param  string  $search  The search term to be used in the command.
      */
     public function __construct(
         public Network $network,
         public Channel $channel,
         public string $search,
-    ){}
+    ) {}
 
     /**
      * Execute the job.
      * This method performs the search and logs the result.
-     *
-     * @return void
      */
     public function handle(): void
     {
@@ -73,8 +68,6 @@ class PacketSearch implements ShouldQueue, ShouldBeUnique
 
     /**
      * Build the command for the search.
-     *
-     * @return string
      */
     private function buildCommand(): string
     {
@@ -85,14 +78,12 @@ class PacketSearch implements ShouldQueue, ShouldBeUnique
      * Retrieve the client associated with the network.
      *
      * @throws InvalidClientException If no client is found for the given network.
-     *
-     * @return Client|null
      */
     public function getClient(): ?Client
     {
         $client = Client::where('network_id', $this->network->id)->first();
 
-        if (null === $client) {
+        if ($client === null) {
             throw new InvalidClientException("Client for network: {$this->network->name} was not found.");
         }
 
@@ -102,8 +93,6 @@ class PacketSearch implements ShouldQueue, ShouldBeUnique
     /**
      * Get the unique ID for the job.
      * The ID is a concatenation of network ID and search term.
-     *
-     * @return string
      */
     public function uniqueId(): string
     {

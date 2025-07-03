@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory,
-    Illuminate\Database\Eloquent\Model,
-    Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Class HotReportLine
@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory,
  *
  * @property int $id
  * @property int $hot_report_id
- *
  */
 class HotReportLine extends Model
 {

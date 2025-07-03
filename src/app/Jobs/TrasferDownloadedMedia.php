@@ -2,20 +2,18 @@
 
 namespace App\Jobs;
 
-use Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Foundation\Queue\Queueable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
-
-use App\Exceptions\DirectoryCreateFailedException,
-    App\Exceptions\TransferDownloadFileNotFoundException,
-    App\Media\TransferManager,
-    App\Media\Service\Plex,
-    App\Models\DownloadDestination;
-
+use App\Exceptions\DirectoryCreateFailedException;
+use App\Exceptions\TransferDownloadFileNotFoundException;
+use App\Media\Service\Plex;
+use App\Media\TransferManager;
+use App\Models\DownloadDestination;
 use Exception;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Handles the transfer of downloaded media files.
@@ -25,22 +23,18 @@ class TrasferDownloadedMedia implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     // Define the default directories for Windows systems
-    const DEFAULT_WINDOWS_VAR_DIR = '%APPDATA%' .  DS . 'var';
+    const DEFAULT_WINDOWS_VAR_DIR = '%APPDATA%'.DS.'var';
 
     // Define the default directories for Unix-like systems
-    const DEFAULT_UNIX_LIKE_VAR_DIR = '$HOME' .  DS . 'var';
+    const DEFAULT_UNIX_LIKE_VAR_DIR = '$HOME'.DS.'var';
 
     /**
      * The Download object representing the destination for the download.
-     *
-     * @var DownloadDestination
      */
     public DownloadDestination $downloadDestination;
 
     /**
      * Create a new job instance.
-     *
-     * @param DownloadDestination $downloadDestination
      */
     public function __construct(DownloadDestination $downloadDestination)
     {
@@ -52,17 +46,15 @@ class TrasferDownloadedMedia implements ShouldQueue
      *
      * Attempts to transfer the downloaded file to its final destination and performs
      * additional tasks such as scanning for media in Plex if applicable.
-     *
-     * @param Plex $plex
-     * @return void
      */
     public function handle(Plex $plex): void
     {
         $download = $this->downloadDestination->download;
 
         // Check if the file exists before proceeding
-        if (!file_exists($download->file_uri)) {
+        if (! file_exists($download->file_uri)) {
             $this->handleFileNotFound($download->file_uri);
+
             return;
         }
 
@@ -88,8 +80,6 @@ class TrasferDownloadedMedia implements ShouldQueue
 
     /**
      * Marks the download destination as incomplete and saves the status.
-     *
-     * @return void
      */
     protected function markDownloadAsIncomplete(): void
     {
@@ -100,7 +90,6 @@ class TrasferDownloadedMedia implements ShouldQueue
     /**
      * Ensures the temporary directory for file transfer exists and returns its path.
      *
-     * @return string
      * @throws DirectoryCreateFailedException
      */
     protected function getTmpDir(): string
@@ -109,8 +98,8 @@ class TrasferDownloadedMedia implements ShouldQueue
         $tmpDir = "$varDir/transfer";
 
         // Ensure the temporary directory exists
-        if (!is_dir($tmpDir)) {
-            if (!mkdir($tmpDir, 0777, true)) {
+        if (! is_dir($tmpDir)) {
+            if (! mkdir($tmpDir, 0777, true)) {
                 throw new DirectoryCreateFailedException("$tmpDir could not be created.");
             }
         }
@@ -120,10 +109,6 @@ class TrasferDownloadedMedia implements ShouldQueue
 
     /**
      * Transfers the file using the TransferManager.
-     *
-     * @param string $fileUri
-     * @param string $tmpDir
-     * @return void
      */
     protected function transferFile(string $fileUri, string $tmpDir): void
     {
@@ -134,8 +119,6 @@ class TrasferDownloadedMedia implements ShouldQueue
 
     /**
      * Marks the download destination as completed and saves the status.
-     *
-     * @return void
      */
     protected function markDownloadAsCompleted(): void
     {
@@ -145,10 +128,6 @@ class TrasferDownloadedMedia implements ShouldQueue
 
     /**
      * Scans the media using Plex if configured and relevant media types are enabled.
-     *
-     * @param Plex $plex
-     * @param $download
-     * @return void
      */
     protected function scanMediaWithPlex(Plex $plex, $download): void
     {
@@ -162,9 +141,6 @@ class TrasferDownloadedMedia implements ShouldQueue
 
     /**
      * Handles the scenario when the file is not found.
-     *
-     * @param string $fileUri
-     * @return void
      */
     protected function handleFileNotFound(string $fileUri): void
     {
@@ -177,8 +153,6 @@ class TrasferDownloadedMedia implements ShouldQueue
 
     /**
      * Get the unique ID for the job.
-     *
-     * @return string
      */
     public function uniqueId(): string
     {
@@ -201,7 +175,7 @@ class TrasferDownloadedMedia implements ShouldQueue
     /**
      * Replaces system-specific variables with their actual values.
      *
-     * @param string $path The path containing system variables.
+     * @param  string  $path  The path containing system variables.
      * @return string The path with system variables replaced.
      */
     protected function replaceSystemVariables(string $path): string

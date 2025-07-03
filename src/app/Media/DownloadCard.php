@@ -18,8 +18,6 @@ class DownloadCard
 {
     /**
      * The Download model instance for the requested file.
-     *
-     * @var Download
      */
     protected Download $download;
 
@@ -58,59 +56,59 @@ class DownloadCard
          *
          * @var int
          */
-        'max_length'        => 60,
+        'max_length' => 60,
 
         /**
          * X-coordinate of the file icon within the SVG.
          *
          * @var int
          */
-        'icon_x'            => 60,
+        'icon_x' => 60,
 
         /**
          * Y-coordinate of the file icon within the SVG.
          *
          * @var int
          */
-        'icon_y'            => 80,
+        'icon_y' => 80,
 
         /**
          * X-coordinate of the progress bar within the SVG.
          *
          * @var int
          */
-        'progress_x'        => 200,
+        'progress_x' => 200,
 
         /**
          * Y-coordinate of the progress bar within the SVG.
          *
          * @var int
          */
-        'progress_y'        => 90,
+        'progress_y' => 90,
 
         /**
          * The total width of the progress bar.
          *
          * @var int
          */
-        'progress_width'    => 500,
+        'progress_width' => 500,
 
         /**
          * The total height of the progress bar.
          *
          * @var int
          */
-        'progress_height'   => 50,
+        'progress_height' => 50,
 
         // Default colors for progress bar based on status/progress percentage
-        'color_queued'          => '#ffcc00',  // Queued State
-        'color_completed'       => '#008000',  // Completed state
-        'color_range_0and10'    => '#0099e6',  // 0-10%
-        'color_range_11and25'   => '#3399ff',  // 11-25%
-        'color_range_26and50'   => '#0099ff',  // 26-50%
-        'color_range_51and75'   => '#0099cc',  // 51-75%
-        'color_range_76and90'   => '#009973',  // 76-99%
-        'color_range_90and100'  => '#00994d',  // 100%
+        'color_queued' => '#ffcc00',  // Queued State
+        'color_completed' => '#008000',  // Completed state
+        'color_range_0and10' => '#0099e6',  // 0-10%
+        'color_range_11and25' => '#3399ff',  // 11-25%
+        'color_range_26and50' => '#0099ff',  // 26-50%
+        'color_range_51and75' => '#0099cc',  // 51-75%
+        'color_range_76and90' => '#009973',  // 76-99%
+        'color_range_90and100' => '#00994d',  // 100%
     ];
 
     /**
@@ -128,15 +126,15 @@ class DownloadCard
      * @var array<string, string>
      */
     const ICON_MAP = [
-        MediaType::PORN         => 'getPornIcon',
-        MediaType::MOVIE        => 'getMovieIcon',
-        MediaType::TV_EPISODE   => 'getTvEpisodeIcon',
-        MediaType::TV_SEASON    => 'getTvSeasonIcon',
-        MediaType::BOOK         => 'getBookIcon',
-        MediaType::MUSIC        => 'getMusicIcon',
-        MediaType::GAME         => 'getGameIcon',
-        MediaType::APPLICATION  => 'getApplicationIcon',
-        self::DEFAULT_MEDIA     => 'getDefaultIcon',
+        MediaType::PORN => 'getPornIcon',
+        MediaType::MOVIE => 'getMovieIcon',
+        MediaType::TV_EPISODE => 'getTvEpisodeIcon',
+        MediaType::TV_SEASON => 'getTvSeasonIcon',
+        MediaType::BOOK => 'getBookIcon',
+        MediaType::MUSIC => 'getMusicIcon',
+        MediaType::GAME => 'getGameIcon',
+        MediaType::APPLICATION => 'getApplicationIcon',
+        self::DEFAULT_MEDIA => 'getDefaultIcon',
     ];
 
     /**
@@ -147,9 +145,9 @@ class DownloadCard
      * 2. User-provided `$attributes` override default values.
      * 3. Dynamically assigned attributes (such as bot name, icon, etc.) always take final precedence.
      *
-     * @param Download $download    The Download object.
-     * @param ?string $label  Optional overloading label.
-     * @param ?array $attributes  Optional key-value pairs to override default attributes.
+     * @param  Download  $download  The Download object.
+     * @param  ?string  $label  Optional overloading label.
+     * @param  ?array  $attributes  Optional key-value pairs to override default attributes.
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the download record is not found.
      */
@@ -173,11 +171,11 @@ class DownloadCard
 
         // Step 2: Assign dynamic attributes, ensuring they always take precedence
         foreach ([
-            'bot'               => fn() => $this->download->packet->bot->nick,  // Retrieve bot's nickname
-            'icon'              => fn() => call_user_func([DownloadCard::class, $iconMethod], 60, 60), // Icon
-            'color'             => fn() => $this->getProgressColor(),  // Determine progress bar color
-            'progress_fill'     => fn() => $this->getProgressWidth(),  // Calculate progress bar width
-            'file_name_trunc'   => fn() => $this->truncateFileName(),  // Truncate file name if needed
+            'bot' => fn () => $this->download->packet->bot->nick,  // Retrieve bot's nickname
+            'icon' => fn () => call_user_func([DownloadCard::class, $iconMethod], 60, 60), // Icon
+            'color' => fn () => $this->getProgressColor(),  // Determine progress bar color
+            'progress_fill' => fn () => $this->getProgressWidth(),  // Calculate progress bar width
+            'file_name_trunc' => fn () => $this->truncateFileName(),  // Truncate file name if needed
         ] as $attribute => $handler) {
             $this->attributes[$attribute] = ($handler)(); // Final override
         }
@@ -208,17 +206,17 @@ class DownloadCard
 
         // Extract attributes for cleaner references
         [
-            'bot'               => $bot,
-            'icon'              => $icon,
-            'color'             => $color,
-            'icon_x'            => $iconX,
-            'icon_y'            => $iconY,
-            'progress_x'        => $progressX,
-            'progress_y'        => $progressY,
-            'progress_width'    => $progressWidth,
-            'progress_height'   => $progressHeight,
-            'progress_fill'     => $progressFillWidth,
-            'file_name_trunc'   => $fileName,
+            'bot' => $bot,
+            'icon' => $icon,
+            'color' => $color,
+            'icon_x' => $iconX,
+            'icon_y' => $iconY,
+            'progress_x' => $progressX,
+            'progress_y' => $progressY,
+            'progress_width' => $progressWidth,
+            'progress_height' => $progressHeight,
+            'progress_fill' => $progressFillWidth,
+            'file_name_trunc' => $fileName,
         ] = $this->attributes;
 
         // Vert align FileName Label above Progress Bar.
@@ -266,7 +264,7 @@ class DownloadCard
         $svg .= "<text class='lbl fileNameLabel' x='$progressX' y='$fileNameAlignY'>$fileName</text>\n";
 
         // Close SVG
-        $svg .= "</svg>";
+        $svg .= '</svg>';
 
         return $svg;
     }
@@ -307,10 +305,9 @@ class DownloadCard
      * // Output: "ver...txt"
      * ```
      *
-     * @param int|null $maxLength  The maximum allowed length for the file name.
-     *                             If null, the default max length is taken from `$this->attributes['max_length']`.
-     *
-     * @return string  The truncated file name if it exceeds `$maxLength`, otherwise the original file name.
+     * @param  int|null  $maxLength  The maximum allowed length for the file name.
+     *                               If null, the default max length is taken from `$this->attributes['max_length']`.
+     * @return string The truncated file name if it exceeds `$maxLength`, otherwise the original file name.
      */
     protected function truncateFileName(?int $maxLength = null): string
     {
@@ -324,7 +321,7 @@ class DownloadCard
         if (strlen($fileName) > $maxLength) {
             // Calculate the portion of the filename to preserve at both ends
             $halfLength = intdiv($maxLength - 3, 2); // Account for the "..." in the middle
-            $fileName = substr($fileName, 0, $halfLength) . '...' . substr($fileName, -$halfLength);
+            $fileName = substr($fileName, 0, $halfLength).'...'.substr($fileName, -$halfLength);
         }
 
         return $fileName;
@@ -392,18 +389,18 @@ class DownloadCard
     protected function getProgressColor(): string
     {
         // $this->progressColor holds the value so this calculation is only made once.
-        if (null === $this->progressColor) {
+        if ($this->progressColor === null) {
             $progress = $this->getProgress(); // Get the current progress percentage (nn)%
 
             [
-                'color_queued'          => $colorQueued,
-                'color_completed'       => $colorCompleted,
-                'color_range_0and10'    => $colorVeryLow,
-                'color_range_11and25'   => $colorLow,
-                'color_range_26and50'   => $colorModerate,
-                'color_range_51and75'   => $colorHigh,
-                'color_range_76and90'   => $colorVeryHigh,
-                'color_range_90and100'  => $colorNearComplete,
+                'color_queued' => $colorQueued,
+                'color_completed' => $colorCompleted,
+                'color_range_0and10' => $colorVeryLow,
+                'color_range_11and25' => $colorLow,
+                'color_range_26and50' => $colorModerate,
+                'color_range_51and75' => $colorHigh,
+                'color_range_76and90' => $colorVeryHigh,
+                'color_range_90and100' => $colorNearComplete,
             ] = $this->attributes;
 
             // Determine color based on progress percentage
@@ -444,7 +441,7 @@ class DownloadCard
     protected function getProgress(): int
     {
         // If progress is already calculated, return the cached value
-        if (null === $this->progress) {
+        if ($this->progress === null) {
             // Determine progress based on the current download status
             switch ($this->download->status) {
                 case Download::STATUS_COMPLETED:
@@ -512,25 +509,25 @@ class DownloadCard
      * with a **black outline** for visibility. This method is used to generate labels
      * for queued downloads, progress percentages, and completed downloads.
      *
-     * @param string $text  The label text to display (e.g., "4 / 5", "45%", "Complete").
-     * @return string       SVG `<text>` element or an empty string if not applicable.
+     * @param  string  $text  The label text to display (e.g., "4 / 5", "45%", "Complete").
+     * @return string SVG `<text>` element or an empty string if not applicable.
      */
     protected function addProgressLabelSvgElement(string $text): string
     {
         // Extract progress bar dimensions for centering
         [
-            'progress_x'        => $progressX,
-            'progress_y'        => $progressY,
-            'progress_width'    => $progressWidth,
-            'progress_height'   => $progressHeight,
-            'color'             => $color,
+            'progress_x' => $progressX,
+            'progress_y' => $progressY,
+            'progress_width' => $progressWidth,
+            'progress_height' => $progressHeight,
+            'color' => $color,
         ] = $this->attributes;
 
         // Construct centered SVG text overlay
         return "<text class='lbl progressLabel' stroke='$color' "
-            . "x='" . ($progressX + $progressWidth / 2) . "' "
-            . "y='" . ($progressY + $progressHeight / 2 + 12)
-            . "' >$text</text>\n";
+            ."x='".($progressX + $progressWidth / 2)."' "
+            ."y='".($progressY + $progressHeight / 2 + 12)
+            ."' >$text</text>\n";
     }
 
     /**
@@ -542,6 +539,7 @@ class DownloadCard
     {
         // Overload this->label if not null
         $label = $this->label ?? $this->getQueuedLabel();
+
         return $this->download->status === Download::STATUS_QUEUED
             ? $this->addProgressLabelSvgElement($label)
             : '';
@@ -556,6 +554,7 @@ class DownloadCard
     {
         // Overload this->label if not null
         $label = $this->label ?? "{$this->getProgress()}%";
+
         return $this->download->status === Download::STATUS_INCOMPLETE
             ? $this->addProgressLabelSvgElement($label)
             : '';
@@ -569,7 +568,8 @@ class DownloadCard
     protected function addCompletionLabelSvgElement(): string
     {
         // Overload this->label if not null
-        $label = $this->label ?? "Complete";
+        $label = $this->label ?? 'Complete';
+
         return $this->download->status === Download::STATUS_COMPLETED
             ? $this->addProgressLabelSvgElement($label)
             : '';
@@ -595,8 +595,9 @@ class DownloadCard
     EOD;
     }
 
-    public static function getPornIcon(): string {
-        return <<<EOD
+    public static function getPornIcon(): string
+    {
+        return <<<'EOD'
         <g transform="scale(3)">
         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -608,8 +609,9 @@ class DownloadCard
     EOD;
     }
 
-    public static function getMovieIcon(): string {
-        return <<<EOD
+    public static function getMovieIcon(): string
+    {
+        return <<<'EOD'
         <g transform="scale(0.15)">
         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -617,8 +619,9 @@ class DownloadCard
     EOD;
     }
 
-    public static function getTvSeasonIcon(): string {
-        return <<<EOD
+    public static function getTvSeasonIcon(): string
+    {
+        return <<<'EOD'
         <g transform="scale(0.15)">
         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -626,8 +629,9 @@ class DownloadCard
     EOD;
     }
 
-    public static function getTvEpisodeIcon(): string {
-        return <<<EOD
+    public static function getTvEpisodeIcon(): string
+    {
+        return <<<'EOD'
         <g transform="scale(0.15)">
         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -635,8 +639,9 @@ class DownloadCard
     EOD;
     }
 
-    public static function getBookIcon(): string {
-        return <<<EOD
+    public static function getBookIcon(): string
+    {
+        return <<<'EOD'
         <g transform="scale(0.15)">
         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -644,8 +649,9 @@ class DownloadCard
     EOD;
     }
 
-    public static function getMusicIcon(): string {
-        return <<<EOD
+    public static function getMusicIcon(): string
+    {
+        return <<<'EOD'
         <g transform="scale(0.15)">
         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -653,8 +659,9 @@ class DownloadCard
     EOD;
     }
 
-    public static function getGameIcon(): string {
-        return <<<EOD
+    public static function getGameIcon(): string
+    {
+        return <<<'EOD'
         <g transform="scale(0.15)">
         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -662,8 +669,9 @@ class DownloadCard
     EOD;
     }
 
-    public static function getApplicationIcon(): string {
-        return <<<EOD
+    public static function getApplicationIcon(): string
+    {
+        return <<<'EOD'
         <g transform="scale(0.15)">
         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -672,13 +680,13 @@ class DownloadCard
     EOD;
     }
 
-    public static function getDefaultIcon(): string {
-        return <<<EOD
+    public static function getDefaultIcon(): string
+    {
+        return <<<'EOD'
         <g transform="scale(0.15)">
         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
         <g id="SVGRepo_iconCarrier"> <g> <path d=" M466.398,364.662v23.744c0,8.42-6.408,15.264-14.318,15.264H59.92c-7.911,0-14.318-6.844-14.318-15.264v-23.744 c0-8.434,6.408-15.264,14.318-15.264h138.722v4.936c0,7.109,5.417,12.871,12.087,12.871h97.103c6.669,0,12.087-5.762,12.087-12.871 v-4.936h132.16C459.99,349.398,466.398,356.229,466.398,364.662z" fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20"></path> <path d=" M424.838,108.33v233.434H319.92v6.289c0,9.063-5.417,16.406-12.087,16.406H210.73c-6.67,0-12.087-7.344-12.087-16.406v-6.289 H87.161V108.33H424.838z" fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20"></path> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="162.996" y2="162.996"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="196.162" y2="196.162"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="229.328" y2="229.328"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="262.494" y2="262.494"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="295.662" y2="295.662"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="223.833" x2="277.167" y1="229.328" y2="229.328"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="223.833" x2="277.167" y1="262.494" y2="262.494"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="223.833" x2="277.167" y1="295.662" y2="295.662"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="315.167" x2="368.5" y1="262.494" y2="262.494"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="315.167" x2="368.5" y1="295.662" y2="295.662"></line> <path d=" M466.398,364.662v23.744c0,8.42-6.408,15.264-14.318,15.264H59.92c-7.911,0-14.318-6.844-14.318-15.264v-23.744 c0-8.434,6.408-15.264,14.318-15.264h138.722v4.936c0,7.109,5.417,12.871,12.087,12.871h97.103c6.669,0,12.087-5.762,12.087-12.871 v-4.936h132.16C459.99,349.398,466.398,356.229,466.398,364.662z" fill="#75808a" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20"></path> <path d=" M424.838,108.33v233.434H319.92v6.289c0,9.063-5.417,16.406-12.087,16.406H210.73c-6.67,0-12.087-7.344-12.087-16.406v-6.289 H87.161V108.33H424.838z" fill="#D9DCE1" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20"></path> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="162.996" y2="162.996"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="196.162" y2="196.162"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="229.328" y2="229.328"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="262.494" y2="262.494"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="127.833" x2="181.167" y1="295.662" y2="295.662"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="223.833" x2="277.167" y1="229.328" y2="229.328"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="223.833" x2="277.167" y1="262.494" y2="262.494"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="223.833" x2="277.167" y1="295.662" y2="295.662"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="315.167" x2="368.5" y1="262.494" y2="262.494"></line> <line fill="none" stroke="#474747" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="20" x1="315.167" x2="368.5" y1="295.662" y2="295.662"></line> </g> </g></g>
     EOD;
     }
-
 }

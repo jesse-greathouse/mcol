@@ -2,16 +2,13 @@
 
 namespace App\Packet\MediaType;
 
-use App\Exceptions\MediaMatchException,
-    App\Media\MediaType;
-
+use App\Exceptions\MediaMatchException;
+use App\Media\MediaType;
 use ErrorException;
 
 /**
  * Class MediaTypeGuesser
  * Attempts to guess the media type based on a given file name using regular expressions.
- *
- * @package App\Packet\MediaType
  */
 class MediaTypeGuesser
 {
@@ -55,8 +52,8 @@ class MediaTypeGuesser
     const MUSIC_MASK = '/\bMP3\b|\bFLAC\b|\bDiscography\b|\bTosK\b|\bMOD\.tar\b|\bENViED\b|\bAFO\.tar\b|\bKzT\.tar\b|\bwAx\.tar\b|\bJUSTiFY\.tar\b|\bUME\.tar\b/is';
 
     const GAME_MASK = '/(?:^(?!.*\b(?:mkv|mp4|avi|m4v)\b).*?)'
-    . '(\bROM\b|\bSNES\b|\bNSW\b|\bPC\.tar\b|\bmacOS\.tar\b|\bSKIDROW\b|\bVENOM\b|\bSUXXORS\b|\bGOG\b|\bCODEX\b|\bDOGE\b|\bRAZOR\b|\bTENOKE\b|\bPLAZA\b|\bTiNYiSO\b|\bFLT\b|\bEMPRESS\b|\bRELOADED\b|\bFitGirl\b|\bPROPHET\b|\bHOODLUM\b|\bElAmigos\b|\bRIDDICK\b|\bDINOByTES\b|\bELiTE\b|\bRUNE\b|\bENRiCH\b|\bKaOs\.tar\b|\bSam2k8\b|\bI_KnoW\b|\bCPY\.iso\b|\bDELUSIONAL\b|\bPLAYMAGiC\b)'
-    . '/is';
+        .'(\bROM\b|\bSNES\b|\bNSW\b|\bPC\.tar\b|\bmacOS\.tar\b|\bSKIDROW\b|\bVENOM\b|\bSUXXORS\b|\bGOG\b|\bCODEX\b|\bDOGE\b|\bRAZOR\b|\bTENOKE\b|\bPLAZA\b|\bTiNYiSO\b|\bFLT\b|\bEMPRESS\b|\bRELOADED\b|\bFitGirl\b|\bPROPHET\b|\bHOODLUM\b|\bElAmigos\b|\bRIDDICK\b|\bDINOByTES\b|\bELiTE\b|\bRUNE\b|\bENRiCH\b|\bKaOs\.tar\b|\bSam2k8\b|\bI_KnoW\b|\bCPY\.iso\b|\bDELUSIONAL\b|\bPLAYMAGiC\b)'
+        .'/is';
 
     /** @var string Regular expression for matching application-related names. */
     const APPLICATION_MASK = '/\bAUTODESK\b|\bWIN\b|\bx64\b|\b64\.bit\b|\bnet\.tar\b|\bPATCH\b|\bMULTILINGUAL\b|\bMAGNiTUDE\b|\bKeygen\b|\bTiMES\b|\bmacOS\b|\bm0nkrus\b|\bTNT\b|\bSenftube\b|\bP2P\b|\bSSQ\b|\bBLZiSO\b|\bSetup\.tar\b|\bwith\.Crack\b|\bPRO\./is';
@@ -66,15 +63,13 @@ class MediaTypeGuesser
 
     /**
      * The file name to be analyzed.
-     *
-     * @var string
      */
     protected string $fileName;
 
     /**
      * MediaTypeGuesser constructor.
      *
-     * @param string $fileName The name of the file to guess the media type for.
+     * @param  string  $fileName  The name of the file to guess the media type for.
      */
     public function __construct(string $fileName)
     {
@@ -119,14 +114,16 @@ class MediaTypeGuesser
     /**
      * Performs regex matching to see if the file name fits the provided pattern.
      *
-     * @param string $mask The regex pattern to match against the file name.
+     * @param  string  $mask  The regex pattern to match against the file name.
      * @return bool True if a match is found, false otherwise.
+     *
      * @throws RuntimeException If the regex compilation fails.
      */
     protected function hasMatch(string $mask): bool
     {
         try {
             $result = preg_match($mask, $this->fileName);
+
             return $result === 1; // True if a match is found, false otherwise
         } catch (ErrorException $e) {
             $message = sprintf("Media Match failed for pattern: %s\nFile name: %s\nError: %s",

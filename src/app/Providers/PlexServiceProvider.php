@@ -2,10 +2,9 @@
 
 namespace App\Providers;
 
+use App\Media\Service\Plex;
+use App\Settings;
 use Illuminate\Support\ServiceProvider;
-
-use App\Media\Service\Plex,
-    App\Settings;
 
 class PlexServiceProvider extends ServiceProvider
 {

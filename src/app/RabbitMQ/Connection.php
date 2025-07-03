@@ -2,10 +2,9 @@
 
 namespace App\RabbitMQ;
 
-use PhpAmqpLib\Channel\AMQPChannel,
-    PhpAmqpLib\Connection\AMQPStreamConnection,
-    PhpAmqpLib\Exception\AMQPRuntimeException;
-
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Exception\AMQPRuntimeException;
 use RuntimeException;
 
 /**
@@ -42,11 +41,11 @@ final class Connection
     private ?AMQPChannel $channel = null;
 
     /**
-     * @param string $host RabbitMQ host
-     * @param string $port RabbitMQ port
-     * @param string $username RabbitMQ username
-     * @param string $password RabbitMQ password
-     * @param string $vhost RabbitMQ virtual host
+     * @param  string  $host  RabbitMQ host
+     * @param  string  $port  RabbitMQ port
+     * @param  string  $username  RabbitMQ username
+     * @param  string  $password  RabbitMQ password
+     * @param  string  $vhost  RabbitMQ virtual host
      */
     public function __construct(
         string $host,
@@ -65,7 +64,7 @@ final class Connection
     /**
      * Establishes a connection to RabbitMQ and declares a queue.
      *
-     * @param string $queue The queue name.
+     * @param  string  $queue  The queue name.
      * @return AMQPStreamConnection|null Returns the connection or null if an error occurs.
      */
     public function connect(string $queue): ?AMQPStreamConnection
@@ -86,7 +85,8 @@ final class Connection
 
             return $this->connection;
         } catch (AMQPRuntimeException $exception) {
-            error_log("RabbitMQ Connection Error: " . $exception->getMessage());
+            error_log('RabbitMQ Connection Error: '.$exception->getMessage());
+
             return null;
         }
     }
@@ -94,37 +94,40 @@ final class Connection
     /**
      * Returns the active connection instance.
      *
-     * @throws RuntimeException If the connection has not been established.
      * @return AMQPStreamConnection The active connection.
+     *
+     * @throws RuntimeException If the connection has not been established.
      */
     public function getConnection(): AMQPStreamConnection
     {
         return $this->connection
-            ?? throw new RuntimeException("No active RabbitMQ connection.");
+            ?? throw new RuntimeException('No active RabbitMQ connection.');
     }
 
     /**
      * Returns the active channel.
      *
-     * @throws RuntimeException If no channel has been created.
      * @return AMQPChannel The active channel.
+     *
+     * @throws RuntimeException If no channel has been created.
      */
     public function getChannel(): AMQPChannel
     {
         return $this->channel
-            ?? throw new RuntimeException("No active RabbitMQ channel.");
+            ?? throw new RuntimeException('No active RabbitMQ channel.');
     }
 
     /**
      * Returns the name of the queue.
      *
-     * @throws RuntimeException If the queue has not been set.
      * @return string The queue name.
+     *
+     * @throws RuntimeException If the queue has not been set.
      */
     public function getQueue(): string
     {
         return $this->queue
-            ?? throw new RuntimeException("Queue name has not been set.");
+            ?? throw new RuntimeException('Queue name has not been set.');
     }
 
     /**
@@ -140,7 +143,7 @@ final class Connection
             try {
                 $this->connection->close();
             } catch (AMQPRuntimeException $exception) {
-                error_log("RabbitMQ Shutdown Error: " . $exception->getMessage());
+                error_log('RabbitMQ Shutdown Error: '.$exception->getMessage());
             }
         }
     }

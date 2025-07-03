@@ -1,9 +1,8 @@
-import defaultTheme from 'tailwindcss/defaultTheme';
+import defaultTheme from 'tailwindcss/defaultTheme.js';
 import forms from '@tailwindcss/forms';
 import typography from '@tailwindcss/typography';
-import flowbite from 'flowbite/plugin';
-
-const svgToDataUri = require('mini-svg-data-uri');
+import flowbite from 'flowbite/plugin.js';
+import svgToDataUri from 'mini-svg-data-uri';
 
 /** @type {import('tailwindcss').Config} */
 export default {

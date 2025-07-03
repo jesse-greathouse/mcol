@@ -7,12 +7,10 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
 /**
  * Represents a TV episode with metadata like title, season, episode number, resolution, etc.
  * This class processes filenames matching certain patterns and extracts relevant episode information.
- *
- * @package App\Media
  */
 final class TvEpisode extends Media implements MediaTypeInterface
 {
-    use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
+    use DynamicRangeMetaData, ExtensionMetaData, LanguageMetaData;
 
     // https://www.phpliveregex.com/p/N3X
     const STANDARD_MASK = '/^[\d{2}]*(.*)(?:\.|\-|\s|_)(?:S|Se|Sn|Season)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(?:E|Ep|Epi|Episode)(?:\.|\-|\s|_)?(\d{1,3})(?:\.|\-|\s|_)?(.*)?(?:\.|\-|\s|_)?(480[p]?|720[p]?|1080[p]?|2160[p]?)(?:\.|\-|\s|_)?(.*)?$/is';
@@ -71,7 +69,8 @@ final class TvEpisode extends Media implements MediaTypeInterface
     /**
      * Matches the media metadata from the file name.
      *
-     * @param string $fileName The name of the file to extract metadata from.
+     * @param  string  $fileName  The name of the file to extract metadata from.
+     *
      * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
      */
     public function match(string $fileName): void
@@ -94,12 +93,10 @@ final class TvEpisode extends Media implements MediaTypeInterface
     /**
      * Maps the result of match to properties.
      * This method processes the extracted matches and sets object properties accordingly.
-     *
-     * @return void
      */
     public function map(): void
     {
-        if (null === $this->metaData) {
+        if ($this->metaData === null) {
             return;
         }
 
@@ -119,22 +116,20 @@ final class TvEpisode extends Media implements MediaTypeInterface
     /**
      * Converts the object to an array representation.
      * This method serializes the object's properties into an associative array for easy access.
-     *
-     * @return array
      */
     public function toArray(): array
     {
         return [
-            'title'             => $this->title,
-            'episode_title'     => $this->episode_title,
-            'season'            => $this->season,
-            'episode'           => $this->episode,
-            'resolution'        => $this->resolution,
-            'tags'              => $this->tags,
-            'extension'         => $this->extension,
-            'language'          => $this->language,
-            'is_hdr'            => $this->isHdr,
-            'is_dolby_vision'   => $this->isDolbyVision,
+            'title' => $this->title,
+            'episode_title' => $this->episode_title,
+            'season' => $this->season,
+            'episode' => $this->episode,
+            'resolution' => $this->resolution,
+            'tags' => $this->tags,
+            'extension' => $this->extension,
+            'language' => $this->language,
+            'is_hdr' => $this->isHdr,
+            'is_dolby_vision' => $this->isDolbyVision,
         ];
     }
 
@@ -156,6 +151,7 @@ final class TvEpisode extends Media implements MediaTypeInterface
                 ->withEpisodeTitle($match[4])
                 ->withResolution($match[7])
                 ->withTags($match[8]);
+
             return true;
         }
 
@@ -325,10 +321,11 @@ final class TvEpisode extends Media implements MediaTypeInterface
             $this->metaData = MetaData::build()
                 ->withTitle($match[1])
                 ->withSeason($match[2])
-                ->withEpisode($match[3] . '-' .$match[4])
+                ->withEpisode($match[3].'-'.$match[4])
                 ->withEpisodeTitle($match[5])
                 ->withResolution($match[6])
                 ->withTags($match[7]);
+
             return true;
         }
 

@@ -2,14 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Models\Client;
+use App\Models\Network;
+use App\Models\Nick;
+use Faker;
+use Faker\Generator as FakerGenerator;
 use Illuminate\Database\Seeder;
-
-use App\Models\Client,
-    App\Models\Network,
-    App\Models\Nick;
-
-use Faker,
-    Faker\Generator as FakerGenerator;
 
 class ClientSeeder extends Seeder
 {
@@ -36,13 +34,15 @@ class ClientSeeder extends Seeder
                 ->where('nick_id', $nick->id)
                 ->first();
 
-            if (null !== $client) continue;
+            if ($client !== null) {
+                continue;
+            }
 
             Client::factory()->create([
-                'nick_id'       => $nick->id,
-                'network_id'    => $network->id,
-                'enabled'       => true,
-                'meta'          => [],
+                'nick_id' => $nick->id,
+                'network_id' => $network->id,
+                'enabled' => true,
+                'meta' => [],
             ]);
         }
     }
@@ -50,15 +50,14 @@ class ClientSeeder extends Seeder
     /**
      * With a Network instance, get the associated Nick.
      * Create one if one does not exist.
-     *
-     * @param Network $network
-     * @return Nick
      */
     public function getNickForNetworkOrGenerate(Network $network): Nick
     {
         $nick = Nick::where('network_id', $network->id)->first();
 
-        if (null !== $nick ) return $nick;
+        if ($nick !== null) {
+            return $nick;
+        }
 
         // Creates a random nickname by combining two random words.
         // Glued together with a _ (underscore).
@@ -77,8 +76,7 @@ class ClientSeeder extends Seeder
      * With a Network name string, retrieve the network or generate it.
      * Create one if one does not exist.
      *
-     * @param string $networkName
-     * @return Network
+     * @param  string  $networkName
      */
     public function getNetWorkOrGenerate(string $name): Network
     {
@@ -88,12 +86,10 @@ class ClientSeeder extends Seeder
     /**
      * Provides the class instance of faker.
      * Creates a new faker instance if it has not been created yet.
-     *
-     * @return FakerGenerator
      */
     public function getFaker(): FakerGenerator
     {
-        if (null === $this->faker) {
+        if ($this->faker === null) {
             $this->faker = Faker\Factory::create();
         }
 

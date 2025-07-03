@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Media\DownloadCard;
+use App\Models\Download;
 use Illuminate\Http\Request;
-
-use App\Media\DownloadCard,
-    App\Models\Download;
 
 /**
  * Provides simple feedback mechanisms that shows the user the progress of the download.
@@ -17,14 +16,14 @@ class DownloadProgressController
         $fileName = $request->query('fileName');
         $label = $request->query('label');
 
-        if (!$fileName) {
-            return response("fileName parameter is required.", 400);
+        if (! $fileName) {
+            return response('fileName parameter is required.', 400);
         }
 
         $download = Download::where('file_name', $fileName)->first()
             ?? Download::where('file_name', str_replace('_', ' ', $fileName))->first();
 
-        if (!$download) {
+        if (! $download) {
             return response("Download with name: $fileName does not exist.", 400);
         }
 

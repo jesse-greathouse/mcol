@@ -2,24 +2,22 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldBeUnique,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Database\Eloquent\ModelNotFoundException,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
+use App\Exceptions\InvalidClientException;
+use App\Models\Client;
+use App\Models\Download;
+use App\Models\FileDownloadLock;
+use App\Models\Instance;
+use App\Models\Operation;
+use App\Models\Packet;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 
-use App\Exceptions\InvalidClientException,
-    App\Models\Packet,
-    App\Models\Client,
-    App\Models\Download,
-    App\Models\FileDownloadLock,
-    App\Models\Instance,
-    App\Models\Operation;
-
-class RemoveRequest implements ShouldQueue, ShouldBeUnique
+class RemoveRequest implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -71,10 +69,9 @@ class RemoveRequest implements ShouldQueue, ShouldBeUnique
     /**
      * Retrieve the client associated with the packet's network.
      *
-     * @return Client|null
      * @throws InvalidClientException
      */
-    public function getClient(): Client|null
+    public function getClient(): ?Client
     {
         try {
             $client = Client::where('network_id', $this->packet->bot->network->id)->firstOrFail();
@@ -95,8 +92,6 @@ class RemoveRequest implements ShouldQueue, ShouldBeUnique
 
     /**
      * Removes queued Downloads associated with this packet.
-     *
-     * @return void
      */
     protected function removeDownloads(): void
     {
@@ -109,9 +104,6 @@ class RemoveRequest implements ShouldQueue, ShouldBeUnique
 
     /**
      * Removes any lock from a specific download.
-     *
-     * @param Download $download
-     * @return void
      */
     protected function releaseLock(Download $download): void
     {

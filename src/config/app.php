@@ -187,7 +187,7 @@ return [
     */
 
     'aliases' => Facade::defaultAliases()->merge([
-        //'Yaml' => 'Symfony\Component\Yaml\Yaml',
+        // 'Yaml' => 'Symfony\Component\Yaml\Yaml',
     ])->toArray(),
 
 ];

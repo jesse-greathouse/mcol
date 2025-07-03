@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Validator;
-
-use App\Models\Download,
-    App\Models\Packet;
+use App\Models\Download;
+use App\Models\Packet;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreDownloadRequest extends FormRequest
 {
@@ -27,14 +26,14 @@ class StoreDownloadRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file_uri'        => "required|max:{$this->maxFileUriLength}",
-            'status'          => 'nullable|max:255',
-            'enabled'         => 'nullable|in:0,1',
+            'file_uri' => "required|max:{$this->maxFileUriLength}",
+            'status' => 'nullable|max:255',
+            'enabled' => 'nullable|in:0,1',
             'file_size_bytes' => 'nullable|numeric',
-            'progress_bytes'  => 'nullable|numeric',
-            'queued_total'    => 'nullable|numeric',
-            'queued_status'   => 'nullable|numeric',
-            'packet'          => 'required|numeric',
+            'progress_bytes' => 'nullable|numeric',
+            'queued_total' => 'nullable|numeric',
+            'queued_status' => 'nullable|numeric',
+            'packet' => 'required|numeric',
         ];
     }
 
@@ -46,20 +45,19 @@ class StoreDownloadRequest extends FormRequest
     public function after(): array
     {
         return [
-            fn(Validator $validator) => $this->validatePacket($validator),
-            fn(Validator $validator) => $this->validateStatus($validator),
+            fn (Validator $validator) => $this->validatePacket($validator),
+            fn (Validator $validator) => $this->validateStatus($validator),
         ];
     }
 
     /**
      * Validate if the packet exists.
      *
-     * @param Validator $validator The validator instance.
-     * @return void
+     * @param  Validator  $validator  The validator instance.
      */
     protected function validatePacket(Validator $validator): void
     {
-        if (!$this->packetExists($validator)) {
+        if (! $this->packetExists($validator)) {
             $validated = $validator->validated();
             $id = $validated['packet'];
             $validator->errors()->add(
@@ -72,12 +70,11 @@ class StoreDownloadRequest extends FormRequest
     /**
      * Validate if the status is valid.
      *
-     * @param Validator $validator The validator instance.
-     * @return void
+     * @param  Validator  $validator  The validator instance.
      */
     protected function validateStatus(Validator $validator): void
     {
-        if (!$this->isValidStatus($validator)) {
+        if (! $this->isValidStatus($validator)) {
             $validated = $validator->validated();
             $status = $validated['status'];
             $validStatuses = implode(', ', [
@@ -95,19 +92,20 @@ class StoreDownloadRequest extends FormRequest
     /**
      * Check if the packet exists.
      *
-     * @param Validator $validator The validator instance.
+     * @param  Validator  $validator  The validator instance.
      * @return bool True if the packet exists, false otherwise.
      */
     protected function packetExists(Validator $validator): bool
     {
         $validated = $validator->validated();
+
         return Packet::find($validated['packet']) !== null;
     }
 
     /**
      * Check if the status is valid.
      *
-     * @param Validator $validator The validator instance.
+     * @param  Validator  $validator  The validator instance.
      * @return bool True if the status is valid, false otherwise.
      */
     protected function isValidStatus(Validator $validator): bool

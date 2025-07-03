@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Rule,
-    Illuminate\Validation\Validator;
-
 use App\Models\Network;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Class StoreServerRequest
@@ -35,7 +34,7 @@ class StoreServerRequest extends FormRequest
             'host' => [
                 'required',
                 'max:255',
-                Rule::unique('servers')->ignore($this->route()->parameter('id'), 'id')
+                Rule::unique('servers')->ignore($this->route()->parameter('id'), 'id'),
             ],
             'network' => 'required|numeric',
         ];
@@ -50,7 +49,7 @@ class StoreServerRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
-                if (!$this->networkExists($validator)) {
+                if (! $this->networkExists($validator)) {
                     $validated = $validator->validated();
                     $id = $validated['network'];
                     $validator->errors()->add(
@@ -58,19 +57,20 @@ class StoreServerRequest extends FormRequest
                         "Network with id: $id was not found."
                     );
                 }
-            }
+            },
         ];
     }
 
     /**
      * Check if the network exists in the database.
      *
-     * @param Validator $validator The validator instance.
+     * @param  Validator  $validator  The validator instance.
      * @return bool True if network exists, false otherwise.
      */
     private function networkExists(Validator $validator): bool
     {
         $validated = $validator->validated();
+
         return Network::whereKey($validated['network'])->exists();
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Listeners;
 
-use  App\Events\PacketSearchSummary,
-     App\Models\PacketSearchResult;
+use App\Events\PacketSearchSummary;
+use App\Models\PacketSearchResult;
 
 class SendPacketSearchSummaryMessage
 {

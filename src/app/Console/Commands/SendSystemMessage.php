@@ -2,12 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\SystemMessage,
-    App\RabbitMQ\Queue;
-
-use Illuminate\Console\Command;
-
+use App\SystemMessage;
 use Exception;
+use Illuminate\Console\Command;
 
 class SendSystemMessage extends Command
 {
@@ -35,7 +32,7 @@ class SendSystemMessage extends Command
      */
     public function handle(SystemMessage $systemMessage)
     {
-        $this->info("Sending System Message...");
+        $this->info('Sending System Message...');
 
         $message = $this->getMessage();
         $routingKey = 'mcol';
@@ -43,22 +40,21 @@ class SendSystemMessage extends Command
         try {
             $systemMessage->send($message, $routingKey);
         } catch (Exception $ex) {
-            $this->error("Error Sending System Message: " . $ex->getMessage());
+            $this->error('Error Sending System Message: '.$ex->getMessage());
         }
     }
 
     /**
      * Returns the Message.
-     *
-     * @return string|null
      */
     protected function getMessage(): ?string
     {
-        if (null === $this->message) {
+        if ($this->message === null) {
             $message = $this->argument('message');
 
-            if (null === $message || '' === trim($message)) {
+            if ($message === null || trim($message) === '') {
                 $this->error('A valid message is required.');
+
                 return null;
             }
 

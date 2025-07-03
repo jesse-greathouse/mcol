@@ -56,7 +56,8 @@ final class Music extends Media implements MediaTypeInterface
     /**
      * Matches the media metadata from the file name.
      *
-     * @param string $fileName The name of the file to extract metadata from.
+     * @param  string  $fileName  The name of the file to extract metadata from.
+     *
      * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
      */
     public function match(string $fileName): void
@@ -74,12 +75,10 @@ final class Music extends Media implements MediaTypeInterface
      *
      * This method processes the match result to extract and store metadata such as
      * title, artist, year, tags, extension, and language.
-     *
-     * @return void
      */
     public function map(): void
     {
-        if (null === $this->metaData) {
+        if ($this->metaData === null) {
             return;
         }
 
@@ -101,12 +100,12 @@ final class Music extends Media implements MediaTypeInterface
     public function toArray(): array
     {
         return [
-            'title'     => $this->title,
-            'artist'    => $this->artist,
-            'year'      => $this->year,
-            'tags'      => $this->tags,
+            'title' => $this->title,
+            'artist' => $this->artist,
+            'year' => $this->year,
+            'tags' => $this->tags,
             'extension' => $this->extension,
-            'language'  => $this->language,
+            'language' => $this->language,
         ];
     }
 
@@ -117,8 +116,7 @@ final class Music extends Media implements MediaTypeInterface
      * If `preg_match` returns `false`, it throws an exception. Otherwise, it returns the year if found,
      * or null if no match is present.
      *
-     * @param string $tagStr The string containing tags, including potential year.
-     *
+     * @param  string  $tagStr  The string containing tags, including potential year.
      * @return string|null The year if found, or null if not.
      *
      * @throws MediaMetadataUnableToMatchException If `preg_match` returns false.
@@ -129,6 +127,7 @@ final class Music extends Media implements MediaTypeInterface
         if ($result === false) {
             throw new MediaMetadataUnableToMatchException("Unable to match Music year with: \"$tagStr\".");
         }
+
         return $matches[1] ?? null;
     }
 

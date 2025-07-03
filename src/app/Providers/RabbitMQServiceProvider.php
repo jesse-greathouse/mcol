@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\RabbitMQ\RabbitMQ;
-
 use Illuminate\Support\ServiceProvider;
 
 /**

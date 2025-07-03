@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory,
-    Illuminate\Database\Eloquent\Model,
-    Illuminate\Database\Eloquent\Relations\HasMany,
-    Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Class PacketSearch
@@ -28,8 +28,6 @@ class PacketSearch extends Model
 
     /**
      * Get the packet search results of this search.
-     *
-     * @return HasMany
      */
     public function packetSearchResults(): HasMany
     {
@@ -39,8 +37,6 @@ class PacketSearch extends Model
 
     /**
      * Get the channel associated with this search.
-     *
-     * @return BelongsTo
      */
     public function channel(): BelongsTo
     {

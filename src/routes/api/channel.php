@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Requests\ApiStoreChannelRequest;
+use App\Http\Resources\ChannelCollection;
+use App\Http\Resources\ChannelResource;
+use App\Models\Channel;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Channel,
-    App\Http\Requests\ApiStoreChannelRequest,
-    App\Http\Resources\ChannelCollection,
-    App\Http\Resources\ChannelResource;
 
 // GET /api/channel
 Route::middleware('auth:sanctum')->get('/channel', function () {
@@ -32,7 +31,7 @@ Route::middleware('auth:sanctum')->post('/channel', function (ApiStoreChannelReq
     }
 
     $channel = Channel::create($inputs);
- 
+
     return redirect("/api/channel/{$channel->id}");
 });
 
@@ -71,6 +70,6 @@ Route::middleware('auth:sanctum')->delete('/channel/{id}', function (string $id)
 
     return response()->json([
         'success' => true,
-        'message' => "Channel: $name with id: $id was deleted."
+        'message' => "Channel: $name with id: $id was deleted.",
     ]);
 });

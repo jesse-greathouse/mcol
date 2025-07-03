@@ -2,13 +2,11 @@
 
 namespace App\Chat;
 
-use Illuminate\Console\Command,
-    Illuminate\Support\Facades\Log;
-
+use App\Models\Instance;
+use App\Models\Operation;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use JesseGreathouse\PhpIrcClient\IrcClient;
-
-use App\Models\Instance,
-    App\Models\Operation;
 
 class OperationManager
 {
@@ -46,9 +44,9 @@ class OperationManager
     public function doOperations(): void
     {
         $operation = Operation::where('instance_id', $this->instance->id)
-                        ->where('status', Operation::STATUS_PENDING)->first();
+            ->where('status', Operation::STATUS_PENDING)->first();
 
-        if (null !== $operation) {
+        if ($operation !== null) {
             $status = Operation::STATUS_COMPLETED;
 
             try {
@@ -66,9 +64,6 @@ class OperationManager
 
     /**
      * Execute a command.
-     *
-     * @param string $command
-     * @return void
      */
     protected function execute(string $command): void
     {
@@ -77,13 +72,14 @@ class OperationManager
 
         // If the command is a PRIVMSG, use the say command in the client.
         // say sas predefined guardrails for sending messages.
-        if (2 < count($privMsgMatch))  {
+        if (count($privMsgMatch) > 2) {
             [, $target, $command] = $privMsgMatch;
             $this->say($target, $command);
+
             return;
         }
 
-        $this->console->info(sprintf("[%s]: %s > %s",
+        $this->console->info(sprintf('[%s]: %s > %s',
             $this->instance->client->network->name,
             $this->instance->client->nick->nick,
             $command
@@ -91,20 +87,15 @@ class OperationManager
 
         $this->client->send($command);
 
-        return;
     }
 
     /**
      * Does a command via the Client::say() method.
      * Has predefined guardrails for sending messages.
-     *
-     * @param string $target
-     * @param string $command
-     * @return void
      */
     protected function say(string $target, string $command): void
     {
-        $this->console->info(sprintf("[%s]: %s > %s",
+        $this->console->info(sprintf('[%s]: %s > %s',
             $this->instance->client->network->name,
             $this->instance->client->nick->nick,
             "/msg $target $command"
@@ -112,6 +103,5 @@ class OperationManager
 
         $this->client->say($target, $command);
 
-        return;
     }
 }

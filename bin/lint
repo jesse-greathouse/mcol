@@ -1,0 +1,69 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use Getopt::Long;
+use Cwd;
+
+my ($fix, $help, $verbose) = (0, 0, 0);
+
+GetOptions(
+    'fix'     => \$fix,
+    'help'    => sub { usage() },
+    'verbose' => \$verbose,
+) or usage();
+
+my $cwd = getcwd();
+my $status = 0;
+
+print "[lint] Starting in $cwd\n" if $verbose;
+
+# Pint
+print "[lint] Running Pint in src/ (" . ($fix ? 'fix' : 'check') . ")\n" if $verbose;
+chdir 'src' or die "[lint] Failed to cd src/: $!\n";
+
+my $ret;
+
+if ($fix) {
+    $ret = system('composer lint:fix');
+} else {
+    $ret = system('composer lint');
+}
+$ret >>= 8;
+$status |= $ret;
+print "[lint] Pint exit code: $ret\n" if $verbose;
+
+# JS/CSS/Vue linting (Prettier + ESLint)
+print "[lint] Running JS/Vue linters in src/ (" . ($fix ? 'fix' : 'check') . ")\n" if $verbose;
+
+if ($fix) {
+    $ret = system('npm run fix-code-style');
+} else {
+    $ret = system('npm run check-code-style');
+}
+$ret >>= 8;
+$status |= $ret;
+print "[lint] JS/Vue linters exit code: $ret\n" if $verbose;
+
+# Return to original directory
+chdir $cwd or die "[lint] Failed to cd back to $cwd: $!\n";
+
+if ($status == 0) {
+    print "[lint] ✅ All checks passed\n";
+} else {
+    print "[lint] ❌ Lint errors detected (exit code $status)\n";
+}
+exit $status;
+
+sub usage {
+    print <<'EOF';
+Usage: bin/lint [--fix] [--verbose] [--help]
+
+Run all linters and formatters: Pint, Prettier, ESLint.
+
+Options:
+  --fix       Run fixers (otherwise dry-run / check only)
+  --verbose   More output
+  --help      Show this message
+EOF
+    exit 1;
+}
