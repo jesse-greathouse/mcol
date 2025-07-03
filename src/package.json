@@ -1,53 +1,53 @@
 {
-    "name": "mcol",
-    "version": "1.0.0",
-    "description": "Media Collector front-end packages.",
-    "main": "main.js",
-    "directories": {
-        "lib": "lib",
-        "test": "tests"
-    },
-    "scripts": {
-        "fix:eslint": "eslint --ext .js,.vue resources/js/ --fix",
-        "fix:prettier": "prettier --write --loglevel warn 'resources/js/**/*.vue'",
-        "fix-code-style": "npm run fix:prettier && npm run fix:eslint",
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "dev": "vite",
-        "build": "vite build",
-        "watch": "vite build --watch"
-    },
-    "author": "Jesse Greathouse",
-    "license": "ISC",
-    "devDependencies": {
-        "@inertiajs/vue3": "^2.0",
-        "@popperjs/core": "^2.11.8",
-        "@tailwindcss/forms": "^0.5.9",
-        "@tailwindcss/typography": "^0.5.10",
-        "@vitejs/plugin-vue": "^5.0.0",
-        "@vueform/multiselect": "^2.6.10",
-        "autoprefixer": "^10.4.16",
-        "dayjs": "^1.11.13",
-        "eslint": "^8.4.1",
-        "eslint-plugin-vue": "^8.2.0",
-        "flowbite": "^2.5.2",
-        "flowbite-vue": "^0.1.6",
-        "laravel-echo": "^1.16.1",
-        "laravel-vite-plugin": "^1.0.5",
-        "mini-svg-data-uri": "^1.4.4",
-        "postcss": "^8.4.32",
-        "postcss-import": "^16.1.0",
-        "prettier": "^2.5.1",
-        "prettier-plugin-tailwind": "^2.2.12",
-        "pusher-js": "^8.4.0-rc2",
-        "tailwindcss": "^3.4.0",
-        "uuid": "^8.3.2",
-        "vite": "^5.4.7",
-        "vue": "^3.3.13",
-        "vue-tailwind-datepicker": "^1.7.3"
-    },
-    "type": "module",
-    "dependencies": {
-        "date-fns": "^4.1.0",
-        "idb": "^8.0.2"
-    }
+  "name": "mcol",
+  "version": "1.0.0",
+  "description": "Media Collector front-end packages.",
+  "main": "main.js",
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
+  },
+  "scripts": {
+    "fix:eslint": "eslint --ext .js,.vue resources/js/ --fix",
+    "fix:prettier": "prettier --write --loglevel warn 'resources/js/**/*.vue'",
+    "fix-code-style": "npm run fix:prettier && npm run fix:eslint",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "watch": "vite build --watch"
+  },
+  "author": "Jesse Greathouse",
+  "license": "ISC",
+  "devDependencies": {
+    "@inertiajs/vue3": "^2.0",
+    "@popperjs/core": "^2.11.8",
+    "@tailwindcss/forms": "^0.5.9",
+    "@tailwindcss/typography": "^0.5.10",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vueform/multiselect": "^2.6.10",
+    "autoprefixer": "^10.4.16",
+    "dayjs": "^1.11.13",
+    "eslint": "^8.4.1",
+    "eslint-plugin-vue": "^8.2.0",
+    "flowbite": "^2.5.2",
+    "flowbite-vue": "^0.1.6",
+    "laravel-echo": "^1.16.1",
+    "laravel-vite-plugin": "^1.0.5",
+    "mini-svg-data-uri": "^1.4.4",
+    "postcss": "^8.4.32",
+    "postcss-import": "^16.1.0",
+    "prettier": "^2.5.1",
+    "prettier-plugin-tailwind": "^2.2.12",
+    "pusher-js": "^8.4.0-rc2",
+    "tailwindcss": "^3.4.0",
+    "uuid": "^8.3.2",
+    "vite": "^5.4.7",
+    "vue": "^3.3.13",
+    "vue-tailwind-datepicker": "^1.7.3"
+  },
+  "type": "module",
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "idb": "^8.0.2"
+  }
 }

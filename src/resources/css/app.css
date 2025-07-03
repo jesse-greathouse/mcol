@@ -9,5 +9,5 @@
 @import '/node_modules/flowbite-vue/dist/index.css';
 
 [x-cloak] {
-    display: none;
+  display: none;
 }

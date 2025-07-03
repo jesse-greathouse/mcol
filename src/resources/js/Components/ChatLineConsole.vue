@@ -1,13 +1,12 @@
 <template>
-    <div class="inline-flex grow"> {{ message }} </div>
+  <div class="inline-flex grow">{{ message }}</div>
 </template>
 
 <script>
 export default {
-  components: {
-  },
+  components: {},
   props: {
-    message: String
+    message: String,
   },
-}
+};
 </script>

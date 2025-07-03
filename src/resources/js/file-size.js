@@ -1,31 +1,31 @@
-const bytesInGB = 1e+9
-const bytesInMB = 1e+6
-const bytesInKB = 1000
+const bytesInGB = 1e9;
+const bytesInMB = 1e6;
+const bytesInKB = 1000;
 
 function shouldShowIn(bytes, unit) {
-  return (unit <= Number(bytes)) ? true : false
+  return unit <= Number(bytes) ? true : false;
 }
 
 function formatSizeBy(bytes, unit, label = null, precision = 1) {
-  const size = Number(bytes) / unit
-  const display = size.toFixed(precision)
+  const size = Number(bytes) / unit;
+  const display = size.toFixed(precision);
   if (null !== label) {
-    return `${display} ${label}`
+    return `${display} ${label}`;
   } else {
-    return display
+    return display;
   }
 }
 
 function formatSize(bytes) {
   if (shouldShowIn(bytes, bytesInGB)) {
-    return formatSizeBy(bytes, bytesInGB, 'G')
+    return formatSizeBy(bytes, bytesInGB, 'G');
   } else if (shouldShowIn(bytes, bytesInMB)) {
-    return formatSizeBy(bytes, bytesInMB, 'M')
+    return formatSizeBy(bytes, bytesInMB, 'M');
   } else if (shouldShowIn(bytes, bytesInKB)) {
-    return formatSizeBy(bytes, bytesInKB, 'K')
+    return formatSizeBy(bytes, bytesInKB, 'K');
   } else {
-    return `${bytes} B`
+    return `${bytes} B`;
   }
 }
 
-export { shouldShowIn, formatSizeBy, formatSize};
+export { shouldShowIn, formatSizeBy, formatSize };

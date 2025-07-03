@@ -10,9 +10,9 @@
     </div>
   </td>
 </template>
-  
+
 <script>
-import LockedIcon from '@/Components/LockedIcon.vue'
+import LockedIcon from '@/Components/LockedIcon.vue';
 
 export default {
   components: {
@@ -20,6 +20,6 @@ export default {
   },
   props: {
     packet: Object,
-  }
-}
+  },
+};
 </script>

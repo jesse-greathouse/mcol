@@ -1,27 +1,35 @@
 <template>
-    <div class="py-6">
-        <div class="max-w-full mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5" :class="contentClass">
-
-                <Head title="Download" />
-                <section class="bg-white dark:bg-gray-900">
-                    <div class="py-4 px-4 w-full">
-                        <div v-if="hasCards()" class="flex flex-wrap gap-4 justify-start">
-                            <DownloadCard v-for="(card, fileName) in downloadCards" :key="fileName"
-                                :download="downloads[fileName]" :svg="card" :settings="settings"
-                                @call:removeCompleted="removeCompleted" @call:requestRemove="requestRemove"
-                                @call:requestCancel="requestCancel"
-                                @call:saveDownloadDestination="saveDownloadDestination" />
-                        </div>
-
-                        <!-- If there are not any current downloads, show the Donate Hero Banner -->
-                        <div v-if="!hasCards() && hasFetchedDownloadCards" v-html="hero" class="flex justify-center">
-                        </div>
-                    </div>
-                </section>
+  <div class="py-6">
+    <div class="max-w-full mx-auto sm:px-6 lg:px-8">
+      <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5" :class="contentClass">
+        <Head title="Download" />
+        <section class="bg-white dark:bg-gray-900">
+          <div class="py-4 px-4 w-full">
+            <div v-if="hasCards()" class="flex flex-wrap gap-4 justify-start">
+              <DownloadCard
+                v-for="(card, fileName) in downloadCards"
+                :key="fileName"
+                :download="downloads[fileName]"
+                :svg="card"
+                :settings="settings"
+                @call:removeCompleted="removeCompleted"
+                @call:requestRemove="requestRemove"
+                @call:requestCancel="requestCancel"
+                @call:saveDownloadDestination="saveDownloadDestination"
+              />
             </div>
-        </div>
+
+            <!-- If there are not any current downloads, show the Donate Hero Banner -->
+            <div
+              v-if="!hasCards() && hasFetchedDownloadCards"
+              v-html="hero"
+              class="flex justify-center"
+            ></div>
+          </div>
+        </section>
+      </div>
     </div>
+  </div>
 </template>
 
 <script>
@@ -43,188 +51,188 @@ const refreshDashboardInterval = 10000;
 const locksInterval = 10000;
 
 export default {
-    components: {
-        Head,
-        Link,
-        DownloadCard,
+  components: {
+    Head,
+    Link,
+    DownloadCard,
+  },
+  layout: AppLayout,
+  props: {
+    settings: Object,
+    queue: Object,
+    networks: Array,
+    locks: Array,
+    hero: String,
+  },
+  data() {
+    return {
+      downloadLocks: this.locks,
+      downloadQueue: this.queue,
+      downloads: {},
+      downloadCards: {},
+      hasFetchedDownloadCards: false,
+      refreshDashboardId: null,
+      locksTimeoutId: null,
+    };
+  },
+  mounted() {
+    initFlowbite();
+    this.refreshDashboard();
+    this.checkLocks();
+  },
+  beforeUnmount() {
+    this.clearAllIntervals();
+  },
+  updated() {
+    initFlowbite();
+  },
+  watch: {
+    downloadQueue: {
+      deep: true,
+      handler() {
+        this.downloads = makeDownloadIndexFromQueue(this.downloadQueue);
+        this.updateDownloadCards();
+      },
     },
-    layout: AppLayout,
-    props: {
-        settings: Object,
-        queue: Object,
-        networks: Array,
-        locks: Array,
-        hero: String,
+    downloadCards: {
+      handler(newDownloadCards, oldDownloadCards) {
+        this.transitionCards(newDownloadCards, oldDownloadCards);
+      },
+      immediate: true,
     },
-    data() {
-        return {
-            downloadLocks: this.locks,
-            downloadQueue: this.queue,
-            downloads: {},
-            downloadCards: {},
-            hasFetchedDownloadCards: false,
-            refreshDashboardId: null,
-            locksTimeoutId: null,
-        };
+  },
+  methods: {
+    clearAllIntervals() {
+      clearTimeout(this.refreshDashboardId);
+      clearTimeout(this.locksTimeoutId);
     },
-    mounted() {
-        initFlowbite()
-        this.refreshDashboard()
-        this.checkLocks()
+    hasCards() {
+      return this.downloadCards && Object.keys(this.downloadCards).length > 0;
     },
-    beforeUnmount() {
-        this.clearAllIntervals()
+    updateDownloadCards() {
+      let deleteManifest = Object.keys(this.downloadCards);
+      Object.keys(this.downloads).forEach((fileName) => {
+        const idx = deleteManifest.indexOf(fileName);
+        if (idx !== -1) deleteManifest.splice(idx, 1);
+
+        if (!has(this.downloadCards, fileName)) {
+          this.downloadCards[fileName] = null;
+        }
+
+        fetchDownloadCard(fileName)
+          .then((svg) => {
+            this.downloadCards[fileName] = svg;
+          })
+          .catch((error) => {
+            console.error('fetchDownloadCard Error:', error);
+          });
+      });
+
+      deleteManifest.forEach((fileName) => {
+        if (this.downloadCards[fileName]) {
+          delete this.downloadCards[fileName];
+        }
+      });
+
+      this.hasFetchedDownloadCards = true;
     },
-    updated() {
-        initFlowbite()
+    transitionCards(newDownloadCards, oldDownloadCards) {
+      if (newDownloadCards === oldDownloadCards) return;
+      Object.keys(newDownloadCards).forEach((fileName) => {
+        const newCard = toRaw(newDownloadCards[fileName]);
+        const oldCard = toRaw(oldDownloadCards[fileName]);
+        if (newCard !== oldCard && newCard !== null) {
+          this.transitionCard(fileName, newCard);
+        }
+      });
     },
-    watch: {
-        downloadQueue: {
-            deep: true,
-            handler() {
-                this.downloads = makeDownloadIndexFromQueue(this.downloadQueue);
-                this.updateDownloadCards();
-            },
-        },
-        downloadCards: {
-            handler(newDownloadCards, oldDownloadCards) {
-                this.transitionCards(newDownloadCards, oldDownloadCards);
-            },
-            immediate: true,
-        },
+    transitionCard(key, svg) {
+      const ref = this.$refs[`download-card-${key}`];
+      if (ref) {
+        ref[0].innerHTML = svg;
+      }
     },
-    methods: {
-        clearAllIntervals() {
-            clearTimeout(this.refreshDashboardId)
-            clearTimeout(this.locksTimeoutId)
-        },
-        hasCards() {
-            return this.downloadCards && Object.keys(this.downloadCards).length > 0;
-        },
-        updateDownloadCards() {
-            let deleteManifest = Object.keys(this.downloadCards);
-            Object.keys(this.downloads).forEach((fileName) => {
-                const idx = deleteManifest.indexOf(fileName);
-                if (idx !== -1) deleteManifest.splice(idx, 1);
-
-                if (!has(this.downloadCards, fileName)) {
-                    this.downloadCards[fileName] = null;
-                }
-
-                fetchDownloadCard(fileName)
-                    .then((svg) => {
-                        this.downloadCards[fileName] = svg;
-                    })
-                    .catch((error) => {
-                        console.error('fetchDownloadCard Error:', error);
-                    });
-            });
-
-            deleteManifest.forEach((fileName) => {
-                if (this.downloadCards[fileName]) {
-                    delete this.downloadCards[fileName];
-                }
-            });
-
-            this.hasFetchedDownloadCards = true;
-        },
-        transitionCards(newDownloadCards, oldDownloadCards) {
-            if (newDownloadCards === oldDownloadCards) return;
-            Object.keys(newDownloadCards).forEach((fileName) => {
-                const newCard = toRaw(newDownloadCards[fileName]);
-                const oldCard = toRaw(oldDownloadCards[fileName]);
-                if (newCard !== oldCard && newCard !== null) {
-                    this.transitionCard(fileName, newCard);
-                }
-            });
-        },
-        transitionCard(key, svg) {
-            const ref = this.$refs[`download-card-${key}`];
-            if (ref) {
-                ref[0].innerHTML = svg;
-            }
-        },
-        async fetchDownloadCard(fileName = '') {
-            const { data, error } = await fetchDownloadCard(fileName);
-            if (error === null) return data;
-            else console.log(error);
-        },
-        async refreshDashboard() {
-            clearTimeout(this.refreshDashboardId)
-
-            // If we're not still on the download page, then bail...
-            if (!this.$page.url.startsWith('/download')) return
-
-            await this.fetchDownloadQueue();
-
-            this.refreshDashboardId = setTimeout(this.refreshDashboard, refreshDashboardInterval);
-        },
-        async checkLocks() {
-            clearTimeout(this.locksTimeoutId)
-
-            // If we're not still on the download page, then bail...
-            if (!this.$page.url.startsWith('/download')) return
-
-            await this.fetchLocks();
-
-            this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
-        },
-        async fetchDownloadQueue() {
-            // If we're not still on the download page, then bail...
-            if (!this.$page.url.startsWith('/download')) return
-
-            const { data, error } = await fetchDownloadQueue();
-            if (error === null) this.downloadQueue = data;
-            else console.log(error);
-        },
-        async fetchLocks(packetList) {
-            // If we're not still on the download page, then bail...
-            if (!this.$page.url.startsWith('/download')) return
-
-            const { data, error } = await fetchLocks(packetList);
-            if (error === null) {
-                this.downloadLocks = data.locks;
-                if (data.locks.length <= 0) {
-                    clearTimeout(this.locksTimeoutId)
-                }
-            }
-        },
-        async saveDownloadDestination(download, uri) {
-            const body = {
-                destination_dir: uri,
-                download: download.id,
-            };
-            if (download.destination !== null) {
-                body.id = download.destination.id;
-            }
-            const { error } = await saveDownloadDestination(body);
-            if (error === null) this.fetchDownloadQueue();
-        },
-        async requestRemove(packetId) {
-            const { data, error } = await requestRemove(packetId);
-            if (error === null) {
-                const fileName = data.result.packet.file_name;
-                const locksIndex = this.locks.indexOf(fileName);
-                if (locksIndex >= 0) delete this.locks[locksIndex];
-                if (has(this.queued, fileName)) delete this.queued[fileName];
-                if (has(this.downloadQueue.queued, fileName)) delete this.downloadQueue.queued[fileName];
-            }
-        },
-        async requestCancel(download) {
-            const { error } = await requestCancel(download);
-            if (error === null) {
-                this.fetchLocks();
-                this.fetchDownloadQueue();
-            }
-        },
-        async removeCompleted(download) {
-            const { error } = await removeCompleted(download);
-            if (error === null) {
-                this.fetchLocks();
-                this.fetchDownloadQueue();
-            }
-        },
+    async fetchDownloadCard(fileName = '') {
+      const { data, error } = await fetchDownloadCard(fileName);
+      if (error === null) return data;
+      else console.log(error);
     },
+    async refreshDashboard() {
+      clearTimeout(this.refreshDashboardId);
+
+      // If we're not still on the download page, then bail...
+      if (!this.$page.url.startsWith('/download')) return;
+
+      await this.fetchDownloadQueue();
+
+      this.refreshDashboardId = setTimeout(this.refreshDashboard, refreshDashboardInterval);
+    },
+    async checkLocks() {
+      clearTimeout(this.locksTimeoutId);
+
+      // If we're not still on the download page, then bail...
+      if (!this.$page.url.startsWith('/download')) return;
+
+      await this.fetchLocks();
+
+      this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
+    },
+    async fetchDownloadQueue() {
+      // If we're not still on the download page, then bail...
+      if (!this.$page.url.startsWith('/download')) return;
+
+      const { data, error } = await fetchDownloadQueue();
+      if (error === null) this.downloadQueue = data;
+      else console.log(error);
+    },
+    async fetchLocks(packetList) {
+      // If we're not still on the download page, then bail...
+      if (!this.$page.url.startsWith('/download')) return;
+
+      const { data, error } = await fetchLocks(packetList);
+      if (error === null) {
+        this.downloadLocks = data.locks;
+        if (data.locks.length <= 0) {
+          clearTimeout(this.locksTimeoutId);
+        }
+      }
+    },
+    async saveDownloadDestination(download, uri) {
+      const body = {
+        destination_dir: uri,
+        download: download.id,
+      };
+      if (download.destination !== null) {
+        body.id = download.destination.id;
+      }
+      const { error } = await saveDownloadDestination(body);
+      if (error === null) this.fetchDownloadQueue();
+    },
+    async requestRemove(packetId) {
+      const { data, error } = await requestRemove(packetId);
+      if (error === null) {
+        const fileName = data.result.packet.file_name;
+        const locksIndex = this.locks.indexOf(fileName);
+        if (locksIndex >= 0) delete this.locks[locksIndex];
+        if (has(this.queued, fileName)) delete this.queued[fileName];
+        if (has(this.downloadQueue.queued, fileName)) delete this.downloadQueue.queued[fileName];
+      }
+    },
+    async requestCancel(download) {
+      const { error } = await requestCancel(download);
+      if (error === null) {
+        this.fetchLocks();
+        this.fetchDownloadQueue();
+      }
+    },
+    async removeCompleted(download) {
+      const { error } = await removeCompleted(download);
+      if (error === null) {
+        this.fetchLocks();
+        this.fetchDownloadQueue();
+      }
+    },
+  },
 };
 </script>
 

@@ -1,7 +1,12 @@
 <template>
   <tbody>
-    <tr v-for="packet in packets" :key="`packet-${packet.id}`" class="hover:bg-gray-100 focus-within:bg-gray-100">
-      <browse-table-row-locked v-if="isLocked(packet)"
+    <tr
+      v-for="packet in packets"
+      :key="`packet-${packet.id}`"
+      class="hover:bg-gray-100 focus-within:bg-gray-100"
+    >
+      <browse-table-row-locked
+        v-if="isLocked(packet)"
         :packet="packet"
         :completed="completed"
         :incomplete="incomplete"
@@ -21,8 +26,8 @@
 </template>
 
 <script>
-import BrowseTableRow from '@/Components/BrowseTableRow.vue'
-import BrowseTableRowLocked from '@/Components/BrowseTableRowLocked.vue'
+import BrowseTableRow from '@/Components/BrowseTableRow.vue';
+import BrowseTableRowLocked from '@/Components/BrowseTableRowLocked.vue';
 
 export default {
   components: {
@@ -39,36 +44,36 @@ export default {
   },
   methods: {
     isLocked(packet) {
-      const i = this.locks.indexOf(packet.file_name)
+      const i = this.locks.indexOf(packet.file_name);
 
       if (0 > i) {
-        return false
+        return false;
       }
 
-      return true
+      return true;
     },
     requestDownload(packetId) {
-      this.$emit('call:requestDownload', packetId)
+      this.$emit('call:requestDownload', packetId);
     },
     removeCompleted(download) {
-        this.$emit('call:removeCompleted', download)
+      this.$emit('call:removeCompleted', download);
     },
     requestCancel(download) {
-        this.$emit('call:requestCancel', download)
+      this.$emit('call:requestCancel', download);
     },
     requestRemove(packetId) {
-        this.$emit('call:requestRemove', packetId)
+      this.$emit('call:requestRemove', packetId);
     },
     saveDownloadDestination(download, uri) {
-        this.$emit('call:saveDownloadDestination', download, uri)
+      this.$emit('call:saveDownloadDestination', download, uri);
     },
   },
   emits: [
-        'call:requestDownload',
-        'call:requestCancel',
-        'call:requestRemove',
-        'call:removeCompleted',
-        'call:saveDownloadDestination'
-    ],
-}
+    'call:requestDownload',
+    'call:requestCancel',
+    'call:requestRemove',
+    'call:removeCompleted',
+    'call:saveDownloadDestination',
+  ],
+};
 </script>

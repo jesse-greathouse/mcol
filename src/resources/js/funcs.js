@@ -1,61 +1,60 @@
 // A collection of functions that get used a lot but don't belong in any certain module.
 
-const inList = function(value, list) {
-    return list.indexOf(value) > -1;
-}
+const inList = function (value, list) {
+  return list.indexOf(value) > -1;
+};
 
 // replaces lodash _.has
 const has = function (obj, key) {
-    // first start with he easiest qualifier
-    if (!obj) return false
+  // first start with he easiest qualifier
+  if (!obj) return false;
 
-    if (obj.hasOwnProperty(key)) {
-        return true
-    }
+  if (obj.hasOwnProperty(key)) {
+    return true;
+  }
 
-    const keyParts = key.split('.')
-    return (keyParts.length > 1 && has(obj[key.split('.')[0]], keyParts.slice(1).join('.')))
-}
+  const keyParts = key.split('.');
+  return keyParts.length > 1 && has(obj[key.split('.')[0]], keyParts.slice(1).join('.'));
+};
 
 // replaces lodash _.isUndefined
-const isUndefined = function(a) {
-    return typeof a === 'undefined'
-}
+const isUndefined = function (a) {
+  return typeof a === 'undefined';
+};
 
 // replaces lodash _.intersection
-const intersection = function(...arrays) {
-    return arrays.reduce((a, b) => a.filter(c => b.includes(c)))
-}
+const intersection = function (...arrays) {
+  return arrays.reduce((a, b) => a.filter((c) => b.includes(c)));
+};
 
 // replaces lodash _.trim
-const trim = function(str) {
-    return str.trim()
-}
+const trim = function (str) {
+  return str.trim();
+};
 
 // replaces lodash _.pickBy
 // Creates an object composed of the object properties predicate returns truthy for.
 function pickBy(object) {
-    const obj = {};
-    for (const key in object) {
-        if (object[key]) {
-            obj[key] = object[key];
-        }
+  const obj = {};
+  for (const key in object) {
+    if (object[key]) {
+      obj[key] = object[key];
     }
-    return obj;
+  }
+  return obj;
 }
 
 // replaces lodash _.mapValues
 // With the values of an object, map them to a new object with processing of a specific function.
 function mapValues(obj, proc) {
-    const result = {};
+  const result = {};
 
-    for (const [key, value] of Object.entries(obj)) {
-        result[key] = proc(value, key, obj);
-    }
+  for (const [key, value] of Object.entries(obj)) {
+    result[key] = proc(value, key, obj);
+  }
 
-    return result;
+  return result;
 }
-
 
 // replaces lodash _.debounce
 const nativeMax = Math.max;
@@ -78,12 +77,8 @@ function debounce(func, wait, options) {
   if (typeof options === 'object') {
     leading = !!options.leading;
     maxing = 'maxWait' in options;
-    maxWait = maxing
-      ? nativeMax(Number(options.maxWait) || 0, wait)
-      : maxWait;
-    trailing = 'trailing' in options
-      ? !!options.trailing
-      : trailing;
+    maxWait = maxing ? nativeMax(Number(options.maxWait) || 0, wait) : maxWait;
+    trailing = 'trailing' in options ? !!options.trailing : trailing;
   }
 
   function invokeFunc(time) {
@@ -102,18 +97,14 @@ function debounce(func, wait, options) {
     // Start the timer for the trailing edge.
     timerId = setTimeout(timerExpired, wait);
     // Invoke the leading edge.
-    return leading
-      ? invokeFunc(time)
-      : result;
+    return leading ? invokeFunc(time) : result;
   }
 
   function remainingWait(time) {
     let timeSinceLastCall = time - lastCallTime,
       timeSinceLastInvoke = time - lastInvokeTime,
       result = wait - timeSinceLastCall;
-    return maxing
-      ? nativeMin(result, maxWait - timeSinceLastInvoke)
-      : result;
+    return maxing ? nativeMin(result, maxWait - timeSinceLastInvoke) : result;
   }
 
   function shouldInvoke(time) {
@@ -122,7 +113,12 @@ function debounce(func, wait, options) {
     // Either this is the first call, activity has stopped and we're at the trailing
     // edge, the system time has gone backwards and we're treating it as the
     // trailing edge, or we've hit the `maxWait` limit.
-    return (lastCallTime === undefined || (timeSinceLastCall >= wait) || (timeSinceLastCall < 0) || (maxing && timeSinceLastInvoke >= maxWait));
+    return (
+      lastCallTime === undefined ||
+      timeSinceLastCall >= wait ||
+      timeSinceLastCall < 0 ||
+      (maxing && timeSinceLastInvoke >= maxWait)
+    );
   }
 
   function timerExpired() {
@@ -155,9 +151,7 @@ function debounce(func, wait, options) {
   }
 
   function flush() {
-    return timerId === undefined
-      ? result
-      : trailingEdge(Date.now());
+    return timerId === undefined ? result : trailingEdge(Date.now());
   }
 
   function debounced() {
@@ -196,12 +190,8 @@ function throttle(func, wait, options) {
     throw new TypeError(FUNC_ERROR_TEXT);
   }
   if (typeof options === 'object') {
-    leading = 'leading' in options
-      ? !!options.leading
-      : leading;
-    trailing = 'trailing' in options
-      ? !!options.trailing
-      : trailing;
+    leading = 'leading' in options ? !!options.leading : leading;
+    trailing = 'trailing' in options ? !!options.trailing : trailing;
   }
   return debounce(func, wait, {
     leading,
@@ -210,15 +200,4 @@ function throttle(func, wait, options) {
   });
 }
 
-
-export {
-    debounce,
-    has,
-    inList,
-    intersection,
-    isUndefined,
-    mapValues,
-    pickBy,
-    throttle,
-    trim,
-}
+export { debounce, has, inList, intersection, isUndefined, mapValues, pickBy, throttle, trim };

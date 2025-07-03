@@ -1,12 +1,12 @@
 <template>
-    <p>{{ content }}</p>
+  <p>{{ content }}</p>
 </template>
 
 <script>
 export default {
-    inheritAttrs: false,
-    props: {
-        content: String,
-    },
-}
+  inheritAttrs: false,
+  props: {
+    content: String,
+  },
+};
 </script>

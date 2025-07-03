@@ -1,0 +1,18 @@
+# Node modules & vendor
+node_modules/
+vendor/
+
+# Non code folders
+var/
+tmp/
+opt/
+etc/
+
+# Build artifacts
+dist/
+build/
+src/public/build/
+
+# lock files & logs
+*.lock
+*.log

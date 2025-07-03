@@ -5,18 +5,23 @@
         <downloading-icon />
       </div>
       <div class="col-span-7 py-6 px-0" tabindex="-1">
-        <fwb-progress :progress="progress" :label="packet.file_name"  />
+        <fwb-progress :progress="progress" :label="packet.file_name" />
       </div>
-      <div class="col-span-3 py-6 px-0 place-self-center"  tabindex="-1">
+      <div class="col-span-3 py-6 px-0 place-self-center" tabindex="-1">
         <save-download-button
-            context="browse-table"
-            :download="download"
-            :settings="settings"
-            @call:saveDownloadDestination="saveDownloadDestination" />
-        <button ref="cancel" type="button" class="text-white disabled:opacity-75 disabled:bg-gray-700 bg-red-400 hover:bg-red-500 focus:ring-4 focus:outline-none focus:ring-red-200 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:bg-red-400 dark:hover:bg-red-400 dark:focus:ring-red-500"
-            :disabled="cancelDisabled"
-            @click="cancel()" >
-                <cancel-icon />
+          context="browse-table"
+          :download="download"
+          :settings="settings"
+          @call:saveDownloadDestination="saveDownloadDestination"
+        />
+        <button
+          ref="cancel"
+          type="button"
+          class="text-white disabled:opacity-75 disabled:bg-gray-700 bg-red-400 hover:bg-red-500 focus:ring-4 focus:outline-none focus:ring-red-200 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center me-2 dark:bg-red-400 dark:hover:bg-red-400 dark:focus:ring-red-500"
+          :disabled="cancelDisabled"
+          @click="cancel()"
+        >
+          <cancel-icon />
         </button>
       </div>
     </div>
@@ -24,10 +29,10 @@
 </template>
 
 <script>
-import { FwbProgress } from 'flowbite-vue'
-import DownloadingIcon from '@/Components/DownloadingIcon.vue'
-import CancelIcon from '@/Components/CancelIcon.vue'
-import SaveDownloadButton from '@/Components/SaveDownloadButton.vue'
+import { FwbProgress } from 'flowbite-vue';
+import DownloadingIcon from '@/Components/DownloadingIcon.vue';
+import CancelIcon from '@/Components/CancelIcon.vue';
+import SaveDownloadButton from '@/Components/SaveDownloadButton.vue';
 
 export default {
   components: {
@@ -44,22 +49,22 @@ export default {
   data() {
     return {
       cancelDisabled: false,
-    }
+    };
   },
   computed: {
     progress() {
-      return (this.download.progress_bytes / this.download.file_size_bytes) * 100
+      return (this.download.progress_bytes / this.download.file_size_bytes) * 100;
     },
   },
   methods: {
     cancel() {
-      this.cancelDisabled = true
-      this.$emit('call:requestCancel', this.download)
+      this.cancelDisabled = true;
+      this.$emit('call:requestCancel', this.download);
     },
     saveDownloadDestination(download, uri) {
-      this.$emit('call:saveDownloadDestination', download, uri)
+      this.$emit('call:saveDownloadDestination', download, uri);
     },
   },
   emits: ['call:requestCancel', 'call:saveDownloadDestination'],
-}
+};
 </script>
