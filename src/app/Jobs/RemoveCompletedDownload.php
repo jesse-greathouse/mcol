@@ -2,18 +2,16 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldBeUnique,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels;
+use App\Models\Download;
+use App\Models\FileDownloadLock;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 
-use App\Models\Download,
-    App\Models\FileDownloadLock,
-    App\Jobs\ArchiveDownload;
-
-class RemoveCompletedDownload implements ShouldQueue, ShouldBeUnique
+class RemoveCompletedDownload implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -42,8 +40,6 @@ class RemoveCompletedDownload implements ShouldQueue, ShouldBeUnique
 
     /**
      * Execute the job.
-     *
-     * @return void
      */
     public function handle(): void
     {
@@ -61,8 +57,6 @@ class RemoveCompletedDownload implements ShouldQueue, ShouldBeUnique
 
     /**
      * Get the unique ID for the job.
-     *
-     * @return string
      */
     public function uniqueId(): string
     {
@@ -72,8 +66,6 @@ class RemoveCompletedDownload implements ShouldQueue, ShouldBeUnique
 
     /**
      * Removes any lock from a Download by deleting the corresponding lock entry.
-     *
-     * @return void
      */
     protected function releaseLock(): void
     {

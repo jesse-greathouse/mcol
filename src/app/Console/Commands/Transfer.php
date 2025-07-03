@@ -2,11 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-
 use App\Media\TransferManager;
-
-use \Exception;
+use Exception;
+use Illuminate\Console\Command;
 
 /**
  * Command for transferring a file.
@@ -14,10 +12,10 @@ use \Exception;
 class Transfer extends Command
 {
     // Define the default directories for Windows systems
-    const DEFAULT_WINDOWS_VAR_DIR = '%APPDATA%' .  DS . 'var';
+    const DEFAULT_WINDOWS_VAR_DIR = '%APPDATA%'.DS.'var';
 
     // Define the default directories for Unix-like systems
-    const DEFAULT_UNIX_LIKE_VAR_DIR = '$HOME' .  DS . 'var';
+    const DEFAULT_UNIX_LIKE_VAR_DIR = '$HOME'.DS.'var';
 
     /**
      * Uri of file to be transferred.
@@ -49,8 +47,6 @@ class Transfer extends Command
 
     /**
      * Execute the console command.
-     *
-     * @return void
      */
     public function handle(): void
     {
@@ -60,7 +56,7 @@ class Transfer extends Command
         $tmpDir = "$varDir/transfer";
 
         // Ensure transfer directory exists
-        if (!is_dir($tmpDir)) {
+        if (! is_dir($tmpDir)) {
             mkdir($tmpDir, 0755, true); // Create the directory with proper permissions
         }
 
@@ -73,16 +69,15 @@ class Transfer extends Command
     /**
      * Gets and validates the URI as input.
      *
-     * @return string
      * @throws Exception If the URI is invalid.
      */
     public function getUri(): string
     {
         // Validate if URI is set and not empty
-        if (null === $this->uri) {
+        if ($this->uri === null) {
             $this->uri = $this->argument('uri');
             if (empty($this->uri)) {
-                throw new Exception("Invalid file URI.");
+                throw new Exception('Invalid file URI.');
             }
         }
 
@@ -92,16 +87,15 @@ class Transfer extends Command
     /**
      * Gets and validates the destination path as input.
      *
-     * @return string
      * @throws Exception If the destination is invalid.
      */
     public function getDestination(): string
     {
         // Validate if destination is set and not empty
-        if (null === $this->destination) {
+        if ($this->destination === null) {
             $this->destination = $this->argument('destination');
             if (empty($this->destination)) {
-                throw new Exception("Invalid destination path.");
+                throw new Exception('Invalid destination path.');
             }
         }
 
@@ -124,7 +118,7 @@ class Transfer extends Command
     /**
      * Replaces system-specific variables with their actual values.
      *
-     * @param string $path The path containing system variables.
+     * @param  string  $path  The path containing system variables.
      * @return string The path with system variables replaced.
      */
     private function replaceSystemVariables(string $path): string

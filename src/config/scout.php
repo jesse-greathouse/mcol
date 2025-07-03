@@ -44,7 +44,7 @@ return [
 
     'queue' => [
         'connection' => 'search',
-        'queue' => 'search'
+        'queue' => 'search',
     ],
 
     /*

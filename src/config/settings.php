@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'path' =>  env('VAR', '/var/mcol'),
+    'path' => env('VAR', '/var/mcol'),
     'stores' => [
         'system' => [
             'class' => 'App\Store\SystemSettings',

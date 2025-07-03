@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Validator;
-
-use App\Media\Store,
-    App\Settings;
+use App\Media\Store;
+use App\Settings;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * Class CreateDirectoryRequest
@@ -16,15 +15,11 @@ class CreateDirectoryRequest extends FormRequest
 {
     /**
      * A Store object.
-     *
-     * @var ?Store
      */
     private ?Store $store = null;
 
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -46,7 +41,6 @@ class CreateDirectoryRequest extends FormRequest
     /**
      * Get the "after" validation callables for the request.
      *
-     * @param Settings $settings
      * @return array<int, callable>
      */
     public function after(Settings $settings): array
@@ -67,7 +61,7 @@ class CreateDirectoryRequest extends FormRequest
                 }
 
                 // Check if URI is branched from any media store.
-                if (!$store->isBranchOfMediaStore($uri)) {
+                if (! $store->isBranchOfMediaStore($uri)) {
                     $validator->errors()->add(
                         'uri',
                         "\"$uri\" is not branched from any media store."
@@ -81,19 +75,16 @@ class CreateDirectoryRequest extends FormRequest
                         "\"$uri\" already exists."
                     );
                 }
-            }
+            },
         ];
     }
 
     /**
      * Returns a Store object with the provided settings.
-     *
-     * @param Settings $settings
-     * @return Store
      */
     private function getStore(Settings $settings): Store
     {
-        if (!$this->store) {
+        if (! $this->store) {
             $this->store = new Store($settings->media_store);
         }
 

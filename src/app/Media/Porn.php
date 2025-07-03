@@ -7,12 +7,10 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
 /**
  * Class representing a media file with specific metadata related to adult content.
  * This class processes the media file's name to extract relevant data like title, resolution, tags, and more.
- *
- * @package App\Media
  */
 final class Porn extends Media implements MediaTypeInterface
 {
-    use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
+    use DynamicRangeMetaData, ExtensionMetaData, LanguageMetaData;
 
     // https://www.phpliveregex.com/p/MDr
     /** @var string The mask to match filenames with resolution */
@@ -46,7 +44,8 @@ final class Porn extends Media implements MediaTypeInterface
     /**
      * Matches the media metadata from the file name.
      *
-     * @param string $fileName The name of the file to extract metadata from.
+     * @param  string  $fileName  The name of the file to extract metadata from.
+     *
      * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
      */
     public function match(string $fileName): void
@@ -62,12 +61,10 @@ final class Porn extends Media implements MediaTypeInterface
 
     /**
      * Maps the result of regex match to class properties.
-     *
-     * @return void
      */
     public function map(): void
     {
-        if (null === $this->metaData) {
+        if ($this->metaData === null) {
             return;
         }
 
@@ -89,13 +86,13 @@ final class Porn extends Media implements MediaTypeInterface
     public function toArray(): array
     {
         return [
-            'title'             => $this->title,
-            'resolution'        => $this->resolution,
-            'tags'              => $this->tags,
-            'extension'         => $this->extension,
-            'language'          => $this->language,
-            'is_hdr'            => $this->isHdr,
-            'is_dolby_vision'   => $this->isDolbyVision,
+            'title' => $this->title,
+            'resolution' => $this->resolution,
+            'tags' => $this->tags,
+            'extension' => $this->extension,
+            'language' => $this->language,
+            'is_hdr' => $this->isHdr,
+            'is_dolby_vision' => $this->isDolbyVision,
         ];
     }
 

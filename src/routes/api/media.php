@@ -1,11 +1,10 @@
 <?php
 
+use App\Media\MediaDynamicRange;
+use App\Media\MediaLanguage;
+use App\Media\MediaResolution;
+use App\Media\MediaType;
 use Illuminate\Support\Facades\Route;
-
-use App\Media\MediaDynamicRange,
-    App\Media\MediaLanguage,
-    App\Media\MediaResolution,
-    App\Media\MediaType;
 
 // GET /api/media-dynamic-range
 Route::middleware('auth:sanctum')->get('/media-dynamic-range', function () {

@@ -1,10 +1,10 @@
 <?php
+
 namespace App\Packet;
 
-use Illuminate\Http\Request,
-    Illuminate\Pagination\LengthAwarePaginator;
-
 use DateTime;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * BrowseRequestHandler is responsible for processing and handling incoming web request parameters
@@ -19,35 +19,41 @@ use DateTime;
  *
  * By using this class, the application can easily handle web requests without mixing database query
  * logic into the HTTP layer, promoting maintainability and clarity in the codebase.
- *
  */
 class BrowseRequestHandler
 {
-
     // Pagination and sorting parameters
     const PAGE_KEY = 'page'; // Represents the current page in pagination
+
     const RPP_KEY = 'rpp'; // Number of results per page
+
     const ORDER_KEY = 'order'; // Specifies the field by which to order results
+
     const DIRECTION_KEY = 'direction'; // Defines the sorting direction (ascending/descending)
 
     // Date filtering parameters
     const START_DATE_KEY = 'start_date'; // Start date for filtering results
+
     const END_DATE_KEY = 'end_date'; // End date for filtering results
 
     // Bot-specific filtering parameters
     const IN_BOTS_KEY = 'in_bots'; // List of incoming bots to filter by
+
     const OUT_BOTS_KEY = 'out_bots'; // List of outgoing bots to filter by
 
     // Nickname-specific filtering parameters
     const IN_NICK_KEY = 'in_nick'; // List of incoming nicks to filter by
+
     const OUT_NICK_KEY = 'out_nick'; // List of outgoing nicks to filter by
 
     // Network-specific filtering parameters
     const IN_NETWORK_KEY = 'in_network'; // List of incoming networks to filter by
+
     const OUT_NETWORK_KEY = 'out_network'; // List of outgoing networks to filter by
 
     // Language-specific filtering parameters
     const IN_LANGUAGE_KEY = 'in_language'; // List of incoming languages to filter by
+
     const OUT_LANGUAGE_KEY = 'out_language'; // List of outgoing languages to filter by
 
     // Search string parameter
@@ -55,50 +61,48 @@ class BrowseRequestHandler
 
     // Media type-specific filtering parameters
     const IN_MEDIA_TYPE_KEY = 'in_media_type'; // List of incoming media types to filter by
+
     const OUT_MEDIA_TYPE_KEY = 'out_media_type'; // List of outgoing media types to filter by
 
     // Resolution-specific filtering parameters
     const IN_RESOLUTIONS_KEY = 'in_resolution'; // List of incoming resolutions to filter by
+
     const OUT_RESOLUTIONS_KEY = 'out_resolution'; // List of outgoing resolutions to filter by
 
     // Dynamic range-specific filtering parameters
     const IN_DYNAMIC_RANGE_KEY = 'in_dynamic_range'; // List of incoming dynamic ranges to filter by
+
     const OUT_DYNAMIC_RANGE_KEY = 'out_dynamic_range'; // List of outgoing dynamic ranges to filter by
 
     // File extension-specific filtering parameters
     const IN_FILE_EXTENSION_KEY = 'in_file_extension'; // List of incoming file extensions to filter by
+
     const OUT_FILE_EXTENSION_KEY = 'out_file_extension'; // List of outgoing file extensions to filter by
 
     /**
      * A Web Request instance.
-     *
-     * @var Request
      */
     protected Request $request;
 
     /**
      * A Browse instance.
-     *
-     * @var Browse
      */
     protected Browse $browse;
 
     /**
      * Constructor to initialize the request and browse objects.
      *
-     * @param Request $request The request instance.
+     * @param  Request  $request  The request instance.
      */
     public function __construct(Request $request)
     {
         $this->request = $request;
-        $this->browse = new Browse();
+        $this->browse = new Browse;
         $this->handleInput();
     }
 
     /**
      * Returns an array of all available filters and their current values.
-     *
-     * @return array
      */
     public function getFilters(): array
     {
@@ -131,8 +135,6 @@ class BrowseRequestHandler
 
     /**
      * Configures the browse options from given inputs.
-     *
-     * @return void
      */
     public function handleInput(): void
     {
@@ -155,8 +157,6 @@ class BrowseRequestHandler
 
     /**
      * Runs the query on the browse object and returns the result set.
-     *
-     * @return array
      */
     public function get(): array
     {
@@ -165,8 +165,6 @@ class BrowseRequestHandler
 
     /**
      * Runs a paginated query.
-     *
-     * @return LengthAwarePaginator
      */
     public function paginate(array $options = []): LengthAwarePaginator
     {
@@ -175,8 +173,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Page input.
-     *
-     * @return void
      */
     protected function page(): void
     {
@@ -187,8 +183,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Rpp input.
-     *
-     * @return void
      */
     protected function rpp(): void
     {
@@ -199,8 +193,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Order input.
-     *
-     * @return void
      */
     protected function order(): void
     {
@@ -213,8 +205,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Direction input.
-     *
-     * @return void
      */
     protected function direction(): void
     {
@@ -227,8 +217,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Search String input.
-     *
-     * @return void
      */
     protected function search(): void
     {
@@ -239,8 +227,6 @@ class BrowseRequestHandler
 
     /**
      * DateTime to start the chronology of the results
-     *
-     * @return void
      */
     protected function startDate(): void
     {
@@ -251,8 +237,6 @@ class BrowseRequestHandler
 
     /**
      * DateTime to end the chronology of the results
-     *
-     * @return void
      */
     protected function endDate(): void
     {
@@ -268,8 +252,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Bots input.
-     *
-     * @return void
      */
     protected function bots(): void
     {
@@ -282,8 +264,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Nicks input.
-     *
-     * @return void
      */
     protected function nicks(): void
     {
@@ -296,8 +276,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Networks input.
-     *
-     * @return void
      */
     protected function networks(): void
     {
@@ -310,8 +288,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Media Types input.
-     *
-     * @return void
      */
     protected function mediaTypes(): void
     {
@@ -324,8 +300,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Languages input.
-     *
-     * @return void
      */
     protected function languages(): void
     {
@@ -338,8 +312,6 @@ class BrowseRequestHandler
 
     /**
      * Handle File Extensions input.
-     *
-     * @return void
      */
     protected function fileExtensions(): void
     {
@@ -352,8 +324,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Resolutions input.
-     *
-     * @return void
      */
     protected function resolutions(): void
     {
@@ -366,8 +336,6 @@ class BrowseRequestHandler
 
     /**
      * Handle Dynamic Range input.
-     *
-     * @return void
      */
     protected function dynamicRanges(): void
     {
@@ -380,14 +348,10 @@ class BrowseRequestHandler
 
     /**
      * Checks a date format string to see if it includes time.
-     *
-     * @param string $dateStr
-     * @return bool
      */
     protected function containsTimeString(string $dateStr): bool
     {
         // Match any string containing a time format (HH:MM or HH:MM:SS)
         return preg_match('/\d{1,2}:\d{2}(:\d{2})?/', $dateStr) === 1;
     }
-
 }

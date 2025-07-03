@@ -2,12 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory,
-    Illuminate\Database\Eloquent\Model,
-    Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-use Laravel\Scout\Searchable,
-    Laravel\Scout\Attributes\SearchUsingFullText;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Laravel\Scout\Attributes\SearchUsingFullText;
+use Laravel\Scout\Searchable;
 
 /**
  * Represents a file packet offered by a file-sharing bot in an IRC network.
@@ -89,8 +88,6 @@ class Packet extends Model
 
     /**
      * Get the name of the index associated with the model.
-     *
-     * @return string
      */
     public function searchableAs(): string
     {

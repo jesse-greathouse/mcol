@@ -2,15 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\PacketSearch as PacketSearchJob;
+use App\Models\Channel;
+use App\Models\Network;
+use App\Models\PacketSearch as PacketSearchModel;
+use Illuminate\Console\Command;
+use Illuminate\Contracts\Console\PromptsForMissingInput;
+
 use function Laravel\Prompts\search;
-
-use Illuminate\Console\Command,
-    Illuminate\Contracts\Console\PromptsForMissingInput;
-
-use App\Jobs\PacketSearch as PacketSearchJob,
-    App\Models\Channel,
-    App\Models\PacketSearch as PacketSearchModel,
-    App\Models\Network;
 
 /**
  * Handles the packet search operation.
@@ -19,6 +18,7 @@ class PacketSearch extends Command implements PromptsForMissingInput
 {
     // Constants for search parameters.
     public const INTERVAL = 1;
+
     public const MAX_RUNTIME = 30;
 
     /**
@@ -65,8 +65,9 @@ class PacketSearch extends Command implements PromptsForMissingInput
         $channel = $this->getChannel();
         $searchStr = $this->getSearchStr();
 
-        if (null === $network || null === $channel || null === $searchStr) {
+        if ($network === null || $channel === null || $searchStr === null) {
             $this->error('Missing arguments.');
+
             return;
         }
 
@@ -84,7 +85,7 @@ class PacketSearch extends Command implements PromptsForMissingInput
 
             $packetSearch = $this->getNewPacketSearch($oldPacketSearch);
 
-            if (null !== $packetSearch) {
+            if ($packetSearch !== null) {
                 $this->showSearchResults($packetSearch);
                 break;
             }
@@ -92,14 +93,14 @@ class PacketSearch extends Command implements PromptsForMissingInput
             // Timeout prevention
             $timeNow = microtime(true);
             if (($timeNow - $this->startTime) >= self::MAX_RUNTIME) {
-                $this->error("Search timed out.");
+                $this->error('Search timed out.');
+
                 return; // Failure, automatic exit code 1
             }
         }
 
         $this->info('Search completed successfully.'); // This signals a successful completion
     }
-
 
     /**
      * Prompt for missing input arguments using the returned questions.
@@ -132,23 +133,23 @@ class PacketSearch extends Command implements PromptsForMissingInput
 
     /**
      * Returns an instance of Network by any given name.
-     *
-     * @return Network|null
      */
     protected function getNetwork(): ?Network
     {
-        if (null === $this->network) {
+        if ($this->network === null) {
             $name = $this->argument('network');
 
-            if (null === $name) {
+            if ($name === null) {
                 $this->error('A valid --network is required.');
+
                 return null;
             }
 
             $network = Network::where('name', $name)->first();
 
-            if (null === $network) {
+            if ($network === null) {
                 $this->error('A valid --network is required.');
+
                 return null;
             }
 
@@ -160,23 +161,23 @@ class PacketSearch extends Command implements PromptsForMissingInput
 
     /**
      * Returns an instance of Channel by any given name.
-     *
-     * @return Channel|null
      */
     protected function getChannel(): ?Channel
     {
-        if (null === $this->channel) {
+        if ($this->channel === null) {
             $name = $this->argument('channel');
 
-            if (null === $name) {
+            if ($name === null) {
                 $this->error('A valid --channel is required.');
+
                 return null;
             }
 
             $channel = Channel::where('name', $name)->first();
 
-            if (null === $channel) {
+            if ($channel === null) {
                 $this->error('A valid --channel is required.');
+
                 return null;
             }
 
@@ -188,16 +189,15 @@ class PacketSearch extends Command implements PromptsForMissingInput
 
     /**
      * Returns the Search string.
-     *
-     * @return string|null
      */
     protected function getSearchStr(): ?string
     {
-        if (null === $this->searchStr) {
+        if ($this->searchStr === null) {
             $searchStr = $this->argument('searchStr');
 
-            if (null === $searchStr || '' === trim($searchStr)) {
+            if ($searchStr === null || trim($searchStr) === '') {
                 $this->error('A valid search string is required.');
+
                 return null;
             }
 
@@ -213,12 +213,10 @@ class PacketSearch extends Command implements PromptsForMissingInput
 
     /**
      * Returns the most recent PacketSearch object.
-     *
-     * @return PacketSearchModel|null
      */
     protected function getOldPacketSearch(): ?PacketSearchModel
     {
-        if (null === $this->oldPacketSearch) {
+        if ($this->oldPacketSearch === null) {
             $this->oldPacketSearch = PacketSearchModel::orderBy('created_at', 'DESC')->first();
         }
 
@@ -227,13 +225,10 @@ class PacketSearch extends Command implements PromptsForMissingInput
 
     /**
      * Finds a packet search newer than the old one.
-     *
-     * @param PacketSearchModel|null $oldPacketSearch
-     * @return PacketSearchModel|null
      */
     protected function getNewPacketSearch(?PacketSearchModel $oldPacketSearch = null): ?PacketSearchModel
     {
-        if (null !== $oldPacketSearch) {
+        if ($oldPacketSearch !== null) {
             return PacketSearchModel::where('created_at', '>', $oldPacketSearch->created_at)
                 ->orderBy('created_at', 'DESC')
                 ->first();
@@ -244,8 +239,6 @@ class PacketSearch extends Command implements PromptsForMissingInput
 
     /**
      * Displays the results of a packet search.
-     *
-     * @param PacketSearchModel $packetSearch
      */
     protected function showSearchResults(PacketSearchModel $packetSearch): void
     {

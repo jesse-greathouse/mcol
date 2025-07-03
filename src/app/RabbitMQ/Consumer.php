@@ -2,11 +2,10 @@
 
 namespace App\RabbitMQ;
 
-use PhpAmqpLib\Channel\AMQPChannel,
-    PhpAmqpLib\Message\AMQPMessage;
-
-use Generator,
-    RuntimeException;
+use Generator;
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Message\AMQPMessage;
+use RuntimeException;
 
 /**
  * Class Consumer
@@ -35,8 +34,8 @@ final class Consumer
     /**
      * Consumer constructor.
      *
-     * @param Connection $connection The RabbitMQ connection instance.
-     * @param MessageInterface $messageObject The message handler instance.
+     * @param  Connection  $connection  The RabbitMQ connection instance.
+     * @param  MessageInterface  $messageObject  The message handler instance.
      */
     public function __construct(Connection $connection, MessageInterface $messageObject)
     {
@@ -48,14 +47,14 @@ final class Consumer
     /**
      * Invokes the consumer to bind a queue, configure QoS, and consume messages.
      *
-     * @param string $queue The queue name.
-     * @param string $exchange The exchange name.
-     * @param string $routingKey The routing key.
-     * @param array $arguments The arguments that will be used during the exchange.
+     * @param  string  $queue  The queue name.
+     * @param  string  $exchange  The exchange name.
+     * @param  string  $routingKey  The routing key.
+     * @param  array  $arguments  The arguments that will be used during the exchange.
      */
     public function __invoke(string $queue = '', string $exchange = '', string $routingKey = '', array $arguments = []): void
     {
-        if (!$this->channel) {
+        if (! $this->channel) {
             throw new RuntimeException('AMQP Channel is not initialized.');
         }
 
@@ -70,10 +69,10 @@ final class Consumer
             exclusive: false,
             nowait: false,
             arguments: $arguments,
-            callback: fn(AMQPMessage $msg) => $this->handleMessage($msg, $routingKey)
+            callback: fn (AMQPMessage $msg) => $this->handleMessage($msg, $routingKey)
         );
 
-        while (!empty($this->channel->callbacks)) {
+        while (! empty($this->channel->callbacks)) {
             $this->channel->wait();
         }
     }
@@ -81,15 +80,14 @@ final class Consumer
     /**
      * The consumer will fetch all the available messages.
      *
-     * @param string $queue The queue name.
-     * @param string $exchange The exchange name.
-     * @param string $routingKey The routing key.
-     * @param int $limit The maximum number of messages to fetch.
-     * @return Generator
+     * @param  string  $queue  The queue name.
+     * @param  string  $exchange  The exchange name.
+     * @param  string  $routingKey  The routing key.
+     * @param  int  $limit  The maximum number of messages to fetch.
      */
     public function fetch(string $queue = '', string $exchange = '', string $routingKey = '', int $limit = 10): Generator
     {
-        if (!$this->channel) {
+        if (! $this->channel) {
             throw new RuntimeException('AMQP Channel is not initialized.');
         }
 
@@ -105,7 +103,7 @@ final class Consumer
     /**
      * Handles an incoming AMQP message and acknowledges it.
      *
-     * @param AMQPMessage $msg The received message.
+     * @param  AMQPMessage  $msg  The received message.
      */
     private function handleMessage(AMQPMessage $msg, string $routingKey): void
     {

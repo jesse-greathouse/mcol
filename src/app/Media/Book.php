@@ -20,8 +20,6 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
  * - MASK: Pattern for matching the file name and extracting the base title.
  * - YEAR_MASK: Pattern for extracting the release year from the title.
  * - VOLUME_MASK: Pattern for identifying the volume number in the title.
- *
- * @package App\Media
  */
 final class Book extends Media implements MediaTypeInterface
 {
@@ -42,22 +40,16 @@ final class Book extends Media implements MediaTypeInterface
 
     /**
      * Title of the book.
-     *
-     * @var string
      */
     private string $title = '';
 
     /**
      * Year of the book's release.
-     *
-     * @var string|null
      */
     private ?string $year = null;
 
     /**
      * Book number in a series.
-     *
-     * @var string|null
      */
     private ?string $volume = null;
 
@@ -77,15 +69,14 @@ final class Book extends Media implements MediaTypeInterface
 
     /**
      * Language of the book.
-     *
-     * @var string
      */
     private string $language = '';
 
     /**
      * Matches the media metadata from the file name.
      *
-     * @param string $fileName The name of the file to extract metadata from.
+     * @param  string  $fileName  The name of the file to extract metadata from.
+     *
      * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
      */
     public function match(string $fileName): void
@@ -100,12 +91,10 @@ final class Book extends Media implements MediaTypeInterface
 
     /**
      * Maps the result of a regex match to the object's properties.
-     *
-     * @return void
      */
     public function map(): void
     {
-        if (null === $this->metaData) {
+        if ($this->metaData === null) {
             return;
         }
 
@@ -123,8 +112,6 @@ final class Book extends Media implements MediaTypeInterface
 
     /**
      * Returns the regex pattern to match the media file name.
-     *
-     * @return string
      */
     public function getMask(): string
     {
@@ -139,23 +126,24 @@ final class Book extends Media implements MediaTypeInterface
     public function toArray(): array
     {
         return [
-            'title'     => $this->title,
-            'year'      => $this->year,
-            'volume'    => $this->volume,
-            'tags'      => $this->tags,
+            'title' => $this->title,
+            'year' => $this->year,
+            'volume' => $this->volume,
+            'tags' => $this->tags,
             'extension' => $this->extension,
-            'language'  => $this->language,
+            'language' => $this->language,
         ];
     }
 
     /**
      * Extracts the year from the book's title using a regex pattern.
      *
-     * @param string $title The title of the book.
+     * @param  string  $title  The title of the book.
      * @return string|null The extracted year or an empty string if no match.
+     *
      * @throws MediaMetadataUnableToMatchException If a regex error occurs.
      */
-    private function getYearFromTitle(string $title): string|null
+    private function getYearFromTitle(string $title): ?string
     {
         $matches = [];
 
@@ -171,8 +159,9 @@ final class Book extends Media implements MediaTypeInterface
     /**
      * Extracts the volume from the book's title using a regex pattern.
      *
-     * @param string $title The title of the book.
+     * @param  string  $title  The title of the book.
      * @return string|null The extracted volume or null if no match.
+     *
      * @throws MediaMetadataUnableToMatchException If a regex error occurs.
      */
     private function getVolumeFromTitle(string $title): ?string

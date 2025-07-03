@@ -16,12 +16,14 @@ final class Game extends Media implements MediaTypeInterface
 
     /**
      * Regex pattern to match general media string (e.g., title and version).
+     *
      * @see https://www.phpliveregex.com/p/MxA
      */
     private const STANDARD_MASK = '/^[\d{2,3}]*(.*)[\.|\-](.*)\..*$/i';
 
     /**
      * Regex pattern to match version information in a media string.
+     *
      * @see https://www.phpliveregex.com/p/MxD
      */
     private const VERSION_MASK = '/^(.*?)(?:[^\w]*(v|version)[^\w\s\.\-_]*)([\d]+(?:[\.\-_]*[\dA-Za-z\-]*)*)$/i';
@@ -40,22 +42,16 @@ final class Game extends Media implements MediaTypeInterface
 
     /**
      * Title of the game.
-     *
-     * @var string
      */
     private string $title = '';
 
     /**
      * Version of the game.
-     *
-     * @var string|null
      */
     private ?string $version = null;
 
     /**
      * Release type (e.g., update, dlc).
-     *
-     * @var string
      */
     private string $release = '';
 
@@ -83,7 +79,8 @@ final class Game extends Media implements MediaTypeInterface
     /**
      * Matches the media metadata from the file name.
      *
-     * @param string $fileName The name of the file to extract metadata from.
+     * @param  string  $fileName  The name of the file to extract metadata from.
+     *
      * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
      */
     public function match(string $fileName): void
@@ -101,12 +98,10 @@ final class Game extends Media implements MediaTypeInterface
      *
      * This method processes the media string, extracting title, version, release type,
      * tags, file extension, and language.
-     *
-     * @return void
      */
     public function map(): void
     {
-        if (null === $this->metaData) {
+        if ($this->metaData === null) {
             return;
         }
 
@@ -125,8 +120,8 @@ final class Game extends Media implements MediaTypeInterface
         $parts = explode($separator, $cleaned);
 
         [
-            'title'     => $this->title,
-            'release'   => $this->release
+            'title' => $this->title,
+            'release' => $this->release
         ] = $this->extractTitleAndRelease($parts);
 
         $this->title = $this->formatTitle($this->title);
@@ -139,7 +134,7 @@ final class Game extends Media implements MediaTypeInterface
     /**
      * Extracts the title and release type from a list of parts.
      *
-     * @param array<string> $parts The split parts of the media string.
+     * @param  array<string>  $parts  The split parts of the media string.
      * @return array<string, string> The extracted title and release type.
      */
     private function extractTitleAndRelease(array $parts): array
@@ -158,14 +153,12 @@ final class Game extends Media implements MediaTypeInterface
 
         return [
             'title' => implode(' ', $titleWords),
-            'release' => $release
+            'release' => $release,
         ];
     }
 
     /**
      * Returns the mask with which to match the media.
-     *
-     * @return string
      */
     public function getMask(): string
     {
@@ -180,20 +173,21 @@ final class Game extends Media implements MediaTypeInterface
     public function toArray(): array
     {
         return [
-            'title'     => $this->title,
-            'version'   => $this->version,
-            'release'   => $this->release,
-            'tags'      => $this->tags,
+            'title' => $this->title,
+            'version' => $this->version,
+            'release' => $this->release,
+            'tags' => $this->tags,
             'extension' => $this->extension,
-            'language'  => $this->language,
+            'language' => $this->language,
         ];
     }
 
     /**
      * Extracts the version from the game string if available.
      *
-     * @param string $gameStr The game string to search in.
+     * @param  string  $gameStr  The game string to search in.
      * @return string|null The version string or null if not found.
+     *
      * @throws MediaMetadataUnableToMatchException If an error occurs during matching.
      */
     private function getVersionFromGameStr(string $gameStr): ?string

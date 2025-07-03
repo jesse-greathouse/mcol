@@ -2,8 +2,8 @@
 
 namespace App\RabbitMQ;
 
-use PhpAmqpLib\Channel\AMQPChannel,
-    PhpAmqpLib\Exception\AMQPRuntimeException;
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Exception\AMQPRuntimeException;
 
 /**
  * Class Queue
@@ -20,13 +20,13 @@ final class Queue
         self::SYSTEM_MESSAGE_CHAT => Exchange::SYSTEM_MESSAGE,
     ];
 
-    /** @var AMQPChannel|null $channel The AMQP channel for queue operations */
+    /** @var AMQPChannel|null The AMQP channel for queue operations */
     private readonly ?AMQPChannel $channel;
 
     /**
      * Queue constructor.
      *
-     * @param Connection $connection The RabbitMQ connection instance.
+     * @param  Connection  $connection  The RabbitMQ connection instance.
      */
     public function __construct(Connection $connection)
     {
@@ -36,8 +36,9 @@ final class Queue
     /**
      * Declares a queue in RabbitMQ.
      *
-     * @param string $queue The name of the queue.
-     * @param string $exchange The name of the exchange.
+     * @param  string  $queue  The name of the queue.
+     * @param  string  $exchange  The name of the exchange.
+     *
      * @throws AMQPRuntimeException If an error occurs while declaring the queue.
      */
     public function __invoke(string $queue, string $exchange): void
@@ -45,14 +46,15 @@ final class Queue
         try {
             $this->channel?->queue_declare($queue, false, true, false, false, false);
         } catch (\Throwable $ex) {
-            throw new AMQPRuntimeException("Failed to create queue '{$queue}': " . $ex->getMessage(), 0, $ex);
+            throw new AMQPRuntimeException("Failed to create queue '{$queue}': ".$ex->getMessage(), 0, $ex);
         }
     }
 
     /**
      * Purges all messages from the specified queue.
      *
-     * @param string $queue The name of the queue to purge.
+     * @param  string  $queue  The name of the queue to purge.
+     *
      * @throws AMQPRuntimeException If an error occurs while purging the queue.
      */
     public function purgeQueue(string $queue): void
@@ -60,14 +62,15 @@ final class Queue
         try {
             $this->channel?->queue_purge($queue);
         } catch (\Throwable $ex) {
-            throw new AMQPRuntimeException("Failed to purge queue '{$queue}': " . $ex->getMessage(), 0, $ex);
+            throw new AMQPRuntimeException("Failed to purge queue '{$queue}': ".$ex->getMessage(), 0, $ex);
         }
     }
 
     /**
      * Deletes the specified queue.
      *
-     * @param string $queue The name of the queue to delete.
+     * @param  string  $queue  The name of the queue to delete.
+     *
      * @throws AMQPRuntimeException If an error occurs while deleting the queue.
      */
     public function deleteQueue(string $queue): void
@@ -75,7 +78,7 @@ final class Queue
         try {
             $this->channel?->queue_delete($queue);
         } catch (\Throwable $ex) {
-            throw new AMQPRuntimeException("Failed to delete queue '{$queue}': " . $ex->getMessage(), 0, $ex);
+            throw new AMQPRuntimeException("Failed to delete queue '{$queue}': ".$ex->getMessage(), 0, $ex);
         }
     }
 }

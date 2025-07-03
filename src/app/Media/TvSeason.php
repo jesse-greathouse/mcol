@@ -9,7 +9,7 @@ use App\Exceptions\MediaMetadataUnableToMatchException;
  */
 final class TvSeason extends Media implements MediaTypeInterface
 {
-    use ExtensionMetaData, LanguageMetaData, DynamicRangeMetaData;
+    use DynamicRangeMetaData, ExtensionMetaData, LanguageMetaData;
 
     // https://www.phpliveregex.com/p/N4a
     // Regular expression to match the format of a TV season filename
@@ -42,7 +42,8 @@ final class TvSeason extends Media implements MediaTypeInterface
     /**
      * Matches the media metadata from the file name.
      *
-     * @param string $fileName The name of the file to extract metadata from.
+     * @param  string  $fileName  The name of the file to extract metadata from.
+     *
      * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
      */
     public function match(string $fileName): void
@@ -57,12 +58,10 @@ final class TvSeason extends Media implements MediaTypeInterface
 
     /**
      * Maps the result of the regular expression match to the object's properties.
-     *
-     * @return void
      */
     public function map(): void
     {
-        if (null === $this->metaData) {
+        if ($this->metaData === null) {
             return;
         }
 
@@ -70,7 +69,7 @@ final class TvSeason extends Media implements MediaTypeInterface
         $this->title = $this->formatTitle(trim($this->metaData->getTitle() ?? '')); // Empty string fallback
         $this->season = (int) ($this->metaData->getSeason() ?? 0); // Default to 0 if no season
         $this->resolution = $this->metaData->getResolution() ?? ''; // Empty string fallback if no resolution
-        $this->tags = $this->formatTags(trim($this->metaData->getTags()?? '')); // Empty string fallback
+        $this->tags = $this->formatTags(trim($this->metaData->getTags() ?? '')); // Empty string fallback
         $this->extension = $this->getExtension($this->fileName) ?: null; // Null if no extension
         $this->language = $this->getLanguage($this->fileName) ?: ''; // Empty string fallback for language
         $this->isHdr = $this->isHdr($this->fileName);
@@ -85,14 +84,14 @@ final class TvSeason extends Media implements MediaTypeInterface
     public function toArray(): array
     {
         return [
-            'title'             => $this->title,
-            'season'            => $this->season,
-            'resolution'        => $this->resolution,
-            'tags'              => $this->tags,
-            'extension'         => $this->extension,
-            'language'          => $this->language,
-            'is_hdr'            => $this->isHdr,
-            'is_dolby_vision'   => $this->isDolbyVision,
+            'title' => $this->title,
+            'season' => $this->season,
+            'resolution' => $this->resolution,
+            'tags' => $this->tags,
+            'extension' => $this->extension,
+            'language' => $this->language,
+            'is_hdr' => $this->isHdr,
+            'is_dolby_vision' => $this->isDolbyVision,
         ];
     }
 

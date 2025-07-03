@@ -2,14 +2,12 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Validator;
-
-use App\Models\Bot,
-    App\Models\Channel,
-    App\Models\Network;
-
-use \InvalidArgumentException;
+use App\Models\Bot;
+use App\Models\Channel;
+use App\Models\Network;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
+use InvalidArgumentException;
 
 class StorePacketRequest extends FormRequest
 {
@@ -33,8 +31,6 @@ class StorePacketRequest extends FormRequest
 
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -63,10 +59,6 @@ class StorePacketRequest extends FormRequest
 
     /**
      * Helper function to validate if a resource (bot, channel, or network) exists.
-     *
-     * @param Validator $validator
-     * @param string    $resourceType
-     * @return void
      */
     private function validateResourceExists(Validator $validator, string $resourceType): void
     {
@@ -82,8 +74,8 @@ class StorePacketRequest extends FormRequest
         };
 
         // Check if the resource exists
-        if (null === $modelClass::find($id)) {
-            $validator->errors()->add($resourceType, ucfirst($resourceType) . " with id: $id was not found.");
+        if ($modelClass::find($id) === null) {
+            $validator->errors()->add($resourceType, ucfirst($resourceType)." with id: $id was not found.");
         }
     }
 }

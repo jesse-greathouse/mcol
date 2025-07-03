@@ -2,11 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Dcc\Client;
+use App\Models\Bot;
+use App\Models\Packet;
 use Illuminate\Console\Command;
-
-use App\Dcc\Client,
-    App\Models\Bot,
-    App\Models\Packet;
 
 class MakeDcc extends Command
 {
@@ -42,7 +41,7 @@ class MakeDcc extends Command
         $bot = $this->getBot();
         $fileSize = $this->getFileSize();
 
-        if (!$host || !$port || !$file || !$bot) {
+        if (! $host || ! $port || ! $file || ! $bot) {
             return;
         }
 
@@ -58,7 +57,7 @@ class MakeDcc extends Command
      */
     protected function getBot(): ?Bot
     {
-        return $this->bot ??= Bot::where('nick', $this->option('bot'))?->first() ?: tap(null, fn() => $this->error('--bot is required.'));
+        return $this->bot ??= Bot::where('nick', $this->option('bot'))?->first() ?: tap(null, fn () => $this->error('--bot is required.'));
     }
 
     /**
@@ -66,7 +65,7 @@ class MakeDcc extends Command
      */
     protected function getHost(): ?string
     {
-        return $this->host ??= $this->option('host') ?: tap(null, fn() => $this->error('A valid --host is required.'));
+        return $this->host ??= $this->option('host') ?: tap(null, fn () => $this->error('A valid --host is required.'));
     }
 
     /**
@@ -74,7 +73,7 @@ class MakeDcc extends Command
      */
     protected function getPort(): ?int
     {
-        return $this->port ??= filter_var($this->option('port'), FILTER_VALIDATE_INT) ?: tap(null, fn() => $this->error('A valid --port is required.'));
+        return $this->port ??= filter_var($this->option('port'), FILTER_VALIDATE_INT) ?: tap(null, fn () => $this->error('A valid --port is required.'));
     }
 
     /**
@@ -82,7 +81,7 @@ class MakeDcc extends Command
      */
     protected function getFile(): ?string
     {
-        return $this->file ??= $this->option('file') ?: tap(null, fn() => $this->error('A valid --file is required.'));
+        return $this->file ??= $this->option('file') ?: tap(null, fn () => $this->error('A valid --file is required.'));
     }
 
     /**
@@ -100,9 +99,8 @@ class MakeDcc extends Command
      * It tries to find an exact match for the file name first, and if not found, it attempts to replace
      * underscores in the file name with spaces and searches again.
      *
-     * @param string $file the the file to match with the bot.
-     * @param Bot $bot the bot associated with the packet.
-     *
+     * @param  string  $file  the the file to match with the bot.
+     * @param  Bot  $bot  the bot associated with the packet.
      * @return Packet|null The found packet, or null if no packet is found for the given file name and bot ID.
      */
     protected function getPacketByFileAndBot(string $file, Bot $bot): ?Packet

@@ -2,17 +2,17 @@
 
 namespace App\Packet;
 
+use App\Exceptions\NetworkWithNoChannelException;
+use App\Jobs\GeneratePacketMeta;
+use App\Models\Bot;
+use App\Models\Channel;
+use App\Models\FileFirstAppearance;
+use App\Models\Packet;
+use App\Packet\MediaType\MediaTypeGuesser;
 use Illuminate\Contracts\Cache\Repository;
 
-use App\Exceptions\NetworkWithNoChannelException,
-    App\Jobs\GeneratePacketMeta,
-    App\Models\Bot,
-    App\Models\Packet,
-    App\Models\Channel,
-    App\Models\FileFirstAppearance,
-    App\Packet\MediaType\MediaTypeGuesser;
-
-class Parse {
+class Parse
+{
     /**
      * Regular expression pattern for parsing packet messages.
      */
@@ -28,17 +28,18 @@ class Parse {
     /**
      * Processes a packet text line and returns a persisted Packet object.
      *
-     * @param string $text The raw packet message.
-     * @param Bot $bot The bot that reported the packet.
-     * @param Channel $channel The channel associated with the bot, if available. If not, will be determined by best guess.
-     * @param ?Repository $cache An optional cache repository for performance optimization.
-     * @return void
+     * @param  string  $text  The raw packet message.
+     * @param  Bot  $bot  The bot that reported the packet.
+     * @param  Channel  $channel  The channel associated with the bot, if available. If not, will be determined by best guess.
+     * @param  ?Repository  $cache  An optional cache repository for performance optimization.
      */
     public static function packet(string $text, Bot $bot, ?Channel $channel = null, ?Repository $cache = null): void
     {
         $message = self::cleanMessage($text);
         $matches = self::getPacketMatches($message, $cache);
-        if (!$matches) return;
+        if (! $matches) {
+            return;
+        }
 
         [, $number, $gets, $size, $fileName] = $matches;
 
@@ -53,7 +54,6 @@ class Parse {
     /**
      * Cleans up the given text by removing redundant spaces and control characters.
      *
-     * @param string $text
      * @return string The cleaned-up message.
      */
     public static function cleanMessage(string $text): string
@@ -66,13 +66,12 @@ class Parse {
      * Will use cache to avoid running the regex if it has already been done with this message.
      * returns null if the message can't parse according to the pattern.
      *
-     * @param string $message The chat message.
-     * @param ?Repository $cache An optional cache repository for performance optimization.
-     * @return array|null
+     * @param  string  $message  The chat message.
+     * @param  ?Repository  $cache  An optional cache repository for performance optimization.
      */
     private static function getPacketMatches(string $message, ?Repository $cache): ?array
     {
-        if (!$cache) {
+        if (! $cache) {
             return self::parseMessage($message);
         }
 
@@ -93,26 +92,26 @@ class Parse {
      * Runs a regex pattern against the $message string.
      * Returns null if the format for a packet isn't satisfied.
      *
-     * @param string $message The chat message.
-     *
+     * @param  string  $message  The chat message.
      * @return array $matches The chat message.
      */
     private static function parseMessage(string $message): ?array
     {
         preg_match(self::PACKET_MASK, $message, $matches);
+
         return count($matches) >= 5 ? $matches : null;
     }
 
     /**
      * Retrieves a Packet object from cache or database or creates it if it doesn't exist.
      *
-     * @param int $number The packet number.
-     * @param int $gets The number of times the packet has been downloaded.
-     * @param string $size The file size of the packet.
-     * @param string $fileName The name of the file.
-     * @param Bot $bot The bot that reported the packet.
-     * @param Channel $channel The associated channel.
-     * @param ?Repository $cache Optional cache repository for performance optimization.
+     * @param  int  $number  The packet number.
+     * @param  int  $gets  The number of times the packet has been downloaded.
+     * @param  string  $size  The file size of the packet.
+     * @param  string  $fileName  The name of the file.
+     * @param  Bot  $bot  The bot that reported the packet.
+     * @param  Channel  $channel  The associated channel.
+     * @param  ?Repository  $cache  Optional cache repository for performance optimization.
      */
     private static function retrieveOrCreatePacket(
         int $number,
@@ -130,29 +129,29 @@ class Parse {
         }
 
         $packet = Packet::where('number', $number)
-                    ->where('network_id', $bot->network->id)
-                    ->where('channel_id', $channel->id)
-                    ->where('channel_id', $channel->id)
-                    ->where('bot_id', $bot->id)
-                    ->first();
+            ->where('network_id', $bot->network->id)
+            ->where('channel_id', $channel->id)
+            ->where('channel_id', $channel->id)
+            ->where('bot_id', $bot->id)
+            ->first();
 
-        if (!$packet) {
-            $packet = new Packet();
+        if (! $packet) {
+            $packet = new Packet;
             $packet->fill([
-                'number'        => $number,
-                'network_id'    => $bot->network->id,
-                'channel_id'    => $channel->id,
-                'bot_id'        => $bot->id,
+                'number' => $number,
+                'network_id' => $bot->network->id,
+                'channel_id' => $channel->id,
+                'bot_id' => $bot->id,
             ]);
         }
 
         // If file name is new or missing, reset metadata.
-        if (null === $packet->file_name || trim($packet->file_name) !== trim($fileName)) {
+        if ($packet->file_name === null || trim($packet->file_name) !== trim($fileName)) {
             $packet->fill([
                 'created_at' => now(),
                 'file_name' => trim($fileName),
                 'media_type' => (new MediaTypeGuesser($fileName))->guess(),
-                'meta' => []
+                'meta' => [],
             ]);
 
             FileFirstAppearance::firstOrCreate(
@@ -163,7 +162,7 @@ class Parse {
 
         $packet->fill([
             'gets' => $gets,
-            'size' => $size
+            'size' => $size,
         ])->save();
 
         if (empty($packet->meta)) {
@@ -176,8 +175,8 @@ class Parse {
     /**
      * Attempts to determine the most appropriate channel for a bot.
      *
-     * @param Bot $bot
      * @return Channel The best-guess channel.
+     *
      * @throws NetworkWithNoChannelException If no channel can be found.
      */
     private static function getBotChannelByBestGuess(Bot $bot): Channel
@@ -193,7 +192,7 @@ class Parse {
             ?? Channel::where('network_id', $bot->network->id)->first();
 
         if ($channel === null) {
-            throw new NetworkWithNoChannelException('No channel found for network: ' . $bot->network->name);
+            throw new NetworkWithNoChannelException('No channel found for network: '.$bot->network->name);
         }
 
         return self::$channelCache[$botId] = $channel;
@@ -202,34 +201,32 @@ class Parse {
     /**
      * Generates a cache-friendly key from a given message.
      *
-     * @param string $message
      * @return string The generated cache key.
      */
     private static function makeMessageCacheKey(string $message): string
     {
-        return "parse_message:" . crc32($message);
+        return 'parse_message:'.crc32($message);
     }
 
     /**
      * Generates a cache-friendly key from a packet number, bot, and channel.
      *
-     * @param int $number The packet number.
-     * @param string $fileName The name of the file.
-     * @param Bot $bot The bot that reported the packet.
-     * @param Channel $channel The channel associated with the bot, if available.
-     *
+     * @param  int  $number  The packet number.
+     * @param  string  $fileName  The name of the file.
+     * @param  Bot  $bot  The bot that reported the packet.
+     * @param  Channel  $channel  The channel associated with the bot, if available.
      * @return string The generated cache key.
      */
     private static function makePacketCacheKey(int $number, string $fileName, Bot $bot, Channel $channel): string
     {
         $serializedFileName = crc32($fileName);
+
         return "packet:{$bot->network->id}:{$channel->id}:{$bot->id}:$number:$serializedFileName";
     }
 
     /**
      * Serializes an array into a storable string format.
      *
-     * @param array $content
      * @return string The serialized data.
      */
     private static function serialize(array $content): string
@@ -240,7 +237,6 @@ class Parse {
     /**
      * Unserializes a stored string back into an array.
      *
-     * @param string $content
      * @return array The unserialized data.
      */
     private static function unserialize(string $content): array

@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request,
-    Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Class ServerResource
@@ -21,11 +21,11 @@ class ServerResource extends JsonResource
     {
         // Return an array of server details.
         return [
-            'id'         => $this->id,
+            'id' => $this->id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'host'       => $this->host,
-            'network'    => $this->network,
+            'host' => $this->host,
+            'network' => $this->network,
         ];
     }
 }

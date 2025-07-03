@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Requests\ApiStorePacketRequest;
+use App\Http\Resources\PacketCollection;
+use App\Http\Resources\PacketResource;
+use App\Models\Packet;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Packet,
-    App\Http\Requests\ApiStorePacketRequest,
-    App\Http\Resources\PacketCollection,
-    App\Http\Resources\PacketResource;
 
 // GET /api/packet
 Route::middleware('auth:sanctum')->get('/packet', function () {
@@ -17,12 +16,12 @@ Route::middleware('auth:sanctum')->post('/packet', function (ApiStorePacketReque
     $validated = $request->validated();
 
     $inputs = [
-        'number'        => $validated['number'],
-        'size'          => $validated['size'],
-        'file_name'     => $validated['file_name'],
-        'bot_id'        => $validated['bot'],
-        'channel_id'    => $validated['channel'],
-        'network_id'    => $validated['network'],
+        'number' => $validated['number'],
+        'size' => $validated['size'],
+        'file_name' => $validated['file_name'],
+        'bot_id' => $validated['bot'],
+        'channel_id' => $validated['channel'],
+        'network_id' => $validated['network'],
     ];
 
     if (isset($validated['gets'])) {
@@ -30,7 +29,7 @@ Route::middleware('auth:sanctum')->post('/packet', function (ApiStorePacketReque
     }
 
     $packet = Packet::create($inputs);
- 
+
     return redirect("/api/packet/{$packet->id}");
 });
 
@@ -68,6 +67,6 @@ Route::middleware('auth:sanctum')->delete('/packet/{id}', function (string $id) 
 
     return response()->json([
         'success' => true,
-        'message' => "Packet: $name with id: $id was deleted."
+        'message' => "Packet: $name with id: $id was deleted.",
     ]);
 });

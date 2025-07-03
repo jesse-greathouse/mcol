@@ -2,17 +2,15 @@
 
 namespace App\Jobs;
 
-use Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Foundation\Queue\Queueable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
-
-use App\Models\Download,
-    App\Models\DownloadHistory;
-
-use \Exception;
+use App\Models\Download;
+use App\Models\DownloadHistory;
+use Exception;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class ArchiveDownload
@@ -40,7 +38,7 @@ class ArchiveDownload implements ShouldQueue
     /**
      * Create a new job instance.
      *
-     * @param \App\Models\Download $download The download instance to archive.
+     * @param  \App\Models\Download  $download  The download instance to archive.
      */
     public function __construct(Download $download)
     {
@@ -49,8 +47,6 @@ class ArchiveDownload implements ShouldQueue
 
     /**
      * Execute the job to archive the download and create history.
-     *
-     * @return void
      */
     public function handle(): void
     {
@@ -65,14 +61,14 @@ class ArchiveDownload implements ShouldQueue
 
             // Create a history record for the download.
             DownloadHistory::create([
-                'file_name'         => $download->file_name,
-                'media_type'        => $mediaType,
-                'file_uri'          => $download->file_uri,
-                'bot_nick'          => $bot->nick,
-                'network_name'      => $network->name,
-                'channel_name'      => $channel->name,
-                'file_size_bytes'   => $download->file_size_bytes,
-                'meta'              => $download->meta,
+                'file_name' => $download->file_name,
+                'media_type' => $mediaType,
+                'file_uri' => $download->file_uri,
+                'bot_nick' => $bot->nick,
+                'network_name' => $network->name,
+                'channel_name' => $channel->name,
+                'file_size_bytes' => $download->file_size_bytes,
+                'meta' => $download->meta,
             ]);
 
             // Delete the original download after processing.

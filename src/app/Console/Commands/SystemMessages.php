@@ -2,12 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\RabbitMQ\Queue,
-    App\SystemMessage;
-
-
+use App\RabbitMQ\Queue;
+use App\SystemMessage;
 use Illuminate\Console\Command;
-
 use Throwable;
 
 class SystemMessages extends Command
@@ -41,7 +38,7 @@ class SystemMessages extends Command
      */
     public function handle(SystemMessage $systemMessage): void
     {
-        $this->info("Checking System Messages...");
+        $this->info('Checking System Messages...');
 
         try {
             $count = 0;
@@ -50,24 +47,22 @@ class SystemMessages extends Command
             foreach ($systemMessage->fetch($queue) as $msg) {
                 $txt = json_decode($msg->getBody(), true, 512, JSON_THROW_ON_ERROR);
                 $this->info("Incoming message: $txt");
-                $count ++;
+                $count++;
             }
 
             $this->info("Total messages processed: $count");
 
         } catch (Throwable $ex) {
-            $this->error("Error Checking System Messages: " . $ex->getMessage());
+            $this->error('Error Checking System Messages: '.$ex->getMessage());
         }
     }
 
     /**
      * Returns the name of the RoutingKey.
-     *
-     * @return string
      */
     protected function getRoutingKey(): string
     {
-        if (null === $this->routingKey) {
+        if ($this->routingKey === null) {
             $routingKey = $this->argument('routingKey');
 
             // Flatten to a string if it's an array.
@@ -76,7 +71,7 @@ class SystemMessages extends Command
             }
 
             // If it's null or an empty string, just wildcard the queue.
-            if (null === $routingKey || '' === trim($routingKey)) {
+            if ($routingKey === null || trim($routingKey) === '') {
                 $routingKey = '';
             }
 
@@ -86,15 +81,12 @@ class SystemMessages extends Command
         return $this->routingKey;
     }
 
-
     /**
      * Returns the name of the Queue.
-     *
-     * @return string
      */
     protected function getQueue(): string
     {
-        if (null === $this->queue) {
+        if ($this->queue === null) {
             $queue = $this->argument('queue');
 
             // Flatten to a string if it's an array.
@@ -103,7 +95,7 @@ class SystemMessages extends Command
             }
 
             // If it's null or an empty string, just wildcard the queue.
-            if (null === $queue || '' === trim($queue)) {
+            if ($queue === null || trim($queue) === '') {
                 $queue = '';
             }
 

@@ -55,8 +55,6 @@ final class Application extends Media implements MediaTypeInterface
      * Title of the Application.
      *
      * This property holds the title extracted from the media file's name.
-     *
-     * @var string
      */
     private string $title = '';
 
@@ -65,8 +63,6 @@ final class Application extends Media implements MediaTypeInterface
      *
      * This property holds the version extracted from the media file's name.
      * If no version is found, this is set to `null`.
-     *
-     * @var string|null
      */
     private ?string $version = null;
 
@@ -75,8 +71,6 @@ final class Application extends Media implements MediaTypeInterface
      *
      * This property stores the release type, extracted from the media file name.
      * If no release type is found, it defaults to an empty string.
-     *
-     * @var string
      */
     private string $release = '';
 
@@ -103,15 +97,14 @@ final class Application extends Media implements MediaTypeInterface
      * Language of the media.
      *
      * This property holds the language extracted from the media file's name or metadata.
-     *
-     * @var string
      */
     private string $language = '';
 
     /**
      * Matches the media metadata from the file name.
      *
-     * @param string $fileName The name of the file to extract metadata from.
+     * @param  string  $fileName  The name of the file to extract metadata from.
+     *
      * @throws MediaMetadataUnableToMatchException If the file name does not match the expected pattern.
      */
     public function match(string $fileName): void
@@ -133,12 +126,10 @@ final class Application extends Media implements MediaTypeInterface
      * - Detect and remove the version string.
      * - Identify the release type (if any).
      * - Set tags, extension, and language for the media.
-     *
-     * @return void
      */
     public function map(): void
     {
-        if (null === $this->metaData) {
+        if ($this->metaData === null) {
             return;
         }
 
@@ -163,9 +154,8 @@ final class Application extends Media implements MediaTypeInterface
     /**
      * Removes the version string from the application string.
      *
-     * @param string $applicationStr The full application string.
-     * @param string|null $version The version string to remove.
-     *
+     * @param  string  $applicationStr  The full application string.
+     * @param  string|null  $version  The version string to remove.
      * @return string The cleaned application string without the version.
      */
     private function removeVersionFromString(string $applicationStr, ?string $version): string
@@ -175,14 +165,14 @@ final class Application extends Media implements MediaTypeInterface
         }
 
         $position = strpos($applicationStr, $version);
+
         return $position !== false ? substr($applicationStr, 0, $position) : $applicationStr;
     }
 
     /**
      * Extracts the title and release type from the cleaned application string.
      *
-     * @param string $cleaned The cleaned application string without the version.
-     *
+     * @param  string  $cleaned  The cleaned application string without the version.
      * @return array The extracted title and release type.
      */
     private function extractTitleAndRelease(string $cleaned): array
@@ -212,18 +202,16 @@ final class Application extends Media implements MediaTypeInterface
      *
      * This method converts the object properties into a structured array
      * format that can be used for serialization or other purposes.
-     *
-     * @return array
      */
     public function toArray(): array
     {
         return [
-            'title'     => $this->title,
-            'version'   => $this->version,
-            'release'   => $this->release,
-            'tags'      => $this->tags,
+            'title' => $this->title,
+            'version' => $this->version,
+            'release' => $this->release,
+            'tags' => $this->tags,
             'extension' => $this->extension,
-            'language'  => $this->language,
+            'language' => $this->language,
         ];
     }
 
@@ -234,9 +222,9 @@ final class Application extends Media implements MediaTypeInterface
      * the application media string. If no version can be found, it returns `null`.
      * If the version can't be matched, an exception is thrown.
      *
-     * @param string $applicationStr The string representing the application media.
-     *
+     * @param  string  $applicationStr  The string representing the application media.
      * @return string|null The extracted version, or `null` if not found.
+     *
      * @throws MediaMetadataUnableToMatchException If the version can't be extracted.
      */
     private function getVersionFromApplicationStr(string $applicationStr): ?string

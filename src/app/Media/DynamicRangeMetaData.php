@@ -25,8 +25,6 @@ trait DynamicRangeMetaData
      * Returns false if matching fails.
      * Throws an exception if matching fails due to preg_match failure.
      *
-     * @param string $fileName
-     * @return bool
      * @throws MediaMetadataUnableToMatchException
      */
     public function isHdr(string $fileName): bool
@@ -39,8 +37,6 @@ trait DynamicRangeMetaData
      * Returns false if matching fails.
      * Throws an exception if matching fails due to preg_match failure.
      *
-     * @param string $fileName
-     * @return bool
      * @throws MediaMetadataUnableToMatchException
      */
     public function isDolbyVision(string $fileName): bool
@@ -52,10 +48,9 @@ trait DynamicRangeMetaData
      * Generalized method to check if a file name matches a dynamic range pattern.
      * Returns false if matching fails, throws exception on preg_match failure.
      *
-     * @param string $fileName
-     * @param string $mask The regex mask to use for matching.
-     * @param string $type The type of the dynamic range (e.g., 'HDR' or 'Dolby Vision').
-     * @return bool
+     * @param  string  $mask  The regex mask to use for matching.
+     * @param  string  $type  The type of the dynamic range (e.g., 'HDR' or 'Dolby Vision').
+     *
      * @throws MediaMetadataUnableToMatchException
      */
     private function isMatching(string $fileName, string $mask, string $type): bool
@@ -71,8 +66,6 @@ trait DynamicRangeMetaData
 
     /**
      * Gets the regex mask for Dolby Vision.
-     *
-     * @return string
      */
     public function getDolbyVisionMask(): string
     {
@@ -81,8 +74,6 @@ trait DynamicRangeMetaData
 
     /**
      * Gets the regex mask for HDR.
-     *
-     * @return string
      */
     public function getHdrMask(): string
     {
@@ -91,9 +82,10 @@ trait DynamicRangeMetaData
 
     /**
      * Converts the dynamic range filter to a regex mask pattern.
+     *
      * @see https://www.phpliveregex.com/p/MDF
      *
-     * @param string $filter The filter string (e.g., 'HDR' or 'Dolby Vision').
+     * @param  string  $filter  The filter string (e.g., 'HDR' or 'Dolby Vision').
      * @return string The corresponding regex mask.
      */
     public function getDynamicRangeMask(string $filter): string
@@ -103,13 +95,13 @@ trait DynamicRangeMetaData
             MediaDynamicRange::getExpandedDynamicRanges()[$filter] ?? []
         );
 
-        return '/(?<!\w)(' . implode('|', array_map([$this, 'regexSafe'], $dynamicRanges)) . ')(?!\w)/i';
+        return '/(?<!\w)('.implode('|', array_map([$this, 'regexSafe'], $dynamicRanges)).')(?!\w)/i';
     }
 
     /**
      * Replaces dot (.) characters with their regex escaped version.
      *
-     * @param string $value The string to escape.
+     * @param  string  $value  The string to escape.
      * @return string The escaped string.
      */
     public function regexSafe(string $value): string

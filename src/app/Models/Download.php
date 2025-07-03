@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory,
-    Illuminate\Database\Eloquent\Model,
-    Illuminate\Database\Eloquent\Relations\BelongsTo,
-    Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Class Download
  *
- * @package App\Models
  *
  * @property string $status
  * @property array $meta
@@ -31,13 +30,13 @@ class Download extends Model
 
     // Define constants for status types
     public const STATUS_INCOMPLETE = 'incomplete';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_QUEUED = 'queued';
 
     /**
      * Determine if the download status is "queued".
-     *
-     * @return bool
      */
     public function isQueued(): bool
     {

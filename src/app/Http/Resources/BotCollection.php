@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request,
-    Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 /**
  * BotCollection class that represents a collection of Bot resources.

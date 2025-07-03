@@ -2,17 +2,15 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
-
-use App\Jobs\TrasferDownloadedMedia,
-    App\Models\Download,
-    App\Models\DownloadDestination,
-    App\Models\FileDownloadLock;
+use App\Models\Download;
+use App\Models\DownloadDestination;
+use App\Models\FileDownloadLock;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class CheckDownloadedFileRemoved
@@ -38,8 +36,6 @@ class CheckDownloadedFileRemoved implements ShouldQueue
 
     /**
      * CheckDownloadedFileRemoved constructor.
-     *
-     * @param Download $download
      */
     public function __construct(Download $download)
     {
@@ -52,12 +48,10 @@ class CheckDownloadedFileRemoved implements ShouldQueue
      * Checks if the downloaded file has been removed and performs relevant actions.
      * If the file is missing, it deletes any associated download lock and dispatches
      * an archiving job. Otherwise, it handles the download destination and reschedules.
-     *
-     * @return void
      */
     public function handle(): void
     {
-        if (!file_exists($this->download->file_uri)) {
+        if (! file_exists($this->download->file_uri)) {
             $this->removeDownloadLock();
             ArchiveDownload::dispatch($this->download);
         } else {
@@ -74,8 +68,6 @@ class CheckDownloadedFileRemoved implements ShouldQueue
      *
      * Attempts to remove the lock from the FileDownloadLock model.
      * Logs a warning if no lock is found.
-     *
-     * @return void
      */
     protected function removeDownloadLock(): void
     {
@@ -94,8 +86,6 @@ class CheckDownloadedFileRemoved implements ShouldQueue
      *
      * Checks if a download destination is registered for this download.
      * If found, it updates the status and dispatches a transfer job.
-     *
-     * @return void
      */
     protected function handleDownloadDestination(): void
     {

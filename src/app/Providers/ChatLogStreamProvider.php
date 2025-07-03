@@ -2,11 +2,10 @@
 
 namespace App\Providers;
 
+use App\Chat\Log\Mapper;
+use App\Chat\Log\Streamer;
+use App\Models\Nick;
 use Illuminate\Support\ServiceProvider;
-
-use App\Chat\Log\Mapper,
-    App\Chat\Log\Streamer,
-    App\Models\Nick;
 
 class ChatLogStreamProvider extends ServiceProvider
 {
@@ -21,7 +20,7 @@ class ChatLogStreamProvider extends ServiceProvider
             $logRoot = env('LOG_DIR', '/var/log');
 
             // Build Mappers
-            foreach($nicks as $nick) {
+            foreach ($nicks as $nick) {
                 $networkName = $nick->network->name;
                 $mappers[$networkName] = new Mapper($logRoot, $networkName, $nick->nick);
             }

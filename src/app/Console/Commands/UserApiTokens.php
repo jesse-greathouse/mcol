@@ -2,16 +2,13 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-
 use App\Models\User;
+use Illuminate\Console\Command;
 
 class UserApiTokens extends Command
 {
     /**
      * The user instance.
-     *
-     * @var User|null
      */
     protected ?User $user = null;
 
@@ -31,8 +28,6 @@ class UserApiTokens extends Command
 
     /**
      * Execute the console command.
-     *
-     * @return int
      */
     public function handle(): int
     {
@@ -53,8 +48,6 @@ class UserApiTokens extends Command
      * Returns an instance of User by email address.
      *
      * This method caches the user instance after the first successful retrieval.
-     *
-     * @return User|null
      */
     protected function getUser(): ?User
     {
@@ -67,6 +60,7 @@ class UserApiTokens extends Command
 
         if (empty($email)) {
             $this->error('A valid email address is required.');
+
             return null;
         }
 
@@ -75,6 +69,7 @@ class UserApiTokens extends Command
 
         if ($this->user === null) {
             $this->error('No user found with the provided email address.');
+
             return null;
         }
 

@@ -13,9 +13,7 @@ interface TransferInterface
     /**
      * Initiates the transfer process.
      *
-     * @param string|null $uri The URI to transfer data from or to. Defaults to null.
-     *
-     * @return void
+     * @param  string|null  $uri  The URI to transfer data from or to. Defaults to null.
      */
     public function transfer(?string $uri = null): void;
 
@@ -30,8 +28,6 @@ interface TransferInterface
      * Performs cleanup actions after transfer completion.
      *
      * This method may include tasks like closing file streams or removing temporary files.
-     *
-     * @return void
      */
     public function cleanup(): void;
 }

@@ -2,13 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Exceptions\InvalidPacketException;
+use App\Jobs\DownloadRequest;
+use App\Models\Packet;
+use Exception;
 use Illuminate\Console\Command;
-
-use App\Exceptions\InvalidPacketException,
-    App\Jobs\DownloadRequest,
-    App\Models\Packet;
-
-use \Exception;
 
 class Download extends Command
 {
@@ -30,6 +28,7 @@ class Download extends Command
             $packet = $this->fetchPacket();
         } catch (Exception $e) {
             $this->error($e->getMessage());
+
             return Command::FAILURE;
         }
 

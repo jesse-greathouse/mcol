@@ -2,12 +2,11 @@
 
 namespace App\Store;
 
+use App\Exceptions\DataStoreInvalidPropertyException;
+use App\Exceptions\DataStoreInvalidStorePathException;
+use App\Exceptions\DataStoreUnableToInitializeException;
+use App\Exceptions\DataStoreUnsupportedFormatException;
 use Symfony\Component\Yaml\Yaml;
-
-use App\Exceptions\DataStoreUnsupportedFormatException,
-    App\Exceptions\DataStoreInvalidStorePathException,
-    App\Exceptions\DataStoreUnableToInitializeException,
-    App\Exceptions\DataStoreInvalidPropertyException;
 
 abstract class Data
 {
@@ -15,32 +14,25 @@ abstract class Data
 
     /**
      * location of where the data files will be stored.
-     *
-     * @var string
      */
     protected string $path;
 
     /**
      * The body of data values that can be stored and retrieved.
-     *
-     * @var array
      */
     protected array $storable = [];
 
     /**
      * The configuration of the Yaml Parser.
-     *
-     * @var array
      */
     protected array $config = [
-        'flags'  => 0,
+        'flags' => 0,
         'inline' => 2,
         'indent' => 4,
     ];
 
     /**
-     * @param string $path
-     * @param ?array $config
+     * @param  ?array  $config
      */
     public function __construct(string $path, array $config = [])
     {
@@ -56,8 +48,6 @@ abstract class Data
 
     /**
      * Initializes the datastore in the file system.
-     *
-     * @return void
      */
     public function init(): void
     {
@@ -72,24 +62,22 @@ abstract class Data
             'extension' => $extension,
             'filename' => $fileName
         ] = pathinfo($uri);
-        if (self::YAML_FILE_EXTENSION !== $extension) {
+        if ($extension !== self::YAML_FILE_EXTENSION) {
             throw new DataStoreUnsupportedFormatException(
-                "Data Store: \"$baseName\" has unsupported format. Try with: \"$fileName." . self::YAML_FILE_EXTENSION . "\".");
+                "Data Store: \"$baseName\" has unsupported format. Try with: \"$fileName.".self::YAML_FILE_EXTENSION.'".');
         }
 
-        if (!$this->createPath($dirName)) {
+        if (! $this->createPath($dirName)) {
             throw new DataStoreInvalidStorePathException("Could not create: \"$dirName\" for data store.");
         }
 
-        if (!touch($uri)) {
+        if (! touch($uri)) {
             throw new DataStoreUnableToInitializeException("Could not initialize the data store: \"$uri\".");
         }
     }
 
     /**
      * Returns the storable object as an array.
-     *
-     * @return array
      */
     public function toArray(): array
     {
@@ -98,8 +86,6 @@ abstract class Data
 
     /**
      * Returns a list of all the storable keys.
-     *
-     * @return array
      */
     public function getKeys(): array
     {
@@ -108,8 +94,6 @@ abstract class Data
 
     /**
      * Returns the storable array.
-     *
-     * @return array
      */
     public function getStorable(): array
     {
@@ -117,10 +101,8 @@ abstract class Data
     }
 
     /**
-    * Save the storable array into the yaml configuration file.
-    *
-    * @return void
-    */
+     * Save the storable array into the yaml configuration file.
+     */
     public function save(): void
     {
         $yamlStr = Yaml::dump($this->storable, $this->config['inline'], $this->config['indent'], $this->config['flags']);
@@ -128,15 +110,14 @@ abstract class Data
     }
 
     /**
-    * Override the default configuration with any valid keys.
-    *
-    * @param array $config
-    * @return void
-    */
+     * Override the default configuration with any valid keys.
+     *
+     * @return void
+     */
     protected function configure(array $config)
     {
-        if (0 < count($config)) {
-            foreach($this->config as $key => $val) {
+        if (count($config) > 0) {
+            foreach ($this->config as $key => $val) {
                 if (isset($config[$key])) {
                     $this->config[$key] = $config[$key];
                 }
@@ -145,11 +126,8 @@ abstract class Data
     }
 
     /**
-    * Magic function to retrieve properties dynamically.
-    *
-    * @param string $name
-    * @return mixed
-    */
+     * Magic function to retrieve properties dynamically.
+     */
     public function __get(string $name): mixed
     {
         if (array_key_exists($name, $this->storable)) {
@@ -161,44 +139,31 @@ abstract class Data
     }
 
     /**
-    * Magic function to set properties dynamically.
-    *
-    * @param string $name
-    * @param mixed $value
-    * @return void
-    */
+     * Magic function to set properties dynamically.
+     */
     public function __set(string $name, mixed $value): void
     {
         $this->storable[$name] = $value;
     }
 
     /**
-    * Magic function to dynamically check if a property is set.
-    *
-    * @param string $name
-    * @return boolean
-    */
+     * Magic function to dynamically check if a property is set.
+     */
     public function __isset(string $name): bool
     {
         return isset($this->storable[$name]);
     }
 
     /**
-    * Magic function to unset properties dynamically.
-    *
-    * @param string $name
-    * @return void
-    */
+     * Magic function to unset properties dynamically.
+     */
     public function __unset(string $name): void
     {
         unset($this->storable[$name]);
     }
 
-
     /**
      * Get location of where the data files will be stored.
-     *
-     * @return  string
      */
     public function getPath(): string
     {
@@ -209,8 +174,6 @@ abstract class Data
      * Set location of where the data files will be stored.
      *
      * @param  string  $path  location of where the data files will be stored.
-     *
-     * @return void
      */
     public function setPath(string $path): void
     {
@@ -221,14 +184,16 @@ abstract class Data
      * Make the file path work recursively
      *
      * @param  string  $path  location of where the data files will be stored.
-     * @return bool
      */
     protected function createPath(string $path): bool
     {
-        if (is_dir($path)) return true;
+        if (is_dir($path)) {
+            return true;
+        }
 
-        $prev_path = substr($path, 0, strrpos($path, DIRECTORY_SEPARATOR, -2) + 1 );
+        $prev_path = substr($path, 0, strrpos($path, DIRECTORY_SEPARATOR, -2) + 1);
         $return = $this->createPath($prev_path);
+
         return ($return && is_writable($prev_path)) ? mkdir($path) : false;
     }
 }

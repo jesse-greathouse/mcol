@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Requests\ApiStoreClientRequest;
+use App\Http\Resources\ClientCollection;
+use App\Http\Resources\ClientResource;
+use App\Models\Client;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Client,
-    App\Http\Requests\ApiStoreClientRequest,
-    App\Http\Resources\ClientCollection,
-    App\Http\Resources\ClientResource;
 
 // GET /api/client
 Route::middleware('auth:sanctum')->get('/client', function () {
@@ -26,7 +25,7 @@ Route::middleware('auth:sanctum')->post('/client', function (ApiStoreClientReque
     }
 
     $client = Client::create($inputs);
- 
+
     return redirect("/api/client/{$client->id}");
 });
 
@@ -61,6 +60,6 @@ Route::middleware('auth:sanctum')->delete('/client/{id}', function (string $id) 
 
     return response()->json([
         'success' => true,
-        'message' => "Client: $nick@$network with id: $id was deleted."
+        'message' => "Client: $nick@$network with id: $id was deleted.",
     ]);
 });

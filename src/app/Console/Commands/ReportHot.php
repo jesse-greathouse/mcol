@@ -2,22 +2,23 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command,
-    Illuminate\Contracts\Console\PromptsForMissingInput;
+use App\Jobs\HotReport as HotReportJob;
+use App\Models\Channel;
+use App\Models\HotReport;
+use App\Models\HotReportLine;
+use App\Models\Network;
+use Illuminate\Console\Command;
+use Illuminate\Contracts\Console\PromptsForMissingInput;
 
 use function Laravel\Prompts\search;
-
-use App\Jobs\HotReport as HotReportJob,
-    App\Models\Channel,
-    App\Models\HotReport,
-    App\Models\HotReportLine,
-    App\Models\Network;
 
 class ReportHot extends Command implements PromptsForMissingInput
 {
     // Constant values
     const INTERVAL = 1;
+
     const WAIT_FOR_COMPLETION = 3;
+
     const MAX_RUNTIME = 30;
 
     /** @var float */
@@ -40,15 +41,13 @@ class ReportHot extends Command implements PromptsForMissingInput
 
     /**
      * Execute the console command.
-     *
-     * @return int
      */
     public function handle(): int
     {
         $network = $this->getNetwork();
         $channel = $this->getChannel();
 
-        if (null === $network || null === $channel) {
+        if ($network === null || $channel === null) {
             return 1;
         }
 
@@ -65,7 +64,7 @@ class ReportHot extends Command implements PromptsForMissingInput
 
             $hotReport = $this->getNewHotReport($oldHotReport);
 
-            if (null !== $hotReport) {
+            if ($hotReport !== null) {
                 $this->showReportResults($hotReport);
                 break;
             }
@@ -73,12 +72,12 @@ class ReportHot extends Command implements PromptsForMissingInput
             // Infinite loop prevention.
             $timeNow = microtime(true);
             if (($timeNow - $this->startTime) >= self::MAX_RUNTIME) {
-                $this->error("Report timed out.");
+                $this->error('Report timed out.');
                 break;
             }
         }
 
-        $this->warn("... done!");
+        $this->warn('... done!');
 
         return 0;
     }
@@ -114,23 +113,23 @@ class ReportHot extends Command implements PromptsForMissingInput
 
     /**
      * Returns an instance of Network by any given name.
-     *
-     * @return Network|null
      */
     protected function getNetwork(): ?Network
     {
-        if (null === $this->network) {
+        if ($this->network === null) {
             $name = $this->argument('network');
 
-            if (null === $name) {
+            if ($name === null) {
                 $this->error('A valid --network is required.');
+
                 return null;
             }
 
             $network = Network::where('name', $name)->first();
 
-            if (null === $network) {
+            if ($network === null) {
                 $this->error('A valid --network is required.');
+
                 return null;
             }
 
@@ -142,23 +141,23 @@ class ReportHot extends Command implements PromptsForMissingInput
 
     /**
      * Returns an instance of Channel by any given name.
-     *
-     * @return Channel|null
      */
     protected function getChannel(): ?Channel
     {
-        if (null === $this->channel) {
+        if ($this->channel === null) {
             $name = $this->argument('channel');
 
-            if (null === $name) {
+            if ($name === null) {
                 $this->error('A valid --channel is required.');
+
                 return null;
             }
 
             $channel = Channel::where('name', $name)->first();
 
-            if (null === $channel) {
+            if ($channel === null) {
                 $this->error('A valid --channel is required.');
+
                 return null;
             }
 
@@ -170,12 +169,10 @@ class ReportHot extends Command implements PromptsForMissingInput
 
     /**
      * Returns the most recent Hot Report object.
-     *
-     * @return HotReport|null
      */
     protected function getOldHotReport(): ?HotReport
     {
-        if (null === $this->oldHotReport) {
+        if ($this->oldHotReport === null) {
             $this->oldHotReport = HotReport::orderBy('created_at', 'DESC')->first();
         }
 
@@ -184,13 +181,10 @@ class ReportHot extends Command implements PromptsForMissingInput
 
     /**
      * Finds a Hot Report newer than the old one.
-     *
-     * @param HotReport|null $oldHotReport
-     * @return HotReport|null
      */
-    protected function getNewHotReport(HotReport $oldHotReport = null): ?HotReport
+    protected function getNewHotReport(?HotReport $oldHotReport = null): ?HotReport
     {
-        if (null !== $oldHotReport) {
+        if ($oldHotReport !== null) {
             return HotReport::where('created_at', '>', $oldHotReport->created_at)
                 ->orderBy('created_at', 'DESC')
                 ->first();
@@ -201,9 +195,6 @@ class ReportHot extends Command implements PromptsForMissingInput
 
     /**
      * Displays the report results in the console.
-     *
-     * @param HotReport $hotReport
-     * @return void
      */
     protected function showReportResults(HotReport $hotReport): void
     {

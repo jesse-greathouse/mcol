@@ -19,11 +19,11 @@ final class RabbitMQ
     /**
      * Initializes RabbitMQ connections.
      *
-     * @param string $host     RabbitMQ server host.
-     * @param string $port     Connection port.
-     * @param string $username Username for authentication.
-     * @param string $password Password for authentication.
-     * @param string $vhost    Virtual host.
+     * @param  string  $host  RabbitMQ server host.
+     * @param  string  $port  Connection port.
+     * @param  string  $username  Username for authentication.
+     * @param  string  $password  Password for authentication.
+     * @param  string  $vhost  Virtual host.
      */
     public function __construct(
         private readonly string $host,
@@ -39,7 +39,7 @@ final class RabbitMQ
     /**
      * Establishes connections to both the primary and error queues.
      *
-     * @param string $queue Queue name.
+     * @param  string  $queue  Queue name.
      */
     public function createConnect(string $queue): void
     {
@@ -50,14 +50,14 @@ final class RabbitMQ
     /**
      * Creates an exchange with optional configurations.
      *
-     * @param string|null $name        Exchange name.
-     * @param string|null $type        Exchange type.
-     * @param bool|null   $passive     Passive mode.
-     * @param bool|null   $durable     Durable flag.
-     * @param bool|null   $autoDelete  Auto-delete flag.
-     * @param bool|null   $internal    Internal exchange.
-     * @param bool|null   $wait        Wait flag.
-     * @param array|null  $properties  Additional properties.
+     * @param  string|null  $name  Exchange name.
+     * @param  string|null  $type  Exchange type.
+     * @param  bool|null  $passive  Passive mode.
+     * @param  bool|null  $durable  Durable flag.
+     * @param  bool|null  $autoDelete  Auto-delete flag.
+     * @param  bool|null  $internal  Internal exchange.
+     * @param  bool|null  $wait  Wait flag.
+     * @param  array|null  $properties  Additional properties.
      */
     public function createExchange(
         string $name,
@@ -76,10 +76,10 @@ final class RabbitMQ
     /**
      * Publishes a message to the specified exchange.
      *
-     * @param string $queue       Target queue.
-     * @param string $exchange    Exchange name.
-     * @param string $routingKey  Routing key.
-     * @param string $message     Message body.
+     * @param  string  $queue  Target queue.
+     * @param  string  $exchange  Exchange name.
+     * @param  string  $routingKey  Routing key.
+     * @param  string  $message  Message body.
      */
     public function publishMessage(string $queue, string $exchange, string $routingKey, string $message): void
     {
@@ -89,14 +89,13 @@ final class RabbitMQ
     /**
      * Sends an RPC request and optionally retries upon failure.
      *
-     * @param string  $id           Unique request identifier.
-     * @param string  $queue        Target queue.
-     * @param string  $queueReturn  Return queue.
-     * @param string  $exchange     Exchange name.
-     * @param string  $routingKey   Routing key.
-     * @param string  $message      Message body.
-     * @param bool    $resend       Whether to resend on failure.
-     *
+     * @param  string  $id  Unique request identifier.
+     * @param  string  $queue  Target queue.
+     * @param  string  $queueReturn  Return queue.
+     * @param  string  $exchange  Exchange name.
+     * @param  string  $routingKey  Routing key.
+     * @param  string  $message  Message body.
+     * @param  bool  $resend  Whether to resend on failure.
      * @return mixed|null Response data or null if a resend occurred.
      */
     public function requestRpc(
@@ -123,18 +122,20 @@ final class RabbitMQ
                     $queueReturn
                 );
             }
+
             return null;
         }
 
         $this->connection->shutdown();
+
         return $result;
     }
 
     /**
      * Sends an RPC response.
      *
-     * @param array        $message      Response message.
-     * @param AMQPMessage  $AMQPMessage  Original request message.
+     * @param  array  $message  Response message.
+     * @param  AMQPMessage  $AMQPMessage  Original request message.
      */
     public function responseRpc(array $message, AMQPMessage $AMQPMessage): void
     {

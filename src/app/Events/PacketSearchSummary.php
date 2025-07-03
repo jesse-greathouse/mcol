@@ -2,20 +2,17 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\InteractsWithSockets,
-    Illuminate\Contracts\Broadcasting\ShouldBroadcast,
-    Illuminate\Broadcasting\PrivateChannel,
-    Illuminate\Foundation\Events\Dispatchable,
-    Illuminate\Queue\SerializesModels;
-
 use App\Models\PacketSearch;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
 
 /**
  * Class PacketSearchSummary
  *
  * This event represents the summary of a packet search and broadcasts on a private channel.
- *
- * @package App\Events
  */
 class PacketSearchSummary implements ShouldBroadcast
 {
@@ -29,7 +26,7 @@ class PacketSearchSummary implements ShouldBroadcast
     /**
      * PacketSearchSummary constructor.
      *
-     * @param PacketSearch $packetSearch The packet search instance.
+     * @param  PacketSearch  $packetSearch  The packet search instance.
      */
     public function __construct(PacketSearch $packetSearch)
     {

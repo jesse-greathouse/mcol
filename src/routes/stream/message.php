@@ -1,24 +1,23 @@
 <?php
 
-use Illuminate\Http\Request,
-    Illuminate\Support\Facades\Route,
-    Illuminate\Http\Exceptions\HttpResponseException;
-
-use App\Chat\Log\Streamer,
-    App\Models\Channel,
-    App\Models\Network;
+use App\Chat\Log\Streamer;
+use App\Models\Channel;
+use App\Models\Network;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 // GET /stream/network/:name/channel/:channel/message
 Route::middleware('auth:sanctum')->get('/network/{name}/channel/{channelName}/message', function (string $name, string $channelName, Request $request, Streamer $streamer) {
     $network = Network::where('name', $name)->first();
 
-    if (null === $network) {
+    if ($network === null) {
         throw new HttpResponseException(response("Invalid Network: $name", 400));
     }
 
     $channel = Channel::where('name', "#$channelName")->first();
 
-    if (null === $channel) {
+    if ($channel === null) {
         throw new HttpResponseException(response("Invalid Channel: $name", 400));
     }
 

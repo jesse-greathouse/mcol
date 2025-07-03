@@ -3,15 +3,14 @@
 namespace App\Media\Transfer;
 
 use App\Exceptions\TransferRarFileException;
-
-use Exception,
-    FilesystemIterator,
-    RarArchive,
-    RecursiveDirectoryIterator,
-    RecursiveIteratorIterator;
+use Exception;
+use FilesystemIterator;
+use RarArchive;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 // Define DS constant for cross-platform compatibility if not already defined
-if (!defined('DS')) {
+if (! defined('DS')) {
     define('DS', DIRECTORY_SEPARATOR);
 }
 
@@ -31,7 +30,7 @@ final class Rar extends Transfer implements TransferInterface
      * and adds each file to the manifest. It also initiates a file transfer for each extracted file.
      *
      * @?param string|null $uri The URI of the RAR file to be transferred.
-     * @return void
+     *
      * @throws TransferRarFileException If there is an issue with opening the RAR file or extracting its contents.
      */
     public function transfer(?string $uri = null): void
@@ -45,8 +44,8 @@ final class Rar extends Transfer implements TransferInterface
     /**
      * Extracts the contents of a RAR archive to the specified directory.
      *
-     * @param string $tmpPath The temporary path to extract files to.
-     * @return void
+     * @param  string  $tmpPath  The temporary path to extract files to.
+     *
      * @throws TransferRarFileException If there is an issue opening the RAR archive.
      */
     private function extractRarFile(string $tmpPath): void
@@ -74,8 +73,8 @@ final class Rar extends Transfer implements TransferInterface
      * This method adds the extracted files to the manifest and transfers them using
      * the `CopyFile` class.
      *
-     * @param string $tmpPath The temporary path where the files are extracted.
-     * @return void
+     * @param  string  $tmpPath  The temporary path where the files are extracted.
+     *
      * @throws TransferRarFileException If there is an issue with file iteration or copying.
      */
     private function processExtractedFiles(string $tmpPath): void
@@ -86,7 +85,7 @@ final class Rar extends Transfer implements TransferInterface
 
             foreach ($rii as $di) {
                 $baseName = $di->getFilename();
-                $uri = $tmpPath . DS . $baseName;
+                $uri = $tmpPath.DS.$baseName;
 
                 // Remove the tmp path from the path to leave just the uri of the file.
                 $fileName = str_replace($tmpPath, '', $uri);

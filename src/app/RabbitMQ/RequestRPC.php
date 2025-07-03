@@ -2,11 +2,10 @@
 
 namespace App\RabbitMQ;
 
-use PhpAmqpLib\Channel\AMQPChannel,
-    PhpAmqpLib\Message\AMQPMessage;
-
-use Exception,
-    RuntimeException;
+use Exception;
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Message\AMQPMessage;
+use RuntimeException;
 
 /**
  * Class RequestRPC
@@ -56,7 +55,8 @@ final class RequestRPC
      */
     private function declareQueue(string $queueName): string
     {
-        [$queueName, ,] = $this->channel->queue_declare($queueName, false, false, false, false);
+        [$queueName] = $this->channel->queue_declare($queueName, false, false, false, false);
+
         return $queueName;
     }
 
@@ -67,6 +67,7 @@ final class RequestRPC
     {
         if ($message->get('correlation_id') !== $this->id) {
             $message->ack();
+
             return;
         }
 
@@ -95,7 +96,7 @@ final class RequestRPC
             $message,
             [
                 'correlation_id' => $id,
-                'reply_to' => $queueReturn
+                'reply_to' => $queueReturn,
             ]
         );
 
@@ -125,7 +126,7 @@ final class RequestRPC
                 $requestMessage->get('reply_to')
             );
         } catch (Exception $ex) {
-            throw new RuntimeException("Error in response message: " . $ex->getMessage());
+            throw new RuntimeException('Error in response message: '.$ex->getMessage());
         }
     }
 
@@ -146,7 +147,7 @@ final class RequestRPC
             $publisherError = new Publisher($connectionError);
             $publisherError($queueError, $exchange, $routingKey, $message);
         } catch (Exception $ex) {
-            throw new RuntimeException("Error in resending message: " . $ex->getMessage());
+            throw new RuntimeException('Error in resending message: '.$ex->getMessage());
         } finally {
             $connectionError->shutdown();
         }

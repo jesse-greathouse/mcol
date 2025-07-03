@@ -2,10 +2,9 @@
 
 namespace App\Providers;
 
-use Illuminate\Contracts\Foundation\Application,
-    Illuminate\Support\ServiceProvider;
-
 use App\Settings;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\ServiceProvider;
 
 class SettingsServiceProvider extends ServiceProvider
 {

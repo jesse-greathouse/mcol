@@ -2,9 +2,8 @@
 
 namespace App\Exceptions;
 
-use Illuminate\Database\Eloquent\ModelNotFoundException,
-    Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -49,7 +48,7 @@ class Handler extends ExceptionHandler
         $message = 'Resource was not found.';
 
         $id = $request->route()->parameter('id');
-        if (null !== $id) {
+        if ($id !== null) {
             $message = "Resource with id: $id was not found.";
         }
 

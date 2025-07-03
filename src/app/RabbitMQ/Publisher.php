@@ -2,9 +2,8 @@
 
 namespace App\RabbitMQ;
 
-use PhpAmqpLib\Channel\AMQPChannel,
-    PhpAmqpLib\Message\AMQPMessage;
-
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Message\AMQPMessage;
 use RuntimeException;
 
 /**
@@ -25,7 +24,7 @@ final class Publisher
     /**
      * Initializes the publisher with an existing RabbitMQ connection.
      *
-     * @param Connection $connection The RabbitMQ connection instance.
+     * @param  Connection  $connection  The RabbitMQ connection instance.
      */
     public function __construct(Connection $connection)
     {
@@ -36,21 +35,21 @@ final class Publisher
     /**
      * Publishes a message to the specified queue and exchange.
      *
-     * @param string $queue The queue name.
-     * @param string $exchange The exchange name.
-     * @param string $routingKey The routing key for message delivery.
-     * @param string $message The message content.
+     * @param  string  $queue  The queue name.
+     * @param  string  $exchange  The exchange name.
+     * @param  string  $routingKey  The routing key for message delivery.
+     * @param  string  $message  The message content.
      *
      * @throws RuntimeException If an error occurs during publishing.
      */
     public function __invoke(
-        string $queue = "",
-        string $exchange = "",
-        string $routingKey = "anonymous.info",
-        string $message = ""
+        string $queue = '',
+        string $exchange = '',
+        string $routingKey = 'anonymous.info',
+        string $message = ''
     ): void {
         if ($this->channel === null) {
-            throw new RuntimeException("AMQP channel is not initialized.");
+            throw new RuntimeException('AMQP channel is not initialized.');
         }
 
         try {
@@ -61,7 +60,7 @@ final class Publisher
                 $routingKey
             );
         } catch (\Throwable $ex) {
-            throw new RuntimeException("Publishing error: " . $ex->getMessage(), previous: $ex);
+            throw new RuntimeException('Publishing error: '.$ex->getMessage(), previous: $ex);
         } finally {
             $this->connection->shutdown();
         }

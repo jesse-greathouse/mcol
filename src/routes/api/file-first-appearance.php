@@ -1,10 +1,9 @@
 <?php
 
+use App\Http\Resources\FileFirstAppearanceCollection;
+use App\Http\Resources\FileFirstAppearanceResource;
+use App\Models\FileFirstAppearance;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\FileFirstAppearance,
-    App\Http\Resources\FileFirstAppearanceCollection,
-    App\Http\Resources\FileFirstAppearanceResource;
 
 // GET /api/fileextension
 Route::middleware('auth:sanctum')->get('/file-first-appearance', function () {

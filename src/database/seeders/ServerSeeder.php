@@ -2,25 +2,18 @@
 
 namespace Database\Seeders;
 
+use App\Models\Network;
+use App\Models\Server;
 use Illuminate\Database\Seeder;
-
-use App\Models\Network,
-    App\Models\Server;
 
 class ServerSeeder extends Seeder
 {
-    /**
-    * @var Array $servers
-    */
-   protected Array $servers = [
-       'Abjects' => 'irc.abjects.net',
-       'Rizon' => 'irc.rizon.net',
-   ];
+    protected array $servers = [
+        'Abjects' => 'irc.abjects.net',
+        'Rizon' => 'irc.rizon.net',
+    ];
 
-    /**
-    * @var Array $networks
-    */
-    protected Array $networks = [];
+    protected array $networks = [];
 
     /**
      * Run the database seeds.
@@ -30,28 +23,28 @@ class ServerSeeder extends Seeder
         foreach ($this->getServers() as $networkName => $hostName) {
             $network = $this->getNetworkByName($networkName);
 
-            if (!$network) continue;
+            if (! $network) {
+                continue;
+            }
 
             Server::updateOrCreate(
-                ['host' => $hostName],['network_id' => $network->id]
+                ['host' => $hostName], ['network_id' => $network->id]
             );
         }
     }
 
-   /**
-    * Get $servers
-    *
-    * @return  Array
-    */
-   public function getServers(): array
-   {
-      return $this->servers;
-   }
+    /**
+     * Get $servers
+     */
+    public function getServers(): array
+    {
+        return $this->servers;
+    }
 
-   /**
+    /**
      * Get an instance of Network by name.
      */
-    public function getNetworkByName(string $name): Network|null
+    public function getNetworkByName(string $name): ?Network
     {
         return Network::where('name', $name)->first();
     }

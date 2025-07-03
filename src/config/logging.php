@@ -1,9 +1,9 @@
 <?php
 
-use Monolog\Handler\NullHandler,
-    Monolog\Handler\StreamHandler,
-    Monolog\Handler\SyslogUdpHandler,
-    Monolog\Processor\PsrLogMessageProcessor;
+use Monolog\Handler\NullHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Handler\SyslogUdpHandler;
+use Monolog\Processor\PsrLogMessageProcessor;
 
 return [
 

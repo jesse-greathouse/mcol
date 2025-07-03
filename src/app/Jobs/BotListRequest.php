@@ -2,24 +2,23 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldBeUnique,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
-
-use App\Exceptions\InvalidClientException,
-    App\Models\Bot,
-    App\Models\Client,
-    App\Models\Instance,
-    App\Models\Operation;
+use App\Exceptions\InvalidClientException;
+use App\Models\Bot;
+use App\Models\Client;
+use App\Models\Instance;
+use App\Models\Operation;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Handles the request for the bot's XDCC list and updates the associated instance and operation.
  */
-class BotListRequest implements ShouldQueue, ShouldBeUnique
+class BotListRequest implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -68,7 +67,7 @@ class BotListRequest implements ShouldQueue, ShouldBeUnique
         ]);
 
         // Log an error if the operation creation fails
-        if (!$op) {
+        if (! $op) {
             Log::error("Failed to request XDCC list for: {$this->bot->nick}");
         }
     }
@@ -76,15 +75,15 @@ class BotListRequest implements ShouldQueue, ShouldBeUnique
     /**
      * Retrieves the client associated with the bot's network.
      *
-     * @throws InvalidClientException If no client is found for the bot's network.
-     *
      * @return Client|null The associated client or null if not found.
+     *
+     * @throws InvalidClientException If no client is found for the bot's network.
      */
-    public function getClient(): Client|null
+    public function getClient(): ?Client
     {
         $client = Client::where('network_id', $this->bot->network->id)->first();
 
-        if (null === $client) {
+        if ($client === null) {
             throw new InvalidClientException("Client for network: {$this->bot->network->name} was not found.");
         }
 

@@ -2,18 +2,16 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-
-use App\Exceptions\DirectoryCreateFailedException,
-    App\Exceptions\TransferDownloadFileNotFoundException,
-    App\Exceptions\UnknownDownloadException,
-    App\Jobs\CheckDownloadedFileRemoved,
-    App\Jobs\TrasferDownloadedMedia,
-    App\Media\TransferManager,
-    App\Models\Download,
-    App\Models\DownloadDestination;
-
+use App\Exceptions\DirectoryCreateFailedException;
+use App\Exceptions\TransferDownloadFileNotFoundException;
+use App\Exceptions\UnknownDownloadException;
+use App\Jobs\CheckDownloadedFileRemoved;
+use App\Jobs\TrasferDownloadedMedia;
+use App\Media\TransferManager;
+use App\Models\Download;
+use App\Models\DownloadDestination;
 use Exception;
+use Illuminate\Console\Command;
 
 /**
  * Class TransferCompleted
@@ -31,8 +29,6 @@ class TransferCompleted extends Command
 
     /**
      * The Download object.
-     *
-     * @var ?Download $download
      */
     protected ?Download $download = null;
 
@@ -59,19 +55,17 @@ class TransferCompleted extends Command
 
     /**
      * Execute the console command.
-     *
-     * @return void
      */
     public function handle(): void
     {
         $uri = $this->getUri();
 
-        if (null !== $uri) {
+        if ($uri !== null) {
             $download = $this->getDownloadByUri($uri);
             $this->handleTestDownloadDestination($download);
+
             return;
         }
-
 
         // Retrieve all completed downloads
         $downloads = Download::where('status', Download::STATUS_COMPLETED)->get();
@@ -95,8 +89,9 @@ class TransferCompleted extends Command
             $this->warn("Handling media transfer for: \"{$download->file_uri}\".");
 
             // Check if the file exists before proceeding
-            if (!file_exists($download->file_uri)) {
+            if (! file_exists($download->file_uri)) {
                 $this->handleFileNotFound($download->file_uri);
+
                 return;
             }
 
@@ -125,6 +120,7 @@ class TransferCompleted extends Command
             } catch (Exception $e) {
                 // Log and fail the job if an exception occurs during the transfer
                 $this->warn($e);
+
                 return;
             }
 
@@ -136,9 +132,6 @@ class TransferCompleted extends Command
 
     /**
      * Handles the scenario when the file is not found.
-     *
-     * @param string $fileUri
-     * @return void
      */
     protected function handleFileNotFound(string $fileUri): void
     {
@@ -154,8 +147,7 @@ class TransferCompleted extends Command
      * Checks if a download destination is waiting for transfer and then queues
      * the transfer job and a file removal check job.
      *
-     * @param \App\Models\Download $download
-     * @return void
+     * @param  \App\Models\Download  $download
      */
     protected function handleDownloadDestination(Download $download): void
     {
@@ -184,15 +176,14 @@ class TransferCompleted extends Command
     /**
      * Returns a Download or null.
      *
-     * @param string $uri The uri of the file.
-     * @return ?Download|null
+     * @param  string  $uri  The uri of the file.
      */
-    protected function getDownloadByUri(string $uri): Download|null
+    protected function getDownloadByUri(string $uri): ?Download
     {
-        if (null === $this->download) {
+        if ($this->download === null) {
             $download = Download::where('file_uri', $uri)->first();
 
-            if (null === $download) {
+            if ($download === null) {
                 throw new UnknownDownloadException("Download with the file uri: '$uri' was not found.");
             }
 
@@ -204,12 +195,10 @@ class TransferCompleted extends Command
 
     /**
      * Returns the Uri passed by the user.
-     *
-     * @return ?String
      */
-    protected function getUri(): string|null
+    protected function getUri(): ?string
     {
-        if (null === $this->uri) {
+        if ($this->uri === null) {
             $this->uri = $this->argument('uri');
         }
 
@@ -219,7 +208,6 @@ class TransferCompleted extends Command
     /**
      * Ensures the temporary directory for file transfer exists and returns its path.
      *
-     * @return string
      * @throws DirectoryCreateFailedException
      */
     protected function getTmpDir(): string
@@ -228,8 +216,8 @@ class TransferCompleted extends Command
         $tmpDir = "$varDir/transfer";
 
         // Ensure the temporary directory exists
-        if (!is_dir($tmpDir)) {
-            if (!mkdir($tmpDir, 0777, true)) {
+        if (! is_dir($tmpDir)) {
+            if (! mkdir($tmpDir, 0777, true)) {
                 throw new DirectoryCreateFailedException("$tmpDir could not be created.");
             }
         }
@@ -239,13 +227,6 @@ class TransferCompleted extends Command
 
     /**
      * Transfers the file using the TransferManager.
-     *
-     * @param string $fileUri
-     * @param string $tmpDir
-     * @return void
      */
-    protected function transferFile(string $fileUri, string $tmpDir): void
-    {
-
-    }
+    protected function transferFile(string $fileUri, string $tmpDir): void {}
 }

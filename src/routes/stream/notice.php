@@ -1,17 +1,16 @@
 <?php
 
-use Illuminate\Http\Request,
-    Illuminate\Support\Facades\Route,
-    Illuminate\Http\Exceptions\HttpResponseException;
-
-use App\Chat\Log\Streamer,
-    App\Models\Network;
+use App\Chat\Log\Streamer;
+use App\Models\Network;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 // GET /stream/network/:name/notice
 Route::middleware('auth:sanctum')->get('/network/{name}/notice', function (string $name, Request $request, Streamer $streamer) {
     $network = Network::where('name', $name)->first();
 
-    if (null === $network) {
+    if ($network === null) {
         throw new HttpResponseException(response("Invalid Network: $name", 400));
     }
 

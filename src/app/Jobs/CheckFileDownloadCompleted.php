@@ -2,28 +2,21 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
-
-use App\Jobs\ArchiveDownload,
-    App\Jobs\CheckDownloadedFileRemoved,
-    App\Jobs\TrasferDownloadedMedia,
-    App\Models\Download,
-    App\Models\DownloadDestination,
-    App\Models\FileDownloadLock,
-    App\Packet\DownloadQueue;
-
+use App\Models\Download;
+use App\Models\DownloadDestination;
+use App\Models\FileDownloadLock;
+use App\Packet\DownloadQueue;
 use DateTime;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class CheckFileDownloadCompleted
  * Handles checking the status of a file download and processing it accordingly.
- *
- * @package App\Jobs
  */
 class CheckFileDownloadCompleted implements ShouldQueue
 {
@@ -62,15 +55,12 @@ class CheckFileDownloadCompleted implements ShouldQueue
 
     /**
      * Constructor.
-     *
-     * @param string $fileName
-     * @param DateTime $timeStamp
      */
     public function __construct(string $fileName, DateTime $timeStamp)
     {
         $this->fileName = $fileName;
         $this->timeStamp = $timeStamp;
-        $this->downloadQueue = new DownloadQueue();
+        $this->downloadQueue = new DownloadQueue;
     }
 
     /**
@@ -146,21 +136,17 @@ class CheckFileDownloadCompleted implements ShouldQueue
 
     /**
      * Returns a single Download model instance based on file name and timestamp.
-     *
-     * @return Download|null
      */
     protected function getDownload(): ?Download
     {
         $this->downloadQueue->setFilterFileName($this->fileName);
         $this->downloadQueue->setStartDate($this->timeStamp);
+
         return $this->downloadQueue->first();
     }
 
     /**
      * Handles transferring a file if a download destination is registered.
-     *
-     * @param Download $download
-     * @return void
      */
     protected function handleDownloadDestination(Download $download): void
     {
@@ -177,9 +163,6 @@ class CheckFileDownloadCompleted implements ShouldQueue
 
     /**
      * Removes the lock from a Download if it exists.
-     *
-     * @param Download|null $download
-     * @return void
      */
     protected function releaseLock(?Download $download): void
     {
@@ -199,8 +182,6 @@ class CheckFileDownloadCompleted implements ShouldQueue
 
     /**
      * Releases the lock if it exists for the current file.
-     *
-     * @return void
      */
     protected function releaseLockIfExists(): void
     {

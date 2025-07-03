@@ -2,11 +2,11 @@
 
 namespace App\Media\Transfer;
 
-use App\Exceptions\TransferFileCopyException,
-    App\FileSystem;
+use App\Exceptions\TransferFileCopyException;
+use App\FileSystem;
 
 // Define DS constant for cross-platform compatibility if not already defined
-if (!defined('DS')) {
+if (! defined('DS')) {
     define('DS', DIRECTORY_SEPARATOR);
 }
 
@@ -26,9 +26,9 @@ final class CopyFile extends Transfer implements TransferInterface
     /**
      * Transfers a file by copying it to a new location.
      *
-     * @param string|null $uri URI of the file to be transferred
-     * @param string|null $tmpPath Temporary path to adjust the file name if necessary
-     * @return void
+     * @param  string|null  $uri  URI of the file to be transferred
+     * @param  string|null  $tmpPath  Temporary path to adjust the file name if necessary
+     *
      * @throws TransferFileCopyException If the copy operation fails
      */
     public function transfer(?string $uri = null, ?string $tmpPath = null): void
@@ -40,7 +40,7 @@ final class CopyFile extends Transfer implements TransferInterface
 
         $this->addToManifest($fileName);
 
-        if (!copy($this->uri, $newFile)) {
+        if (! copy($this->uri, $newFile)) {
             throw new TransferFileCopyException("Failed to copy \"$this->uri\" to \"$newFile\".");
         }
     }
@@ -50,15 +50,15 @@ final class CopyFile extends Transfer implements TransferInterface
      * The result is the location the file minus the Download or Temporary path.
      * With this normalized path to the file, we can concatenate it to any other path for copy or move.
      *
-     * @param string $uri The file's URI
-     * @param string|null $tmpPath Temporary path to adjust the file name if necessary
+     * @param  string  $uri  The file's URI
+     * @param  string|null  $tmpPath  Temporary path to adjust the file name if necessary
      * @return string The processed file name
      */
     private function normalizeFileName(string $uri, ?string $tmpPath = null): string
     {
         $fileName = str_replace($this->manager->getDownloadDir(), '', $uri);
 
-        if (null !== $tmpPath) {
+        if ($tmpPath !== null) {
             $fileName = str_replace($tmpPath, '', $uri);
         }
 
@@ -69,12 +69,12 @@ final class CopyFile extends Transfer implements TransferInterface
     /**
      * Prepares the new file path and ensures the directory exists.
      *
-     * @param string $fileName The file name to be copied
+     * @param  string  $fileName  The file name to be copied
      * @return string The full path to the new file
      */
     private function prepareNewFile(string $fileName): string
     {
-        $newFile = $this->manager->getDestinationPath() . DS . $fileName;
+        $newFile = $this->manager->getDestinationPath().DS.$fileName;
         $newDir = pathinfo($newFile, PATHINFO_DIRNAME);
         $this->preparePath($newDir);
 
@@ -83,11 +83,6 @@ final class CopyFile extends Transfer implements TransferInterface
 
     /**
      * Cleanup method, currently not implemented.
-     *
-     * @return void
      */
-    public function cleanup(): void
-    {
-
-    }
+    public function cleanup(): void {}
 }

@@ -2,16 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory,
-    Illuminate\Database\Eloquent\Model;
-
-use Laravel\Scout\Searchable,
-    Laravel\Scout\Attributes\SearchUsingFullText;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Laravel\Scout\Attributes\SearchUsingFullText;
+use Laravel\Scout\Searchable;
 
 /**
  * Class DownloadHistory
  *
- * @package App\Models
  * @property string $file_name The name of the downloaded file
  * @property array $meta Meta data associated with the download
  */
@@ -37,8 +35,6 @@ class DownloadHistory extends Model
 
     /**
      * Get the name of the index associated with the model.
-     *
-     * @return string
      */
     public function searchableAs(): string
     {

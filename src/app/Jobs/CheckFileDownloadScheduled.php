@@ -2,18 +2,15 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
-
-use App\Jobs\CheckFileDownloadCompleted,
-    App\Models\FileDownloadLock,
-    App\Packet\DownloadQueue;
-
+use App\Models\FileDownloadLock;
+use App\Packet\DownloadQueue;
 use DateTime;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Job that checks whether a file download is scheduled.
@@ -55,15 +52,12 @@ class CheckFileDownloadScheduled implements ShouldQueue
 
     /**
      * Create a new job instance.
-     *
-     * @param string $fileName
-     * @param DateTime $timeStamp
      */
     public function __construct(string $fileName, DateTime $timeStamp)
     {
         $this->fileName = $fileName;
         $this->timeStamp = $timeStamp;
-        $this->downloadQueue = new DownloadQueue();
+        $this->downloadQueue = new DownloadQueue;
     }
 
     /**
@@ -71,8 +65,6 @@ class CheckFileDownloadScheduled implements ShouldQueue
      *
      * This method handles the logic for checking if a file is queued or downloading,
      * and takes appropriate action such as dispatching another job or releasing locks.
-     *
-     * @return void
      */
     public function handle(): void
     {
@@ -97,8 +89,6 @@ class CheckFileDownloadScheduled implements ShouldQueue
      * Queries the database to check if the file is queued or downloading.
      *
      * This method returns true if the file is found in the download queue, otherwise false.
-     *
-     * @return bool
      */
     protected function isFileQueuedOrDownloading(): bool
     {

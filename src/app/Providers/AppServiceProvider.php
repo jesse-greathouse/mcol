@@ -2,14 +2,12 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider,
-    Illuminate\Support\Facades\Cache,
-    Illuminate\Support\Facades\Event,
-    Illuminate\Support\Facades\Redis;
-
-use App\Events\PacketSearchSummary,
-    App\Listeners\SendPacketSearchSummaryMessage;
-
+use App\Events\PacketSearchSummary;
+use App\Listeners\SendPacketSearchSummaryMessage;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {

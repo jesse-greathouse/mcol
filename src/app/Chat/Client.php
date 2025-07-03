@@ -2,63 +2,67 @@
 
 namespace App\Chat;
 
-use Illuminate\Console\Command,
-    Illuminate\Contracts\Cache\Repository,
-    Illuminate\Database\Eloquent\Collection,
-    Illuminate\Database\QueryException;
-
-use JesseGreathouse\PhpIrcClient\IrcClient,
-    JesseGreathouse\PhpIrcClient\IrcChannel,
-    JesseGreathouse\PhpIrcClient\IrcClientEvent,
-    JesseGreathouse\PhpIrcClient\Exceptions\ParseChannelNameException,
-    JesseGreathouse\PhpIrcClient\Options\ClientOptions;
-
-use App\Chat\Log\Diverter as LogDiverter,
-    App\Chat\Log\Mapper as LogMapper,
-    App\Events\HotReportLine as HotReportLineEvent,
-    App\Events\HotReportSummary as HotReportSummaryEvent,
-    App\Events\PacketSearchResult as PacketSearchResultEvent,
-    App\Events\PacketSearchSummary as PacketSearchSummaryEvent,
-    App\Exceptions\NetworkWithNoChannelException,
-    App\Exceptions\UnmappedChatLogEventException,
-    App\Exceptions\MessageBrokerException,
-    App\Jobs\CheckFileDownloadCompleted,
-    App\Jobs\DccDownload,
-    App\Jobs\GeneratePacketMeta,
-    App\Models\Bot,
-    App\Models\Channel,
-    App\Models\Client as ClientModel,
-    App\Models\Download,
-    App\Models\FileDownloadLock,
-    App\Models\HotReport,
-    App\Models\HotReportLine,
-    App\Models\Instance,
-    App\Models\Nick,
-    App\Models\Network,
-    App\Models\Packet,
-    App\Models\PacketSearch,
-    App\Models\PacketSearchResult,
-    App\Packet\MediaType\MediaTypeGuesser,
-    App\Packet\Parse,
-    App\RabbitMQ\Queue as MessageQueue,
-    App\RabbitMQ\SystemMessage as Message,
-    App\SystemMessage;
-
-use DateTime,
-    Throwable,
-    TypeError;
+use App\Chat\Log\Diverter as LogDiverter;
+use App\Chat\Log\Mapper as LogMapper;
+use App\Events\HotReportLine as HotReportLineEvent;
+use App\Events\HotReportSummary as HotReportSummaryEvent;
+use App\Events\PacketSearchResult as PacketSearchResultEvent;
+use App\Events\PacketSearchSummary as PacketSearchSummaryEvent;
+use App\Exceptions\MessageBrokerException;
+use App\Exceptions\NetworkWithNoChannelException;
+use App\Exceptions\UnmappedChatLogEventException;
+use App\Jobs\CheckFileDownloadCompleted;
+use App\Jobs\DccDownload;
+use App\Jobs\GeneratePacketMeta;
+use App\Models\Bot;
+use App\Models\Channel;
+use App\Models\Client as ClientModel;
+use App\Models\Download;
+use App\Models\FileDownloadLock;
+use App\Models\HotReport;
+use App\Models\HotReportLine;
+use App\Models\Instance;
+use App\Models\Network;
+use App\Models\Nick;
+use App\Models\Packet;
+use App\Models\PacketSearch;
+use App\Models\PacketSearchResult;
+use App\Packet\MediaType\MediaTypeGuesser;
+use App\Packet\Parse;
+use App\RabbitMQ\Queue as MessageQueue;
+use App\RabbitMQ\SystemMessage as Message;
+use App\SystemMessage;
+use DateTime;
+use Illuminate\Console\Command;
+use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\QueryException;
+use JesseGreathouse\PhpIrcClient\Exceptions\ParseChannelNameException;
+use JesseGreathouse\PhpIrcClient\IrcChannel;
+use JesseGreathouse\PhpIrcClient\IrcClient;
+use JesseGreathouse\PhpIrcClient\IrcClientEvent;
+use JesseGreathouse\PhpIrcClient\Options\ClientOptions;
+use Throwable;
+use TypeError;
 
 class Client
 {
     const VERSION = 'Mcol-[alpha-build] -- The Media Collector (https://github.com/jesse-greathouse/mcol)';
+
     const SUPPORTED_ENCODING = 'UTF-8';
 
     const LINE_COLUMN_SPACES = 50;
+
     const QUEUED_MASK = '/^Queued \d+h\d+m for \"(.+)\", in position (\d+) of (\d+)\. .+$/';
+
     const QUEUED_RESPONSE_MASK = '/pack ([0-9]+) \(\"(.+)\"\) in position ([0-9]+)\./';
+
     const REQUEST_INSTRUCTIONS_MASK = '/\|10\s(.*)04\s\|10\s(.*)04\s\|09\s\/msg\s(.*)\sXDCC\sSEND\s([0-9].*)\s04.*/';
+
     const HOT_REPORT_RESULT = '/(\d\.\d)\s0\d\s([A-Za-z0-9_\.\-]+)\s+(\d\.\d)\s\d\s([A-Za-z0-9_\.\-]+)/';
+
     const SEARCH_SUMMARY_MASK = '/(\#[A-Za-z].*)\s\-\sFound\s([0-9].*)\sONLINE Packs/';
+
     const HOT_REPORT_SUMMARY_MASK = '/\d\d(\#[A-Za-z0-9]+)\s+(.*)$/';
 
     /**
@@ -170,8 +174,6 @@ class Client
 
     /**
      * SystemMessage service
-     *
-     * @var ?SystemMessage|null
      */
     protected ?SystemMessage $systemMessage = null;
 
@@ -181,11 +183,10 @@ class Client
      * This constructor sets up logging, caching, and the IRC client connection.
      * It also ensures that the client model is updated or created in the database.
      *
-     * @param Nick $nick The user's nickname representation.
-     * @param Network $network The network to which the client will connect.
-     * @param Repository $cache A caching layer for storing temporary data.
-     * @param Command $console The command handler for executing console commands.
-     * @param ?SystemMessage|null $systemMessage
+     * @param  Nick  $nick  The user's nickname representation.
+     * @param  Network  $network  The network to which the client will connect.
+     * @param  Repository  $cache  A caching layer for storing temporary data.
+     * @param  Command  $console  The command handler for executing console commands.
      *
      * @throws SomeException If the client model cannot be created.
      */
@@ -219,7 +220,6 @@ class Client
      *
      * If the routingKey is fully qualified as specific: 'system.message.download.328'
      * Normalize thhe routing key by stripping the query and topic from the pattern.
-     *
      */
     public function systemSend(string $message, ?string $routingKey = ''): void
     {
@@ -229,12 +229,14 @@ class Client
 
             try {
                 $this->systemMessage->send($message, MessageQueue::SYSTEM_MESSAGE_CHAT, $routingKey);
+
                 return;
             } catch (Throwable $e) {
                 // MessageBrokerException is typically thrown when message has a non-UTF-8 Char
                 // This tolerates skipping a system message when its a problem for the Broker.
                 if ($e instanceof MessageBrokerException) {
                     $this->console->warn("========[ {$this->network->name} Client to Message Broker Exception: {$e->getMessage()}");
+
                     return;
                 }
 
@@ -245,8 +247,6 @@ class Client
 
     /**
      * Assigns all handlers for the various events.
-     *
-     * @return void
      */
     protected function assignHandlers(): void
     {
@@ -281,8 +281,6 @@ class Client
      *
      * This method retrieves necessary metadata, updates or creates an instance record,
      * initializes the operation and download progress managers, and sets up the disconnect handler.
-     *
-     * @return void
      */
     protected function registerInstance(): void
     {
@@ -309,8 +307,6 @@ class Client
 
     /**
      * Handles a ping event.
-     *
-     * @return void
      */
     public function pingHandler(): void
     {
@@ -337,8 +333,6 @@ class Client
 
     /**
      * Handles a join event by logging user joins and handling potential exceptions.
-     *
-     * @return void
      */
     public function joinHandler(): void
     {
@@ -359,8 +353,6 @@ class Client
 
     /**
      * Handles a kick event by logging the event and updating the channel state.
-     *
-     * @return void
      */
     public function kickHandler(): void
     {
@@ -376,8 +368,6 @@ class Client
 
     /**
      * Handles a nickname change event by logging the change.
-     *
-     * @return void
      */
     public function nickHandler(): void
     {
@@ -390,8 +380,6 @@ class Client
 
     /**
      * Handles a quit event and logs the reason for the quit.
-     *
-     * @return void
      */
     public function quitHandler(): void
     {
@@ -408,8 +396,6 @@ class Client
 
     /**
      * Handles a part event when a user leaves a channel.
-     *
-     * @return void
      */
     public function partHandler(): void
     {
@@ -426,8 +412,6 @@ class Client
 
     /**
      * Handles a mode change event when a user changes a channel's mode.
-     *
-     * @return void
      */
     public function modeHandler(): void
     {
@@ -457,8 +441,6 @@ class Client
 
     /**
      * Handles an invite event when a user invites another user to a channel.
-     *
-     * @return void
      */
     public function inviteHandler(): void
     {
@@ -479,8 +461,6 @@ class Client
 
     /**
      * Handles a topic change event and logs the change.
-     *
-     * @return void
      */
     public function topicHandler(): void
     {
@@ -502,8 +482,6 @@ class Client
 
     /**
      * Handles a DCC (Direct Client-to-Client) event and logs the event information.
-     *
-     * @return void
      */
     public function dccHandler(): void
     {
@@ -523,8 +501,6 @@ class Client
 
     /**
      * Handles the registered event (connected) and processes the server registration.
-     *
-     * @return void
      */
     public function registeredHandler(): void
     {
@@ -568,8 +544,6 @@ class Client
     /**
      * Handles the event when the client disconnects, including both intentional and
      * unintentional disconnections.
-     *
-     * @return void
      */
     public function disconnectHandler(): void
     {
@@ -597,14 +571,12 @@ class Client
 
     /**
      * Handles the 'version' event, logging and warning the client version.
-     *
-     * @return void
      */
     public function versionHandler(): void
     {
         // Handle the version event and log the version.
         $this->client->on(IrcClientEvent::VERSION, function () {
-            $message = 'VERSION ' . $this->client->getVersion();
+            $message = 'VERSION '.$this->client->getVersion();
             $this->console->warn($message);
             $this->logDiverter->log(LogMapper::EVENT_VERSION, $message);
         });
@@ -612,14 +584,12 @@ class Client
 
     /**
      * Handles CTCP messages, logging the action, command, and parameters.
-     *
-     * @return void
      */
     public function ctcpHandler(): void
     {
         // Handle the CTCP event and log the details.
         $this->client->on(IrcClientEvent::CTCP, function (string $action, array $args, string $command) {
-            $message = "CTCP: $command | action: $action params: " . json_encode($args);
+            $message = "CTCP: $command | action: $action params: ".json_encode($args);
             $this->systemSend($message, "ctcp.$action");
             $this->console->warn($message);
             $this->logDiverter->log(LogMapper::EVENT_CTCP, $message);
@@ -628,8 +598,6 @@ class Client
 
     /**
      * Handles Private Messages
-     *
-     * @return void
      */
     public function privMessageHandler(): void
     {
@@ -638,6 +606,7 @@ class Client
             // If the Message string is empty don't bother parsing, just warn in the console.
             if (strlen($message) < 1) {
                 $this->console->warn("Empty message from $userName to $target");
+
                 return;
             }
 
@@ -648,41 +617,40 @@ class Client
             // VERSION handling
             if (strpos($message, 'VERSION') !== false) {
                 $this->processVersionRequest($userName, $message);
+
                 return;
             }
 
             // DCC SEND Protocol
             if (strpos($message, 'DCC SEND') !== false) {
                 $this->processDccSend($userName, $message);
+
                 return;
             }
 
             // DCC ACCEPT Protocol
             if (strpos($message, 'DCC ACCEPT') !== false) {
                 $this->processDccAccept($userName, $message);
+
                 return;
             }
 
             // Unhandled DCC Action
             if (strpos($message, 'DCC') !== false) {
                 $this->logUnhandledDccAction($message);
+
                 return;
             }
 
-            return;
         });
     }
 
     /**
      * Processes the VERSION request.
-     *
-     * @param string $userName
-     * @param string $message
-     * @return void
      */
     protected function processVersionRequest(string $userName, string &$message): void
     {
-        $message .= ' ' . self::VERSION;
+        $message .= ' '.self::VERSION;
         $this->client->say($userName, self::VERSION);
         $this->console->warn($message);
         $this->logDiverter->log(LogMapper::EVENT_VERSION, $message);
@@ -690,22 +658,19 @@ class Client
 
     /**
      * Processes the DCC SEND command.
-     *
-     * @param string $userName
-     * @param string $message
-     * @return void
      */
     protected function processDccSend(string $userName, string $message): void
     {
         $params = $this->extractDccParams($message);
 
-        if (null === $params['ip'] || null === $params['port'] || null === $params['fileName'] || null === $params['fileSize']) {
+        if ($params['ip'] === null || $params['port'] === null || $params['fileName'] === null || $params['fileSize'] === null) {
             $this->logAndWarnDccInstructionsFailed($userName, $message);
+
             return;
         }
 
         // Check if file exists and process accordingly
-        $uri = env('DOWNLOAD_DIR', '/var/download') . "/{$params['fileName']}";
+        $uri = env('DOWNLOAD_DIR', '/var/download')."/{$params['fileName']}";
         if (file_exists($uri)) {
             $this->queueDccDownloadJob($userName, $params, $uri);
         } else {
@@ -716,23 +681,20 @@ class Client
 
     /**
      * Processes the DCC ACCEPT command.
-     *
-     * @param string $userName
-     * @param string $message
-     * @return void
      */
     protected function processDccAccept(string $userName, string $message): void
     {
         $params = $this->extractDccParams($message);
 
-        if (null === $params['ip'] || null === $params['port'] || null === $params['fileName'] || null === $params['fileSize']) {
+        if ($params['ip'] === null || $params['port'] === null || $params['fileName'] === null || $params['fileSize'] === null) {
             $this->logAndWarnDccInstructionsFailed($userName, $message);
+
             return;
         }
 
         $this->console->warn($message);
         $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
-        $this->systemSend($message, "notice");
+        $this->systemSend($message, 'notice');
 
         $this->logAndWarnDccJobQueued($userName, $params);
         DccDownload::dispatch($params['ip'], $params['port'], $params['fileName'], $params['position'], $userName, $params['position'])->onQueue('download');
@@ -740,9 +702,6 @@ class Client
 
     /**
      * Logs and warns about an unhandled DCC action.
-     *
-     * @param string $message
-     * @return void
      */
     protected function logUnhandledDccAction(string $message): void
     {
@@ -753,15 +712,12 @@ class Client
 
     /**
      * Extracts DCC parameters from the message.
-     *
-     * @param string $message
-     * @return array
      */
     protected function extractDccParams(string $message): array
     {
         $parts = explode(' ', $message);
 
-        $extracted =  [
+        $extracted = [
             'fileName' => null,
             'ip' => null,
             'port' => null,
@@ -784,11 +740,6 @@ class Client
 
     /**
      * Queues a DCC download job when the file exists.
-     *
-     * @param string $userName
-     * @param array $params
-     * @param string $uri
-     * @return void
      */
     protected function queueDccDownloadJob(string $userName, array $params, string $uri): void
     {
@@ -804,10 +755,6 @@ class Client
 
     /**
      * Logs and warns that a DCC download job has been queued.
-     *
-     * @param string $userName
-     * @param array $params
-     * @return void
      */
     protected function logAndWarnDccJobQueued(string $userName, array $params): void
     {
@@ -815,15 +762,13 @@ class Client
         $this->console->warn($notice);
         $this->logDiverter->log(LogMapper::EVENT_NOTICE, $notice);
         $payload = http_build_query(array_merge($params, ['bot' => $userName]));
-        $this->systemSend("Dispatched to download queue | $payload", "notice");
+        $this->systemSend("Dispatched to download queue | $payload", 'notice');
     }
 
     /**
      * Logs and warns that a DCC download job has been queued.
      *
-     * @param string $userName
-     * @param array $params
-     * @return void
+     * @param  array  $params
      */
     protected function logAndWarnDccInstructionsFailed(string $userName, string $message): void
     {
@@ -835,8 +780,6 @@ class Client
 
     /**
      * Handles standard messages in the channel.
-     *
-     * @return void
      */
     public function motdHandler(): void
     {
@@ -849,15 +792,13 @@ class Client
 
     /**
      * Handles standard messages in the channel.
-     *
-     * @return void
      */
     public function messageHandler(): void
     {
-        $directMessageHandle = IrcClientEvent::MESSAGE . $this->nick->nick;
+        $directMessageHandle = IrcClientEvent::MESSAGE.$this->nick->nick;
 
-        $this->client->on(IrcClientEvent::MESSAGE, function (string $from, ?IrcChannel $channel = null, string $message) {
-            if (null === $channel) {
+        $this->client->on(IrcClientEvent::MESSAGE, function (string $from, ?IrcChannel $channel, string $message) {
+            if ($channel === null) {
                 return;
             }
 
@@ -872,7 +813,7 @@ class Client
             } catch (UnmappedChatLogEventException) {
                 $this->console->error(
                     sprintf(
-                        "Unmapped %s event for channel: \"%s\" (This usually happens due to a truncated network message.)",
+                        'Unmapped %s event for channel: "%s" (This usually happens due to a truncated network message.)',
                         LogMapper::EVENT_MESSAGE,
                         $channel->getName()
                     )
@@ -886,14 +827,14 @@ class Client
             $this->downloadProgressManager->reportProgress();
         });
 
-        $this->client->on($directMessageHandle, function (string $from, ?IrcChannel $channel = null, string $message) {
+        $this->client->on($directMessageHandle, function (string $from, ?IrcChannel $channel, string $message) {
             if ($channel === null) {
                 return;
             }
 
             // Update the Channel Metadata.
             $channel = $this->getChannelFromClient($channel);
-            $line = $channel->getName() . " @$from: $message";
+            $line = $channel->getName()." @$from: $message";
 
             $this->console->warn($line);
 
@@ -904,11 +845,9 @@ class Client
     /**
      * Parses a packet message from a user in an IRC channel and processes it.
      *
-     * @param string $from     The nickname of the user sending the message.
-     * @param IrcChannel $channel The channel from which the message is sent.
-     * @param string $message  The packet message to be parsed.
-     *
-     * @return void
+     * @param  string  $from  The nickname of the user sending the message.
+     * @param  IrcChannel  $channel  The channel from which the message is sent.
+     * @param  string  $message  The packet message to be parsed.
      */
     protected function parsePacketMessage(string $from, IrcChannel $channel, string $message): void
     {
@@ -942,8 +881,6 @@ class Client
 
     /**
      * Handles console messages.
-     *
-     * @return void
      */
     public function consoleHandler(): void
     {
@@ -960,8 +897,6 @@ class Client
 
     /**
      * Handles notices by processing different types of messages and triggering the appropriate actions.
-     *
-     * @return void
      */
     public function noticeHandler(): void
     {
@@ -980,17 +915,20 @@ class Client
             // Process the notice based on its type
             if ($this->isQueuedNotification($txt)) {
                 $this->processQueuedNotification($txt);
+
                 return;
             }
 
             if ($this->isQueuedResponse($txt)) {
                 $this->processQueuedResponse($txt);
+
                 return;
             }
 
             if ($packetSearchResult = $this->extractPacketSearchResult($txt)) {
                 if ($this->isValidPacketSearchResult($packetSearchResult)) {
                     $this->processPacketSearchResult($packetSearchResult);
+
                     return;
                 }
             }
@@ -998,6 +936,7 @@ class Client
             if ($searchSummary = $this->extractSearchSummary($txt)) {
                 if ($this->isValidSearchSummary($searchSummary)) {
                     $this->processSearchSummary($searchSummary);
+
                     return;
                 }
             }
@@ -1005,6 +944,7 @@ class Client
             if ($hotReportLine = $this->extractHotReportLine($txt)) {
                 if ($this->isValidHotReportLine($hotReportLine)) {
                     $this->processHotReportLine($hotReportLine);
+
                     return;
                 }
             }
@@ -1012,6 +952,7 @@ class Client
             if ($hotReportSummary = $this->extractHotReportSummary($txt)) {
                 if ($this->isValidHotReportSummary($hotReportSummary)) {
                     $this->processHotReportSummary($hotReportSummary);
+
                     return;
                 }
             }
@@ -1023,9 +964,6 @@ class Client
 
     /**
      * Determines if the message corresponds to a queued notification.
-     *
-     * @param string $txt
-     * @return bool
      */
     protected function isQueuedNotification(string $txt): bool
     {
@@ -1034,21 +972,16 @@ class Client
 
     /**
      * Determines if the message corresponds to a queued response.
-     *
-     * @param string $txt
-     * @return bool
      */
     protected function isQueuedResponse(string $txt): bool
     {
         $matches = [];
+
         return preg_match(self::QUEUED_RESPONSE_MASK, $txt, $matches) && isset($matches[3]);
     }
 
     /**
      * Validates the packet search result.
-     *
-     * @param array $packetSearchResult
-     * @return bool
      */
     protected function isValidPacketSearchResult(array $packetSearchResult): bool
     {
@@ -1057,9 +990,6 @@ class Client
 
     /**
      * Validates the search summary.
-     *
-     * @param array $searchSummary
-     * @return bool
      */
     protected function isValidSearchSummary(array $searchSummary): bool
     {
@@ -1068,9 +998,6 @@ class Client
 
     /**
      * Validates the hot report line.
-     *
-     * @param array $hotReportLine
-     * @return bool
      */
     protected function isValidHotReportLine(array $hotReportLine): bool
     {
@@ -1079,9 +1006,6 @@ class Client
 
     /**
      * Validates the hot report summary.
-     *
-     * @param array $hotReportSummary
-     * @return bool
      */
     protected function isValidHotReportSummary(array $hotReportSummary): bool
     {
@@ -1098,14 +1022,12 @@ class Client
      * $packet[4] is the packet number.
      *
      * If less than 5 elements are returned, it is not a valid packet search result.
-     *
-     * @param string $txt
-     * @return array
      */
     protected function extractPacketSearchResult(string $txt): array
     {
         $packet = [];
         preg_match(self::REQUEST_INSTRUCTIONS_MASK, $txt, $packet);
+
         return $packet;
     }
 
@@ -1119,14 +1041,12 @@ class Client
      * $result[4] is the file name of the second file.
      *
      * If less than 3 elements are returned, it is not a valid packet search result.
-     *
-     * @param string $txt
-     * @return array
      */
     protected function extractHotReportLine(string $txt): array
     {
         $result = [];
         preg_match(self::HOT_REPORT_RESULT, $txt, $result);
+
         return $result;
     }
 
@@ -1138,14 +1058,12 @@ class Client
      * $summary[2] is the number of results.
      *
      * If less than 3 elements are returned, it is not a valid summary.
-     *
-     * @param string $txt
-     * @return array
      */
     protected function extractSearchSummary(string $txt): array
     {
         $summary = [];
         preg_match(self::SEARCH_SUMMARY_MASK, $txt, $summary);
+
         return $summary;
     }
 
@@ -1157,22 +1075,17 @@ class Client
      * $summary[2] is the summary string.
      *
      * If less than 3 elements are returned, it is not a valid summary.
-     *
-     * @param string $txt
-     * @return array
      */
     protected function extractHotReportSummary(string $txt): array
     {
         $summary = [];
         preg_match(self::HOT_REPORT_SUMMARY_MASK, $txt, $summary);
+
         return $summary;
     }
 
     /**
      * Processes a queued notification.
-     *
-     * @param string $txt
-     * @return void
      */
     protected function processQueuedNotification(string $txt): void
     {
@@ -1182,9 +1095,6 @@ class Client
 
     /**
      * Processes a queued response.
-     *
-     * @param string $txt
-     * @return void
      */
     protected function processQueuedResponse(string $txt): void
     {
@@ -1197,9 +1107,6 @@ class Client
 
     /**
      * Processes a packet search result.
-     *
-     * @param array $packetSearchResult
-     * @return void
      */
     protected function processPacketSearchResult(array $packetSearchResult): void
     {
@@ -1216,9 +1123,6 @@ class Client
 
     /**
      * Processes a search summary.
-     *
-     * @param array $searchSummary
-     * @return void
      */
     protected function processSearchSummary(array $searchSummary): void
     {
@@ -1230,9 +1134,6 @@ class Client
 
     /**
      * Processes a hot report line.
-     *
-     * @param array $hotReportLine
-     * @return void
      */
     protected function processHotReportLine(array $hotReportLine): void
     {
@@ -1242,9 +1143,9 @@ class Client
         if ($hotReportRank2 !== null && $hotReportFileName2 !== null) {
             $this->makeHotReportLine($hotReportRank2, $hotReportFileName2);
             $spacer = $this->dynamicWordSpacing($hotReportFileName1, self::LINE_COLUMN_SPACES);
-            $message =  "[$hotReportRank1] $hotReportFileName1 $spacer [$hotReportRank2] $hotReportFileName2";
+            $message = "[$hotReportRank1] $hotReportFileName1 $spacer [$hotReportRank2] $hotReportFileName2";
         } else {
-            $message =  "[$hotReportRank1] $hotReportFileName1";
+            $message = "[$hotReportRank1] $hotReportFileName1";
         }
 
         $this->logAndWarnNotice($message);
@@ -1252,38 +1153,31 @@ class Client
 
     /**
      * Processes a hot report summary.
-     *
-     * @param array $hotReportSummary
-     * @return void
      */
     protected function processHotReportSummary(array $hotReportSummary): void
     {
         [, $channelName, $hotReportSummaryStr] = $hotReportSummary;
         $channelNameSanitized = strtolower($channelName);
-        $message =  "$channelNameSanitized $hotReportSummaryStr";
+        $message = "$channelNameSanitized $hotReportSummaryStr";
         $this->logAndWarnNotice($message);
         $this->makeHotReportSummary($channelNameSanitized, $hotReportSummaryStr);
     }
 
     /**
      * Logs and warns a notice message.
-     *
-     * @param string $message
-     * @return void
      */
     protected function logAndWarnNotice(string $message): void
     {
         $this->console->warn("========[  $message ");
         $this->logDiverter->log(LogMapper::EVENT_NOTICE, $message);
-        $this->systemSend($message, "notice");
+        $this->systemSend($message, 'notice');
     }
 
     /**
      * Create a Hot Report line and dispatches an event if a Hot Report exists.
      *
-     * @param float $rating The rating associated with the hot report line.
-     * @param string $term The term associated with the hot report line.
-     * @return void
+     * @param  float  $rating  The rating associated with the hot report line.
+     * @param  string  $term  The term associated with the hot report line.
      */
     protected function makeHotReportLine(float $rating, string $term): void
     {
@@ -1294,8 +1188,8 @@ class Client
         if ($hotReport !== null) {
             $hotReportLine = HotReportLine::create([
                 'hot_report_id' => $hotReport->id,
-                'rating'        => $rating,
-                'term'          => $term,
+                'rating' => $rating,
+                'term' => $term,
             ]);
 
             HotReportLineEvent::dispatch($hotReportLine);
@@ -1305,9 +1199,8 @@ class Client
     /**
      * Creates a Hot Report summary and dispatches the associated event.
      *
-     * @param string $channelName The name of the channel for the hot report.
-     * @param string $summary The summary content of the hot report.
-     * @return void
+     * @param  string  $channelName  The name of the channel for the hot report.
+     * @param  string  $summary  The summary content of the hot report.
      */
     public function makeHotReportSummary(string $channelName, string $summary): void
     {
@@ -1317,7 +1210,7 @@ class Client
         if ($channel) {
             $hotReport = HotReport::create([
                 'channel_id' => $channel->id,
-                'summary'    => $summary,
+                'summary' => $summary,
             ]);
 
             HotReportSummaryEvent::dispatch($hotReport);
@@ -1327,11 +1220,10 @@ class Client
     /**
      * Creates a search result and dispatches the associated event.
      *
-     * @param string $fileName The name of the file in the search result.
-     * @param string $fileSize The size of the file in the search result.
-     * @param string $nick The bot name that generated the search result.
-     * @param string $packetNumber The packet number associated with the result.
-     * @return void
+     * @param  string  $fileName  The name of the file in the search result.
+     * @param  string  $fileSize  The size of the file in the search result.
+     * @param  string  $nick  The bot name that generated the search result.
+     * @param  string  $packetNumber  The packet number associated with the result.
      */
     protected function makeSearchResult(string $fileName, string $fileSize, string $nick, string $packetNumber): void
     {
@@ -1350,15 +1242,14 @@ class Client
     /**
      * Creates a search summary for the specified channel and dispatches the associated event.
      *
-     * @param string $channelName The name of the channel for which the search summary is created.
-     * @return void
+     * @param  string  $channelName  The name of the channel for which the search summary is created.
      */
     protected function makeSearchSummary(string $channelName): void
     {
         // Create or find the channel.
         $channel = $this->getChannelByName($channelName);
 
-        if (null !== $channel) {
+        if ($channel !== null) {
 
             // Create a new PacketSearch entry for the channel.
             $packetSearch = PacketSearch::create([
@@ -1372,12 +1263,6 @@ class Client
 
     /**
      * Locates or creates a packet object based on the input criteria.
-     *
-     * @param string $fileName
-     * @param string $fileSize
-     * @param string $nick
-     * @param string $packetNumber
-     * @return Packet
      */
     protected function resolvePacket(string $fileName, string $fileSize, string $nick, string $packetNumber): Packet
     {
@@ -1410,12 +1295,8 @@ class Client
         return $packet;
     }
 
-
     /**
      * Makes a best guess at which channel a bot may represent in the absence of a channel name.
-     *
-     * @param Bot $bot
-     * @return Channel
      */
     protected function getBotChannelByBestGuess(Bot $bot): Channel
     {
@@ -1427,11 +1308,11 @@ class Client
 
         $packet = Packet::where('bot_id', $botId)->latest()->first();
 
-        $this->botChannelMap[$botId] = (null !== $packet) ? $packet->channel
+        $this->botChannelMap[$botId] = ($packet !== null) ? $packet->channel
             : Channel::where('network_id', $bot->network->id)->first();
 
         if ($this->botChannelMap[$botId] === null) {
-            throw new NetworkWithNoChannelException('No channel found for network: ' . $bot->network->name);
+            throw new NetworkWithNoChannelException('No channel found for network: '.$bot->network->name);
         }
 
         return $this->botChannelMap[$botId];
@@ -1439,9 +1320,6 @@ class Client
 
     /**
      * Parses the response that a download was queued.
-     *
-     * @param string $txt
-     * @return Packet|null
      */
     protected function markAsQueued(string $txt): ?Packet
     {
@@ -1462,16 +1340,16 @@ class Client
             Download::updateOrCreate(
                 ['file_uri' => "{$downloadDir}/{$file}", 'packet_id' => $packet->id],
                 [
-                    'status'        => Download::STATUS_QUEUED,
-                    'file_name'     => $packet->file_name,
+                    'status' => Download::STATUS_QUEUED,
+                    'file_name' => $packet->file_name,
                     'queued_status' => $position,
-                    'meta'          => $packet->meta,
-                    'media_type'    => $packet->media_type
+                    'meta' => $packet->meta,
+                    'media_type' => $packet->media_type,
                 ]
             );
 
             // If the file isn't locked, lock it and queue a job to check if it's finished downloading
-            if (!$this->isFileDownloadLocked($file)) {
+            if (! $this->isFileDownloadLocked($file)) {
                 $this->lockFile($file);
 
                 // Queue the job that checks if the file is finished downloading
@@ -1486,9 +1364,6 @@ class Client
 
     /**
      * Parses the DCC queue and updates the download state.
-     *
-     * @param string $txt
-     * @return void
      */
     protected function doQueuedStateChange(string $txt): void
     {
@@ -1511,7 +1386,7 @@ class Client
             $download->save();
 
             // If the file isn't locked, lock it and queue a job to check download completion
-            if (!$this->isFileDownloadLocked($file)) {
+            if (! $this->isFileDownloadLocked($file)) {
                 $this->lockFile($file);
 
                 // Queue the job to check if the file has finished downloading
@@ -1525,7 +1400,6 @@ class Client
     /**
      * Extracts the file, position, and total values from the given text.
      *
-     * @param string $txt
      * @return array [file, position, total]
      */
     protected function extractQueuedState(string $txt): array
@@ -1547,7 +1421,6 @@ class Client
     /**
      * Extracts the packet number, file, and position values from the given text.
      *
-     * @param string $txt
      * @return array [packetNum, file, position]
      */
     protected function extractQueuedResponse(string $txt): array
@@ -1568,8 +1441,6 @@ class Client
 
     /**
      * Handles name events.
-     *
-     * @return void
      */
     public function namesHandler(): void
     {
@@ -1580,7 +1451,7 @@ class Client
 
         foreach ($this->client->getChannels() as $channel) {
             $channelName = $channel->getName();
-            $namesChannelHandle = IrcClientEvent::NAMES . $channelName;
+            $namesChannelHandle = IrcClientEvent::NAMES.$channelName;
 
             $this->client->on($namesChannelHandle, function (array $names) use ($channelName) {
                 $this->updateChannel($channelName);
@@ -1590,20 +1461,15 @@ class Client
 
     /**
      * Removes all non-numeric characters from a string.
-     *
-     * @param string $txtStr
-     * @return string
      */
     public function cleanNumericStr(string $txtStr): string
     {
         // Filter the string to keep only numeric characters
-        return implode('', array_filter(str_split($txtStr), fn($char) => ctype_digit($char)));
+        return implode('', array_filter(str_split($txtStr), fn ($char) => ctype_digit($char)));
     }
 
     /**
      * Connects to the server and initializes event listening.
-     *
-     * @return void
      */
     public function connect(): void
     {
@@ -1611,15 +1477,13 @@ class Client
             $this->client->connect();
         } catch (ParseChannelNameException $e) {
             $this->console->error(str_repeat('*', 92));
-            $this->console->error("           " . $e->getMessage());
+            $this->console->error('           '.$e->getMessage());
             $this->console->error(str_repeat('*', 92));
         }
     }
 
     /**
      * Procedure for when the connection to a network has terminated.
-     *
-     * @return void
      */
     protected function terminateInstance(): void
     {
@@ -1638,7 +1502,7 @@ class Client
     /**
      * Retrieves a channel model object by its name.
      *
-     * @param string $name The name of the channel.
+     * @param  string  $name  The name of the channel.
      * @return Channel|null The channel model or null if not found.
      */
     protected function getChannelByName(string $name): ?Channel
@@ -1660,9 +1524,6 @@ class Client
 
     /**
      * Returns a Bot model object with the parameter of the bot nick.
-     *
-     * @param string $nick
-     * @return Bot
      */
     public function getBotByNick(string $nick): Bot
     {
@@ -1684,7 +1545,7 @@ class Client
      * A parent channel is defined as a channel with no parent (`channel_id` is null).
      * Only enabled channels are included in the result.
      *
-     * @param Network $network The network for which parent channels are retrieved.
+     * @param  Network  $network  The network for which parent channels are retrieved.
      * @return Collection A collection of parent channels for the specified network.
      */
     protected function getParentChannelsForNetwork(Network $network): Collection
@@ -1700,13 +1561,14 @@ class Client
      *
      * The number of spaces generated is based on the total desired space minus the length of the word.
      *
-     * @param string $word The word to be spaced.
-     * @param int $totalSpaces The total space the word should occupy, including the word length.
+     * @param  string  $word  The word to be spaced.
+     * @param  int  $totalSpaces  The total space the word should occupy, including the word length.
      * @return string A string of spaces that will fill the remaining space after the word.
      */
     protected function dynamicWordSpacing(string $word, int $totalSpaces): string
     {
         $numSpaces = max(0, $totalSpaces - strlen($word)); // Ensure no negative spaces are generated
+
         return str_repeat(' ', $numSpaces); // More efficient string repetition
     }
 
@@ -1714,7 +1576,7 @@ class Client
      * Checks if a download lock exists for the given file.
      * A download lock prevents the file from being downloaded simultaneously from multiple sources.
      *
-     * @param string $fileName The name of the file to check for a download lock.
+     * @param  string  $fileName  The name of the file to check for a download lock.
      * @return bool True if the file is locked, false otherwise.
      */
     protected function isFileDownloadLocked(string $fileName): bool
@@ -1725,8 +1587,7 @@ class Client
     /**
      * Locks the specified file to prevent multiple simultaneous downloads.
      *
-     * @param string $file The name of the file to lock.
-     * @return void
+     * @param  string  $file  The name of the file to lock.
      */
     protected function lockFile(string $file): void
     {
@@ -1738,8 +1599,8 @@ class Client
      * Updates the channel information, which can be either a string (channel name) or an IrcChannel object.
      * If the channel is valid, updates its topic, user count, and metadata.
      *
-     * @param IrcChannel|string $channelName The channel to update (either an IrcChannel object or a channel name).
-     * @param bool $updateClient Whether to update the client after the channel update.
+     * @param  IrcChannel|string  $channelName  The channel to update (either an IrcChannel object or a channel name).
+     * @param  bool  $updateClient  Whether to update the client after the channel update.
      * @return IrcChannel The updated IrcChannel object.
      */
     protected function updateChannel(IrcChannel|string $channelName, bool $updateClient = true): IrcChannel
@@ -1772,8 +1633,6 @@ class Client
 
     /**
      * Updates the data representation of the IRC client, including its connection status.
-     *
-     * @return void
      */
     protected function updateClient(): void
     {
@@ -1793,9 +1652,6 @@ class Client
 
     /**
      * Retrieves the IrcChannel instance from the client using either a channel name string or an IrcChannel instance.
-     *
-     * @param IrcChannel|string $channelName
-     * @return IrcChannel
      */
     protected function getChannelFromClient(IrcChannel|string $channelName): IrcChannel
     {

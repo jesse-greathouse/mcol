@@ -7,13 +7,12 @@ namespace App\Media;
  *
  * This class handles media dynamic ranges, including both HDR and Dolby Vision.
  * It provides methods to retrieve predefined dynamic ranges and their expanded versions.
- *
- * @package App\Media
  */
 final class MediaDynamicRange
 {
     // Constants representing dynamic range types
     const HDR = 'hdr'; // High Dynamic Range (HDR)
+
     const DOLBY_VISION = 'dovi'; // Dolby Vision dynamic range
 
     /**
@@ -41,6 +40,7 @@ final class MediaDynamicRange
      * For example, it includes expanded patterns for Dolby Vision.
      *
      * @return array<string, array<string>> Expanded dynamic ranges with regex patterns
+     *
      * @see https://regex101.com/ for regex testing and verification
      */
     public static function getExpandedDynamicRanges(): array

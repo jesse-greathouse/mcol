@@ -1,39 +1,47 @@
 <?php
+
 namespace App\Packet;
 
-use Illuminate\Database\Eloquent\Builder,
-    Illuminate\Database\Eloquent\Collection,
-    Illuminate\Database\Eloquent\Model,
-    Illuminate\Pagination\LengthAwarePaginator;
-
-use App\Exceptions\IllegalPageException,
-    App\Exceptions\IllegalRppException;
-
-use App\Models\Instance,
-    App\Models\Download;
-
+use App\Exceptions\IllegalPageException;
+use App\Exceptions\IllegalRppException;
+use App\Models\Download;
+use App\Models\Instance;
 use DateTime;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class DownloadQueue
 {
     const MYSQL_TIMESTAMP_FORMAT = 'Y-m-d H:i:s';
 
     const ORDER_BY_CREATED = 'downloads.updated_at';
+
     const ORDER_BY_NAME = 'downloads.file_name';
+
     const ORDER_BY_STATUS = 'downloads.status';
+
     const ORDER_BY_QUEUE = 'downloads.queued_status';
 
     const ORDER_OPTION_CREATED = 'created';
+
     const ORDER_OPTION_STATUS = 'status';
+
     const ORDER_OPTION_NAME = 'file_name';
+
     const ORDER_OPTION_QUEUE = 'queue';
+
     const ORDER_OPTION_DEFAULT = self::ORDER_OPTION_QUEUE;
 
     const ORDER_ASCENDING = 'asc';
+
     const ORDER_DESCENDING = 'desc';
 
     const DEFAULT_LOCKED = true;
+
     const DEFAULT_RPP = 40;
+
     const DEFAULT_PAGE = 1;
 
     public static array $columns = [
@@ -84,7 +92,7 @@ class DownloadQueue
     /**
      * Whether to include only files that are locked.
      *
-     * @var boolean
+     * @var bool
      */
     protected $filterLocked;
 
@@ -151,19 +159,16 @@ class DownloadQueue
 
     /**
      * Static function for calling the queue method.
-     *
-     * @return array
      */
     public static function getQueue(): array
     {
-        $downloadQueue = new self();
+        $downloadQueue = new self;
+
         return $downloadQueue->queue();
     }
 
     /**
      * Returns a list of available order directions.
-     *
-     * @return array
      */
     public static function getDirectionOptions(): array
     {
@@ -175,8 +180,6 @@ class DownloadQueue
 
     /**
      * Returns a list of available order options.
-     *
-     * @return array
      */
     public static function getOrderOptions(): array
     {
@@ -197,21 +200,18 @@ class DownloadQueue
      *  'bar.mkv'  => Download,
      *  ...
      * ]
-     * @param string $status
-     * @param array $packetList
-     * @return Collection
      */
     public static function getDownloads(?string $status, array $packetList = []): Collection
     {
         $qb = Download::join('packets', 'packets.id', '=', 'downloads.packet_id')
-            ->join ('file_download_locks', 'file_download_locks.file_name', 'downloads.file_name')
-            ->join ('bots', 'bots.id', 'packets.bot_id');
+            ->join('file_download_locks', 'file_download_locks.file_name', 'downloads.file_name')
+            ->join('bots', 'bots.id', 'packets.bot_id');
 
-        if (0 < count($packetList)) {
+        if (count($packetList) > 0) {
             $qb->whereIn('packet_id', $packetList);
         }
 
-        if (null !== $status) {
+        if ($status !== null) {
             $qb->where('status', $status);
         }
 
@@ -219,16 +219,14 @@ class DownloadQueue
             ->load('packet')
             ->load('destination')
             ->mapWithKeys(function (Download $download, int $key) {
-            $fileName = basename($download->file_uri);
-            return [$fileName => $download];
-        });
+                $fileName = basename($download->file_uri);
+
+                return [$fileName => $download];
+            });
     }
 
     /**
      * Returns a dictionary of files queued for download with the filename as the key.
-     *
-     * @param array $packetList
-     * @return Collection
      */
     public static function getQueuedDownloads(array $packetList = []): Collection
     {
@@ -237,9 +235,6 @@ class DownloadQueue
 
     /**
      * Returns a dictionary of downloads in progress with the filename as the key.
-     *
-     * @param array $packetList
-     * @return Collection
      */
     public static function getIncompleteDownloads(array $packetList = []): Collection
     {
@@ -249,9 +244,6 @@ class DownloadQueue
     /**
      * Returns a dictionary of completed downloaded files with the filename as the key.
      * Only includes the files that appear in $packetList.
-     *
-     * @param array $packetList
-     * @return Collection
      */
     public static function getCompletedDownloads(array $packetList = []): Collection
     {
@@ -266,14 +258,12 @@ class DownloadQueue
      *  'completed'     => [],
      *  'incomplete'    => [],
      * ]
-     *
-     * @return array
      */
     public function queue(): array
     {
         $queue = [
-            Download::STATUS_QUEUED     => [],
-            Download::STATUS_COMPLETED  => [],
+            Download::STATUS_QUEUED => [],
+            Download::STATUS_COMPLETED => [],
             Download::STATUS_INCOMPLETE => [],
         ];
 
@@ -283,7 +273,7 @@ class DownloadQueue
             ->load('destination')
             ->toArray();
 
-        forEach($downloads as $download) {
+        foreach ($downloads as $download) {
             // Only add the download if it has a valid status option.
             if (in_array($download['status'], self::getStatusOptions())) {
                 $queue[$download['status']][] = $download;
@@ -295,18 +285,14 @@ class DownloadQueue
 
     /**
      * Run the Query and return a single model instance.
-     *
-     * @return Model|null
      */
-    public function first(): Model|null
+    public function first(): ?Model
     {
         return $this->makeQuery()->first(self::$columns);
     }
 
     /**
      * Run the Query and return the result.
-     *
-     * @return Collection
      */
     public function get(): Collection
     {
@@ -315,21 +301,18 @@ class DownloadQueue
 
     /**
      * Run the Query and return paginated results.
-     *
-     * @return LengthAwarePaginator
      */
     public function paginate(array $options = []): LengthAwarePaginator
     {
         $total = $this->getQueryTotal();
         $items = $this->makeOffsetQuery()->get(self::$columns);
         $paginator = new LengthAwarePaginator($items, $total, $this->rpp, $this->page, $options);
+
         return $paginator;
     }
 
     /**
      * Makes a query specifically to represent the active queue.
-     *
-     * @return Builder
      */
     public function makeQueueQuery(): Builder
     {
@@ -348,8 +331,6 @@ class DownloadQueue
 
     /**
      * Creates a query builder instance based on all the search and filtering criteria.
-     *
-     * @return Builder
      */
     public function makeQuery(): Builder
     {
@@ -362,8 +343,6 @@ class DownloadQueue
 
     /**
      * Creates a query builder based on all the search and filtering criteria.
-     *
-     * @return Builder
      */
     public function makeOffsetQuery(): Builder
     {
@@ -377,8 +356,6 @@ class DownloadQueue
 
     /**
      * Retrieves a total count of all the records in the result.
-     *
-     * @return string
      */
     public function getQueryTotal(): string
     {
@@ -390,8 +367,6 @@ class DownloadQueue
 
     /**
      * Returns a list of available status options.
-     *
-     * @return array
      */
     public static function getStatusOptions(): array
     {
@@ -404,27 +379,23 @@ class DownloadQueue
 
     /**
      * Maps order options to order values
-     *
-     * @return array
      */
     protected function getOrderMap(): array
     {
         return [
-            self::ORDER_OPTION_CREATED  => self::ORDER_BY_CREATED,
-            self::ORDER_OPTION_NAME     => self::ORDER_BY_NAME,
-            self::ORDER_OPTION_STATUS   => self::ORDER_BY_STATUS,
-            self::ORDER_OPTION_QUEUE    => self::ORDER_BY_QUEUE,
+            self::ORDER_OPTION_CREATED => self::ORDER_BY_CREATED,
+            self::ORDER_OPTION_NAME => self::ORDER_BY_NAME,
+            self::ORDER_OPTION_STATUS => self::ORDER_BY_STATUS,
+            self::ORDER_OPTION_QUEUE => self::ORDER_BY_QUEUE,
         ];
     }
 
     /**
      * figures out a default order by direction.
-     *
-     * @return string
      */
     protected function getDefaultDirection(): string
     {
-        switch($this->order) {
+        switch ($this->order) {
             case self::ORDER_OPTION_CREATED:
                 return self::ORDER_DESCENDING;
             default:
@@ -434,8 +405,6 @@ class DownloadQueue
 
     /**
      * Calculates the query offset based on the page number and rpp.
-     *
-     * @return integer
      */
     protected function getOffset(): int
     {
@@ -444,19 +413,17 @@ class DownloadQueue
 
     /**
      * Returns the select line of the SQL query.
-     *
-     * @return Builder
      */
     protected function getQuerySelect(): Builder
     {
         $qb = Download::join('packets', 'packets.id', '=', 'downloads.packet_id')
-                ->join('networks', 'networks.id', 'packets.network_id')
-                ->join ('clients', 'clients.network_id', 'networks.id')
-                ->join ('instances', 'instances.client_id', 'clients.id')
-                ->join ('bots', 'bots.id', 'packets.bot_id');
+            ->join('networks', 'networks.id', 'packets.network_id')
+            ->join('clients', 'clients.network_id', 'networks.id')
+            ->join('instances', 'instances.client_id', 'clients.id')
+            ->join('bots', 'bots.id', 'packets.bot_id');
 
         if ($this->getFilterLocked()) {
-            $qb->join ('file_download_locks', 'file_download_locks.file_name', 'downloads.file_name');
+            $qb->join('file_download_locks', 'file_download_locks.file_name', 'downloads.file_name');
         }
 
         return $qb;
@@ -464,8 +431,6 @@ class DownloadQueue
 
     /**
      * Adds Filters to the Query.
-     *
-     * @return Builder
      */
     protected function getQueryFilters(Builder $qb): Builder
     {
@@ -479,40 +444,33 @@ class DownloadQueue
 
     /**
      * Adds sorting order to the Query.
-     *
-     * @param Builder $qb
-     * @return Builder
      */
     protected function getQueryOrder(Builder $qb): Builder
     {
         $orderMap = $this->getOrderMap();
         $orderColumn = $orderMap[$this->getOrder()];
         $direction = $this->getDirection();
+
         return $qb->orderBy($orderColumn, $direction);
     }
 
     /**
      * Adds the limit and offset to the query.
-     *
-     * @return Builder
      */
     protected function getQueryOffset(Builder $qb): Builder
     {
         return $qb->offset($this->getOffset())
-                  ->limit($this->getRpp());
+            ->limit($this->getRpp());
     }
 
     /**
      * Adds filtering by file name to the query.
-     *
-     * @param Builder $qb
-     * @return Builder
      */
     protected function filterFileName(Builder $qb): Builder
     {
         $filterFileName = $this->getFilterFileName();
 
-        if (null !== $filterFileName) {
+        if ($filterFileName !== null) {
             $qb = $qb->where('packets.file_name', $filterFileName);
         }
 
@@ -521,18 +479,15 @@ class DownloadQueue
 
     /**
      * Adds filtering by status to the query.
-     *
-     * @param Builder $qb
-     * @return Builder
      */
     protected function filterStatuses(Builder $qb): Builder
     {
         $filterInStatuses = $this->getFilterInStatuses();
         $filterOutStatuses = $this->getFilterOutStatuses();
 
-        if (0 < count($filterInStatuses)) {
+        if (count($filterInStatuses) > 0) {
             $qb = $qb->whereIn('downloads.status', $filterInStatuses);
-        } else if (0 < count($filterOutStatuses)) {
+        } elseif (count($filterOutStatuses) > 0) {
             $qb = $qb->whereNotIn('downloads.status', $filterOutStatuses);
         }
 
@@ -541,18 +496,15 @@ class DownloadQueue
 
     /**
      * Adds filtering by Instances to the query.
-     *
-     * @param Builder $qb
-     * @return Builder
      */
     protected function filterInstances(Builder $qb): Builder
     {
         $filterInInstances = $this->getFilterInInstances();
         $filterOutInstances = $this->getFilterOutInstances();
 
-        if (0 < count($filterInInstances)) {
+        if (count($filterInInstances) > 0) {
             $qb = $qb->whereIn('instances.id', $filterInInstances);
-        } else if (0 < count($filterOutInstances)) {
+        } elseif (count($filterOutInstances) > 0) {
             $qb = $qb->whereNotIn('instances.id', $filterOutInstances);
         }
 
@@ -561,34 +513,32 @@ class DownloadQueue
 
     /**
      * Returns a Query Builder that filters results with date.
-     *
-     * @return Builder
      */
     protected function filterDateRange(Builder $qb): Builder
     {
         $start = $this->getStartDate();
         $end = $this->getEndDate();
 
-        if (null !== $start) {
+        if ($start !== null) {
             $start = $start->format(self::MYSQL_TIMESTAMP_FORMAT);
         }
 
-        if (null !== $end) {
+        if ($end !== null) {
             $end = $end->format(self::MYSQL_TIMESTAMP_FORMAT);
         }
 
         // If Filtering both by Start and End Dates.
-        if (null !== $start && null !== $end) {
+        if ($start !== null && $end !== null) {
             $qb = $qb->whereBetween('downloads.updated_at', [$start, $end]);
         }
 
         // If Filtering Start Date Only.
-        if (null !== $start && null === $end) {
+        if ($start !== null && $end === null) {
             $qb = $qb->where('downloads.updated_at', '>=', $start);
         }
 
         // If Filtering End Date Only.
-        if (null === $start && null !== $end) {
+        if ($start === null && $end !== null) {
             $qb = $qb->where('downloads.updated_at', '<=', $end);
         }
 
@@ -597,47 +547,38 @@ class DownloadQueue
 
     /**
      * Ensures the value of direction is within the list of available direction options.
-     *
-     * @param $direction
-     * @return string
      */
     protected function sanitizeDirection(string $direction): string
     {
         $direction = strtolower($direction);
         $options = self::getDirectionOptions();
+
         return (in_array($direction, $options)) ? $direction : $this->getDefaultDirection();
     }
 
     /**
      * Ensures the value of order is within the list of available order options.
-     *
-     * @param $order
-     * @return string
      */
     protected function sanitizeOrder(string $order): string
     {
         $order = strtolower($order);
         $options = self::getOrderOptions();
+
         return (in_array($order, $options)) ? $order : self::ORDER_OPTION_DEFAULT;
     }
 
     /**
      * With a list of Status strings, only return the ones that are valid.
-     *
-     * @param array $statusList
-     * @return array
      */
     protected function sanitizeStatusList(array $statusList): array
     {
         $intersection = array_intersect($statusList, self::getStatusOptions());
+
         return $intersection;
     }
 
     /**
      * With a list of instance ID's filter it through a query and only return the id's that exist.
-     *
-     * @param array $instanceList
-     * @return array
      */
     protected function sanitizeInstanceList(array $instanceList): array
     {
@@ -646,10 +587,8 @@ class DownloadQueue
 
     /**
      * Get holds the value of the order.
-     *
-     * @return  string
      */
-    public function getOrder(): string|null
+    public function getOrder(): ?string
     {
         return $this->order;
     }
@@ -658,8 +597,6 @@ class DownloadQueue
      * Set holds the value of the order.
      *
      * @param  string  $order  Holds the value of the order.
-     *
-     * @return  void
      */
     public function setOrder(string $order): void
     {
@@ -668,8 +605,6 @@ class DownloadQueue
 
     /**
      * Get records per page.
-     *
-     * @return  int
      */
     public function getRpp(): int
     {
@@ -680,8 +615,6 @@ class DownloadQueue
      * Set records per page.
      *
      * @param  int  $rpp  Records per page.
-     *
-     * @return  void
      */
     public function setRpp(int $rpp): void
     {
@@ -695,8 +628,6 @@ class DownloadQueue
 
     /**
      * Get page of the recordset.
-     *
-     * @return  int
      */
     public function getPage(): int
     {
@@ -707,8 +638,6 @@ class DownloadQueue
      * Set page of the recordset.
      *
      * @param  int  $page  Page of the recordset.
-     *
-     * @return  void
      */
     public function setPage(int $page): void
     {
@@ -723,7 +652,7 @@ class DownloadQueue
     /**
      * Get earlist DateTime of query.
      *
-     * @return  DateTime
+     * @return DateTime
      */
     public function getStartDate()
     {
@@ -734,8 +663,6 @@ class DownloadQueue
      * Set earlist DateTime of query.
      *
      * @param  DateTime  $startDate  Earlist DateTime of query.
-     *
-     * @return  void
      */
     public function setStartDate(DateTime $startDate): void
     {
@@ -745,7 +672,7 @@ class DownloadQueue
     /**
      * Get latest DateTime of query.
      *
-     * @return  DateTime
+     * @return DateTime
      */
     public function getEndDate()
     {
@@ -756,22 +683,18 @@ class DownloadQueue
      * Set latest DateTime of query.
      *
      * @param  DateTime  $endDate  Latest DateTime of query.
-     *
-     * @return  void
      */
-    public function setEndDate(DateTime $endDate):void
+    public function setEndDate(DateTime $endDate): void
     {
         $this->endDate = $endDate;
     }
 
     /**
      * Get direction of result order
-     *
-     * @return  string
      */
     public function getDirection(): string
     {
-        if (null === $this->direction) {
+        if ($this->direction === null) {
             return $this->getDefaultDirection();
         }
 
@@ -782,19 +705,16 @@ class DownloadQueue
      * Set direction of result order
      *
      * @param  string  $direction  Direction of result order
-     *
-     * @return  void
      */
     public function setDirection(string $direction): void
     {
         $this->direction = $direction;
     }
 
-
     /**
      * Get list of Statuses to filter In
      *
-     * @return  array<string>
+     * @return array<string>
      */
     public function getFilterInStatuses()
     {
@@ -805,8 +725,6 @@ class DownloadQueue
      * Set list of Statuses to filter In
      *
      * @param  array<string>  $filterInStatuses  List of Statuses to filter In
-     *
-     * @return  void
      */
     public function setFilterInStatuses(array $filterInStatuses): void
     {
@@ -816,7 +734,7 @@ class DownloadQueue
     /**
      * Get list of Statuses to filter out
      *
-     * @return  array<string>
+     * @return array<string>
      */
     public function getFilterOutStatuses()
     {
@@ -827,8 +745,6 @@ class DownloadQueue
      * Set list of Statuses to filter out
      *
      * @param  array<string>  $filterOutStatuses  List of Statuses to filter out
-     *
-     * @return  void
      */
     public function setFilterOutStatuses(array $filterOutStatuses): void
     {
@@ -838,7 +754,7 @@ class DownloadQueue
     /**
      * Get list of Instance IDs to filter in.
      *
-     * @return  array<int>
+     * @return array<int>
      */
     public function getFilterInInstances()
     {
@@ -849,8 +765,6 @@ class DownloadQueue
      * Set list of Instance IDs to filter in.
      *
      * @param  array<int>  $filterInInstances  List of Instance IDs to filter in.
-     *
-     * @return  void
      */
     public function setFilterInInstances(array $filterInInstances): void
     {
@@ -860,7 +774,7 @@ class DownloadQueue
     /**
      * Get list of Instance IDs to filter out.
      *
-     * @return  array<int>
+     * @return array<int>
      */
     public function getFilterOutInstances()
     {
@@ -871,8 +785,6 @@ class DownloadQueue
      * Set list of Instance IDs to filter out.
      *
      * @param  array<int>  $filterOutInstances  List of Instance IDs to filter out.
-     *
-     * @return  void
      */
     public function setFilterOutInstances(array $filterOutInstances): void
     {
@@ -882,7 +794,7 @@ class DownloadQueue
     /**
      * Get name of file to filter by.
      *
-     * @return  string
+     * @return string
      */
     public function getFilterFileName()
     {
@@ -893,8 +805,6 @@ class DownloadQueue
      * Set name of file to filter by.
      *
      * @param  string  $filterFileName  Name of file to filter by.
-     *
-     * @return  void
      */
     public function setFilterFileName(string $filterFileName): void
     {
@@ -903,8 +813,6 @@ class DownloadQueue
 
     /**
      * Get whether to include only files that are locked.
-     *
-     * @return  boolean
      */
     public function getFilterLocked(): bool
     {
@@ -914,9 +822,7 @@ class DownloadQueue
     /**
      * Set whether to include only files that are locked.
      *
-     * @param  boolean  $filterLocked  Whether to include only files that are locked.
-     *
-     * @return  void
+     * @param  bool  $filterLocked  Whether to include only files that are locked.
      */
     public function setFilterLocked(bool $filterLocked): void
     {

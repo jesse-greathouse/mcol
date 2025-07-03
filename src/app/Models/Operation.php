@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory,
-    Illuminate\Database\Eloquent\Model,
-    Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Class Operation
@@ -20,7 +20,9 @@ class Operation extends Model
 
     // Status constants
     const STATUS_PENDING = 'PENDING';
+
     const STATUS_COMPLETED = 'COMPLETED';
+
     const STATUS_FAILED = 'FAILED';
 
     /** @var array The attributes that are not mass assignable */
@@ -28,8 +30,6 @@ class Operation extends Model
 
     /**
      * Define the relationship between Operation and Instance.
-     *
-     * @return BelongsTo
      */
     public function instance(): BelongsTo
     {

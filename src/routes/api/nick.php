@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Requests\ApiStoreNickRequest;
+use App\Http\Resources\NickCollection;
+use App\Http\Resources\NickResource;
+use App\Models\Nick;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Nick,
-    App\Http\Requests\ApiStoreNickRequest,
-    App\Http\Resources\NickCollection,
-    App\Http\Resources\NickResource;
 
 // GET /api/nick
 Route::middleware('auth:sanctum')->get('/nick', function () {
@@ -32,7 +31,7 @@ Route::middleware('auth:sanctum')->post('/nick', function (ApiStoreNickRequest $
     }
 
     $nick = Nick::create($inputs);
- 
+
     return redirect("/api/nick/{$nick->id}");
 });
 
@@ -70,6 +69,6 @@ Route::middleware('auth:sanctum')->delete('/nick/{id}', function (string $id) {
 
     return response()->json([
         'success' => true,
-        'message' => "Nick: $nickStr with id: $id was deleted."
+        'message' => "Nick: $nickStr with id: $id was deleted.",
     ]);
 });

@@ -2,8 +2,6 @@
 
 namespace App\Store;
 
-use App\Store\Data;
-
 /**
  * SystemSettings works differently than all the other stores.
  * The values of this settings store is dictated by the system.
@@ -19,12 +17,10 @@ final class SystemSettings extends Data
 
     /**
      * The body of data values that can be stored and retrieved.
-     *
-     * @var array
      */
     protected array $storable = [
-        self::DS                    => DIRECTORY_SEPARATOR,
-        self::DIRECTORY_SEPARATOR   => DIRECTORY_SEPARATOR,
+        self::DS => DIRECTORY_SEPARATOR,
+        self::DIRECTORY_SEPARATOR => DIRECTORY_SEPARATOR,
     ];
 
     /**
@@ -33,10 +29,8 @@ final class SystemSettings extends Data
     public function __construct() {}
 
     /**
-    * Just overloads save method.
-    *
-    * @return void
-    */
+     * Just overloads save method.
+     */
     public function save(): void
     {
         // Do nothing

@@ -2,25 +2,22 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldBeUnique,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
+use App\Dcc\Client;
+use App\Exceptions\HostRefusedConnectionException;
+use App\Exceptions\IllegalPacketException;
+use App\Exceptions\UnknownBotException;
+use App\Models\Bot;
+use App\Models\Packet;
+use Exception;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
-use App\Dcc\Client,
-    App\Exceptions\HostRefusedConnectionException,
-    App\Exceptions\IllegalPacketException,
-    App\Exceptions\UnknownBotException,
-    App\Jobs\CancelRequest,
-    App\Models\Bot,
-    App\Models\Packet;
-
-use \Exception;
-
-class DccDownload implements ShouldQueue, ShouldBeUnique
+class DccDownload implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -48,52 +45,52 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
     public $tries = 1;
 
     /**
-    * Host selected for connection
-    *
-    * @var string
-    */
-   protected $host;
+     * Host selected for connection
+     *
+     * @var string
+     */
+    protected $host;
 
-   /**
-    * network selected for run
-    *
-    * @var string
-    */
-   protected $port;
+    /**
+     * network selected for run
+     *
+     * @var string
+     */
+    protected $port;
 
-   /**
-    * Name of file to be sent.
-    *
-    * @var string
-    */
-   protected $file;
+    /**
+     * Name of file to be sent.
+     *
+     * @var string
+     */
+    protected $file;
 
-   /**
-    * Name of file size of the file.
-    *
-    * @var string
-    */
-   protected $fileSize;
+    /**
+     * Name of file size of the file.
+     *
+     * @var string
+     */
+    protected $fileSize;
 
-   /**
-    * Name of the bot.
-    *
-    * @var string
-    */
-   protected $botName;
+    /**
+     * Name of the bot.
+     *
+     * @var string
+     */
+    protected $botName;
 
-   /**
-    * Resume flag.
-    *
-    * @var int
-    */
+    /**
+     * Resume flag.
+     *
+     * @var int
+     */
     protected $resume;
 
     /**
-    * Instance of a bot model.
-    *
-    * @var Bot
-    */
+     * Instance of a bot model.
+     *
+     * @var Bot
+     */
     protected $bot;
 
     /**
@@ -117,7 +114,7 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
         $bot = $this->getBot();
         $packet = $this->getPacketByBot($bot);
 
-        if (!$packet) {
+        if (! $packet) {
             throw new IllegalPacketException("Packet with bot id: {$bot->id} and file: {$this->file} was expected but not found");
         }
 
@@ -125,7 +122,7 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
 
         try {
             $dcc->download(long2ip($this->host), $this->port, $this->resume);
-        } catch(HostRefusedConnectionException $e) {
+        } catch (HostRefusedConnectionException $e) {
             Log::warning("DCC Client: Host Refused Connection \nbot: {$bot->nick} \nhost: {$this->host} \nfile: {$this->file} \nmessage: \n{$e->getMessage()}");
             Log::warning("Canceling request from: \nbot: {$bot->nick}");
             CancelRequest::dispatch($bot);
@@ -134,16 +131,14 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
 
     /**
      * Returns a Bot or null.
-     *
-     * @return Bot|null
      */
-    protected function getBot(): Bot|null
+    protected function getBot(): ?Bot
     {
-        if (null === $this->bot) {
+        if ($this->bot === null) {
 
             $bot = Bot::where('nick', $this->botName)->first();
 
-            if (null === $bot) {
+            if ($bot === null) {
                 throw new UnknownBotException("Bot with the name: '{$this->botName}' was not found.");
             }
 
@@ -160,8 +155,7 @@ class DccDownload implements ShouldQueue, ShouldBeUnique
      * It tries to find an exact match for the file name first, and if not found, it attempts to replace
      * underscores in the file name with spaces and searches again.
      *
-     * @param Bot $bot the bot associated with the packet.
-     *
+     * @param  Bot  $bot  the bot associated with the packet.
      * @return Packet|null The found packet, or null if no packet is found for the given file name and bot ID.
      */
     protected function getPacketByBot(Bot $bot): ?Packet

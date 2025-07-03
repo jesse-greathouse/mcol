@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Requests\ApiStoreInstanceRequest;
+use App\Http\Resources\InstanceCollection;
+use App\Http\Resources\InstanceResource;
+use App\Models\Instance;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Instance,
-    App\Http\Requests\ApiStoreInstanceRequest,
-    App\Http\Resources\InstanceCollection,
-    App\Http\Resources\InstanceResource;
 
 // GET /api/instance
 Route::middleware('auth:sanctum')->get('/instance', function () {
@@ -17,7 +16,7 @@ Route::middleware('auth:sanctum')->post('/instance', function (ApiStoreInstanceR
     $validated = $request->validated();
 
     $inputs = [
-        'log_uri'  => $validated['log_uri'],
+        'log_uri' => $validated['log_uri'],
         'client_id' => $validated['client'],
     ];
 
@@ -38,7 +37,7 @@ Route::middleware('auth:sanctum')->post('/instance', function (ApiStoreInstanceR
     }
 
     $instance = Instance::create($inputs);
- 
+
     return redirect("/api/instance/{$instance->id}");
 });
 
@@ -84,6 +83,6 @@ Route::middleware('auth:sanctum')->delete('/instance/{id}', function (string $id
 
     return response()->json([
         'success' => true,
-        'message' => "Instance: $log with id: $id was deleted."
+        'message' => "Instance: $log with id: $id was deleted.",
     ]);
 });

@@ -31,7 +31,7 @@ class SystemMessageRequest extends FormRequest
     {
         return [
             'queue.required' => 'queue is a required parameter.',
-            'queue.string'   => 'queue must be a string.',
+            'queue.string' => 'queue must be a string.',
         ];
     }
 }

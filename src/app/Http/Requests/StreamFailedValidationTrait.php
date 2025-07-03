@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\Validator,
-    Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 /**
  * Provides default implementation of ValidatesWhenResolved contract.
@@ -15,9 +15,9 @@ trait StreamFailedValidationTrait
     {
         $content = '';
 
-        foreach($validator->errors()->getMessages() as $key => $msgs) {
+        foreach ($validator->errors()->getMessages() as $key => $msgs) {
             $content .= "[$key]:\n";
-            foreach($msgs as $message) {
+            foreach ($msgs as $message) {
                 $content .= "$message\n";
             }
         }

@@ -1,10 +1,9 @@
 <?php
 
+use App\Http\Resources\DownloadHistoryCollection;
+use App\Http\Resources\DownloadHistoryResource;
+use App\Models\DownloadHistory;
 use Illuminate\Support\Facades\Route;
-
-use App\Http\Resources\DownloadHistoryResource,
-    App\Http\Resources\DownloadHistoryCollection,
-    App\Models\DownloadHistory;
 
 // GET /api/download-history
 Route::middleware('auth:sanctum')->get('/download-history', function () {

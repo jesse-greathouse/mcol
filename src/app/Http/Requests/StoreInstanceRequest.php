@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest,
-    Illuminate\Validation\Validator;
-
-use App\Models\Client,
-    App\Models\Instance;
+use App\Models\Client;
+use App\Models\Instance;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * Class StoreInstanceRequest
@@ -26,8 +25,6 @@ class StoreInstanceRequest extends FormRequest
 
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -42,11 +39,11 @@ class StoreInstanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'log_uri'        => 'required',
-            'pid'            => 'nullable|numeric',
-            'enabled'        => 'nullable|in:0,1',
+            'log_uri' => 'required',
+            'pid' => 'nullable|numeric',
+            'enabled' => 'nullable|in:0,1',
             'desired_status' => 'nullable|max:255',
-            'client'         => 'required|numeric',
+            'client' => 'required|numeric',
         ];
     }
 
@@ -66,7 +63,7 @@ class StoreInstanceRequest extends FormRequest
                 $validated = $validator->validated();
                 $clientId = $validated[$this->clientKey] ?? null;
 
-                if ($clientId && !$this->clientExists($clientId)) {
+                if ($clientId && ! $this->clientExists($clientId)) {
                     $validator->errors()->add(
                         $this->clientKey,
                         "Client with id: $clientId was not found."
@@ -82,22 +79,21 @@ class StoreInstanceRequest extends FormRequest
                 $validated = $validator->validated();
                 $desiredStatus = $validated[$this->desiredStatusKey] ?? null;
 
-                if ($desiredStatus && !$this->isValidDesiredStatus($desiredStatus)) {
+                if ($desiredStatus && ! $this->isValidDesiredStatus($desiredStatus)) {
                     $validStatuses = implode(' and ', [Instance::STATUS_UP, Instance::STATUS_DOWN]);
                     $validator->errors()->add(
                         $this->desiredStatusKey,
                         "Desired status: $desiredStatus is not valid. (Valid statuses are: $validStatuses)"
                     );
                 }
-            }
+            },
         ];
     }
 
     /**
      * Checks if the client exists in the database.
      *
-     * @param int $clientId The client ID to check.
-     * @return bool
+     * @param  int  $clientId  The client ID to check.
      */
     private function clientExists(int $clientId): bool
     {
@@ -107,8 +103,7 @@ class StoreInstanceRequest extends FormRequest
     /**
      * Checks if the desired status is valid.
      *
-     * @param string $desiredStatus The desired status to validate.
-     * @return bool
+     * @param  string  $desiredStatus  The desired status to validate.
      */
     private function isValidDesiredStatus(string $desiredStatus): bool
     {

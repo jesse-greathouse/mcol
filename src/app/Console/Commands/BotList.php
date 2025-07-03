@@ -2,12 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Exceptions\UnknownBotException;
+use App\Jobs\BotListRequest;
+use App\Models\Bot;
+use App\Models\Network;
 use Illuminate\Console\Command;
-
-use App\Exceptions\UnknownBotException,
-    App\Jobs\BotListRequest,
-    App\Models\Bot,
-    App\Models\Network;
 
 class BotList extends Command
 {

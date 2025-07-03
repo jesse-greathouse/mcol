@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Requests\ApiStoreServerRequest;
+use App\Http\Resources\ServerCollection;
+use App\Http\Resources\ServerResource;
+use App\Models\Server;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Server,
-    App\Http\Requests\ApiStoreServerRequest,
-    App\Http\Resources\ServerCollection,
-    App\Http\Resources\ServerResource;
 
 // GET /api/server
 Route::middleware('auth:sanctum')->get('/server', function () {
@@ -20,7 +19,7 @@ Route::middleware('auth:sanctum')->post('/server', function (ApiStoreServerReque
         'host' => $validated['host'],
         'network_id' => $validated['network'],
     ]);
- 
+
     return redirect("/api/server/{$server->id}");
 });
 
@@ -50,6 +49,6 @@ Route::middleware('auth:sanctum')->delete('/server/{id}', function (string $id) 
 
     return response()->json([
         'success' => true,
-        'message' => "Server: $host with id: $id was deleted."
+        'message' => "Server: $host with id: $id was deleted.",
     ]);
 });

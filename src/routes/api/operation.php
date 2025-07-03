@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Requests\ApiStoreOperationRequest;
+use App\Http\Resources\OperationCollection;
+use App\Http\Resources\OperationResource;
+use App\Models\Operation;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Operation,
-    App\Http\Requests\ApiStoreOperationRequest,
-    App\Http\Resources\OperationCollection,
-    App\Http\Resources\OperationResource;
 
 // GET /api/operation
 Route::middleware('auth:sanctum')->get('/operation', function () {
@@ -17,8 +16,8 @@ Route::middleware('auth:sanctum')->post('/operation', function (ApiStoreOperatio
     $validated = $request->validated();
 
     $inputs = [
-        'command'       => $validated['command'],
-        'instance_id'   => $validated['instance'],
+        'command' => $validated['command'],
+        'instance_id' => $validated['instance'],
     ];
 
     if (isset($validated['enabled'])) {
@@ -30,7 +29,7 @@ Route::middleware('auth:sanctum')->post('/operation', function (ApiStoreOperatio
     }
 
     $operation = Operation::create($inputs);
- 
+
     return redirect("/api/operation/{$operation->id}");
 });
 
@@ -68,6 +67,6 @@ Route::middleware('auth:sanctum')->delete('/operation/{id}', function (string $i
 
     return response()->json([
         'success' => true,
-        'message' => "Operation: $command with id: $id was deleted."
+        'message' => "Operation: $command with id: $id was deleted.",
     ]);
 });

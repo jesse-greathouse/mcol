@@ -2,20 +2,19 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldBeUnique,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels;
-
-use App\Models\FileFirstAppearance,
-    App\Models\Packet;
+use App\Models\FileFirstAppearance;
+use App\Models\Packet;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 
 /**
  * Job to update the file first appearance based on packet creation date.
  */
-class GenerateFileFirstAppearance implements ShouldQueue, ShouldBeUnique
+class GenerateFileFirstAppearance implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -28,8 +27,6 @@ class GenerateFileFirstAppearance implements ShouldQueue, ShouldBeUnique
 
     /**
      * Handle the job of updating file first appearance for each packet.
-     *
-     * @return void
      */
     public function handle(): void
     {

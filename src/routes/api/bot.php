@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Requests\ApiStoreBotRequest;
+use App\Http\Resources\BotCollection;
+use App\Http\Resources\BotResource;
+use App\Models\Bot;
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Bot,
-    App\Http\Requests\ApiStoreBotRequest,
-    App\Http\Resources\BotCollection,
-    App\Http\Resources\BotResource;
 
 // GET /api/bot
 Route::middleware('auth:sanctum')->get('/bot', function () {
@@ -20,7 +19,7 @@ Route::middleware('auth:sanctum')->post('/bot', function (ApiStoreBotRequest $re
         'nick' => $validated['nick'],
         'network_id' => $validated['network'],
     ]);
- 
+
     return redirect("/api/bot/{$bot->id}");
 });
 
@@ -50,6 +49,6 @@ Route::middleware('auth:sanctum')->delete('/bot/{id}', function (string $id) {
 
     return response()->json([
         'success' => true,
-        'message' => "Bot: $nick with id: $id was deleted."
+        'message' => "Bot: $nick with id: $id was deleted.",
     ]);
 });

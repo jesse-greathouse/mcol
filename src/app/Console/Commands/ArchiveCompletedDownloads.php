@@ -2,10 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\ArchiveDownload;
+use App\Models\Download;
 use Illuminate\Console\Command;
-
-use App\Jobs\ArchiveDownload,
-    App\Models\Download;
 
 class ArchiveCompletedDownloads extends Command
 {

@@ -2,13 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Network;
+use App\Models\Nick;
+use Faker;
+use Faker\Generator as FakerGenerator;
 use Illuminate\Database\Seeder;
-
-use App\Models\Nick,
-    App\Models\Network;
-
-use Faker,
-    Faker\Generator as FakerGenerator;
 
 class NickSeeder extends Seeder
 {
@@ -29,7 +27,9 @@ class NickSeeder extends Seeder
         foreach ($networks as $network) {
             $nick = Nick::where('network_id', $network->id)->first();
 
-            if (null !== $nick ) continue;
+            if ($nick !== null) {
+                continue;
+            }
 
             // Creates a random nickname by combining two random words.
             // Glued together with a _ (underscore).
@@ -46,12 +46,10 @@ class NickSeeder extends Seeder
     /**
      * Provides the class instance of faker.
      * Creates a new faker instance if it has not been created yet.
-     *
-     * @return FakerGenerator
      */
     public function getFaker(): FakerGenerator
     {
-        if (null === $this->faker) {
+        if ($this->faker === null) {
             $this->faker = Faker\Factory::create();
         }
 

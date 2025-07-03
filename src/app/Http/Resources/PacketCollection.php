@@ -2,13 +2,11 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request,
-    Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 /**
  * Class PacketCollection
- *
- * @package App\Http\Resources
  */
 class PacketCollection extends ResourceCollection
 {

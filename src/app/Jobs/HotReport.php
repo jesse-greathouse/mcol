@@ -2,22 +2,21 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable,
-    Illuminate\Contracts\Queue\ShouldBeUnique,
-    Illuminate\Contracts\Queue\ShouldQueue,
-    Illuminate\Foundation\Bus\Dispatchable,
-    Illuminate\Queue\InteractsWithQueue,
-    Illuminate\Queue\SerializesModels,
-    Illuminate\Support\Facades\Log;
+use App\Exceptions\InvalidClientException;
+use App\Models\Channel;
+use App\Models\Client;
+use App\Models\Instance;
+use App\Models\Network;
+use App\Models\Operation;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
-use App\Exceptions\InvalidClientException,
-    App\Models\Client,
-    App\Models\Channel,
-    App\Models\Instance,
-    App\Models\Network,
-    App\Models\Operation;
-
-class HotReport implements ShouldQueue, ShouldBeUnique
+class HotReport implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -37,9 +36,6 @@ class HotReport implements ShouldQueue, ShouldBeUnique
 
     /**
      * HotReport constructor.
-     *
-     * @param Network $network
-     * @param Channel $channel
      */
     public function __construct(
         public Network $network,
@@ -50,8 +46,6 @@ class HotReport implements ShouldQueue, ShouldBeUnique
      * Execute the job.
      *
      * This will generate a report for the hot status of the instance in the specified channel.
-     *
-     * @return void
      */
     public function handle(): void
     {
@@ -71,7 +65,7 @@ class HotReport implements ShouldQueue, ShouldBeUnique
             'command' => $command,
         ]);
 
-        if (!$op) {
+        if (! $op) {
             Log::error("Failed to query a hot report on: {$this->channel->name}@{$this->network->name}");
         }
     }
@@ -79,7 +73,6 @@ class HotReport implements ShouldQueue, ShouldBeUnique
     /**
      * Retrieve the associated client for the network.
      *
-     * @return Client|null
      *
      * @throws InvalidClientException if no client is found for the network.
      */
@@ -88,7 +81,7 @@ class HotReport implements ShouldQueue, ShouldBeUnique
         // Using a direct query for efficiency.
         $client = Client::where('network_id', $this->network->id)->first();
 
-        if (null === $client) {
+        if ($client === null) {
             throw new InvalidClientException("Client for network: {$this->network->name} was not found.");
         }
 
@@ -97,8 +90,6 @@ class HotReport implements ShouldQueue, ShouldBeUnique
 
     /**
      * Get the unique identifier for the job.
-     *
-     * @return string
      */
     public function uniqueId(): string
     {

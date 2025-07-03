@@ -2,15 +2,14 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Contracts\Cache\Repository,
-    Illuminate\Console\Command;
-
-use App\Chat\Client as IrcClient,
-    App\Models\Client,
-    App\Models\Instance,
-    App\Models\Nick,
-    App\Models\Network,
-    App\SystemMessage;
+use App\Chat\Client as IrcClient;
+use App\Models\Client;
+use App\Models\Instance;
+use App\Models\Network;
+use App\Models\Nick;
+use App\SystemMessage;
+use Illuminate\Console\Command;
+use Illuminate\Contracts\Cache\Repository;
 
 /**
  * Command to instantiate an IRC client.
@@ -54,8 +53,6 @@ class MakeInstance extends Command
 
     /**
      * MakeInstance constructor.
-     *
-     * @param Repository $cache
      */
     public function __construct(Repository $cache)
     {
@@ -71,8 +68,9 @@ class MakeInstance extends Command
         $nick = $this->getNick();
         $network = $this->getNetwork();
 
-        if (!$nick || !$network) {
+        if (! $nick || ! $network) {
             $this->error('A valid --nick and --network are required.');
+
             return;
         }
 
@@ -89,10 +87,6 @@ class MakeInstance extends Command
 
     /**
      * Checks if a live instance exists or creates a new one.
-     *
-     * @param Nick $nick
-     * @param Network $network
-     * @return Instance|null
      */
     protected function checkLiveInstance(Nick $nick, Network $network): ?Instance
     {
@@ -102,12 +96,13 @@ class MakeInstance extends Command
             ['enabled' => true]
         );
 
-        if (!$client) {
+        if (! $client) {
             return null;
         }
 
         // Retrieve or create the associated instance with the current PID
         $pid = getmypid();
+
         return Instance::updateOrCreate(
             ['client_id' => $client->id],
             ['desired_status' => Instance::STATUS_UP, 'enabled' => true, 'pid' => $pid]
@@ -116,8 +111,6 @@ class MakeInstance extends Command
 
     /**
      * Retrieves the Nick instance based on the provided option.
-     *
-     * @return Nick|null
      */
     protected function getNick(): ?Nick
     {
@@ -127,8 +120,9 @@ class MakeInstance extends Command
 
         $nickName = $this->option('nick');
 
-        if (!$nickName) {
+        if (! $nickName) {
             $this->error('A valid --nick is required.');
+
             return null;
         }
 
@@ -137,8 +131,6 @@ class MakeInstance extends Command
 
     /**
      * Retrieves the Network instance based on the provided option.
-     *
-     * @return Network|null
      */
     protected function getNetwork(): ?Network
     {
@@ -148,8 +140,9 @@ class MakeInstance extends Command
 
         $networkName = $this->option('network');
 
-        if (!$networkName) {
+        if (! $networkName) {
             $this->error('A valid --network is required.');
+
             return null;
         }
 

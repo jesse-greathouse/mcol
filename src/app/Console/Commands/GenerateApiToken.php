@@ -2,9 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-
 use App\Models\User;
+use Illuminate\Console\Command;
 
 class GenerateApiToken extends Command
 {
@@ -49,8 +48,9 @@ class GenerateApiToken extends Command
 
         $email = $this->argument('email');
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->error('A valid email address is required.');
+
             return null;
         }
 

@@ -1,22 +1,19 @@
 <?php
+
 namespace App\Packet;
 
-use Illuminate\Pagination\LengthAwarePaginator,
-    Illuminate\Support\Facades\DB;
-
-use App\Exceptions\IllegalPageException,
-    App\Exceptions\IllegalRppException;
-
-use App\Media\MediaDynamicRange,
-    App\Media\MediaLanguage,
-    App\Media\MediaResolution,
-    App\Media\MediaType;
-
-use App\Models\Bot,
-    App\Models\Network,
-    App\Packet\File\FileExtension;
-
+use App\Exceptions\IllegalPageException;
+use App\Exceptions\IllegalRppException;
+use App\Media\MediaDynamicRange;
+use App\Media\MediaLanguage;
+use App\Media\MediaResolution;
+use App\Media\MediaType;
+use App\Models\Bot;
+use App\Models\Network;
+use App\Packet\File\FileExtension;
 use DateTime;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Browse class is a comprehensive tool for creating SQL queries for the packets table.
@@ -28,182 +25,186 @@ class Browse
 
     // Order constants
     const ORDER_BY_PACKET_CREATED = 'p.created_at';
+
     const ORDER_BY_FILE_RELEASE = 'f.created_at';
+
     const ORDER_BY_GETS = 'p.gets';
+
     const ORDER_BY_FILE_NAME = 'p.file_name';
 
     // Order option constants
     const ORDER_OPTION_CREATED = 'created';
+
     const ORDER_OPTION_RELEASE = 'release';
+
     const ORDER_OPTION_GETS = 'gets';
+
     const ORDER_OPTION_NAME = 'name';
+
     const ORDER_OPTION_DEFAULT = self::ORDER_OPTION_CREATED;
 
     // Sort direction constants
     const ORDER_ASCENDING = 'asc';
+
     const ORDER_DESCENDING = 'desc';
 
     // Default pagination constants
     const DEFAULT_RPP = 40;
+
     const DEFAULT_PAGE = 1;
 
     // Filter constants
     const FILTER_END_DATE = 'endDate';
+
     const FILTER_START_DATE = 'startDate';
+
     const FILTER_SEARCH_STRING = 'searchString';
+
     const FILTER_IN_BOTS = 'filterInBots';
+
     const FILTER_OUT_BOTS = 'filterOutBots';
+
     const FILTER_IN_NICKS = 'filterInNicks';
+
     const FILTER_OUT_NICKS = 'filterOutNicks';
+
     const FILTER_IN_NETWORKS = 'filterInNetworks';
+
     const FILTER_OUT_NETWORKS = 'filterOutNetworks';
+
     const FILTER_IN_LANGUAGES = 'filterInLanguages';
+
     const FILTER_OUT_LANGUAGES = 'filterOutLanguages';
+
     const FILTER_IN_MEDIA_TYPES = 'filterInMediaTypes';
+
     const FILTER_OUT_MEDIA_TYPES = 'filterOutMediaTypes';
+
     const FILTER_IN_RESOLUTIONS = 'filterInResolutions';
+
     const FILTER_OUT_RESOLUTIONS = 'filterOutResolutions';
+
     const FILTER_IN_DYNAMIC_RANGE = 'filterInDynamicRange';
+
     const FILTER_OUT_DYNAMIC_RANGE = 'filterOutDynamicRange';
+
     const FILTER_IN_FILE_EXTENSIONS = 'filterInFileExtensions';
+
     const FILTER_OUT_FILE_EXTENSIONS = 'filterOutFileExtensions';
 
     // Properties for filtering lists
     /**
      * List of media types to filter in.
-     * @var array
      */
     protected array $filterInMediaTypes = [];
 
     /**
      * List of media types to filter out.
-     * @var array
      */
     protected array $filterOutMediaTypes = [];
 
     /**
      * List of bots to filter in.
-     * @var array
      */
     protected array $filterInBots = [];
 
     /**
      * List of bots to filter out.
-     * @var array
      */
     protected array $filterOutBots = [];
 
     /**
      * List of bot nicks to filter in.
-     * @var array
      */
     protected array $filterInNicks = [];
 
     /**
      * List of bot nicks to filter out.
-     * @var array
      */
     protected array $filterOutNicks = [];
 
     /**
      * List of languages to filter in.
-     * @var array
      */
     protected array $filterInLanguages = [];
 
     /**
      * List of languages to filter out.
-     * @var array
      */
     protected array $filterOutLanguages = [];
 
     /**
      * List of networks to filter in.
-     * @var array
      */
     protected array $filterInNetworks = [];
 
     /**
      * List of networks to filter out.
-     * @var array
      */
     protected array $filterOutNetworks = [];
 
     /**
      * List of resolutions to filter in.
-     * @var array
      */
     protected array $filterInResolutions = [];
 
     /**
      * List of resolutions to filter out.
-     * @var array
      */
     protected array $filterOutResolutions = [];
 
     /**
      * List of dynamic ranges to filter in.
-     * @var array
      */
     protected array $filterInDynamicRange = [];
 
     /**
      * List of dynamic ranges to filter out.
-     * @var array
      */
     protected array $filterOutDynamicRange = [];
 
     /**
      * List of file extensions to filter in.
-     * @var array
      */
     protected array $filterInFileExtensions = [];
 
     /**
      * List of file extensions to filter out.
-     * @var array
      */
     protected array $filterOutFileExtensions = [];
 
     /**
      * Search string entered by the user.
-     * @var string|null
      */
     protected ?string $searchString = null;
 
     /**
      * Earliest DateTime of query.
-     * @var DateTime|null
      */
     protected ?DateTime $startDate = null;
 
     /**
      * Latest DateTime of query.
-     * @var DateTime|null
      */
     protected ?DateTime $endDate = null;
 
     /**
      * The field by which to order results.
-     * @var string|null
      */
     protected ?string $order = null;
 
     /**
      * Direction of sorting (asc or desc).
-     * @var string|null
      */
     protected ?string $direction = null;
 
     /**
      * Records per page.
-     * @var int|null
      */
     protected ?int $rpp = null;
 
     /**
      * Page number of the result set.
-     * @var int|null
      */
     protected ?int $page = null;
 
@@ -220,8 +221,6 @@ class Browse
 
     /**
      * Returns a list of available sorting directions.
-     *
-     * @return array
      */
     public static function getDirectionOptions(): array
     {
@@ -233,8 +232,6 @@ class Browse
 
     /**
      * Returns a list of available order options.
-     *
-     * @return array
      */
     public static function getOrderOptions(): array
     {
@@ -252,7 +249,7 @@ class Browse
      * This method checks if the property corresponding to the filter is a non-empty array
      * or if it is not null, returning true if the filter is active, otherwise false.
      *
-     * @param string $filter The name of the filter property to check.
+     * @param  string  $filter  The name of the filter property to check.
      * @return bool True if the filter is active, false otherwise.
      */
     public function isFiltering(string $filter): bool
@@ -261,7 +258,7 @@ class Browse
 
         // If the property is an array and has elements, it's considered active.
         if (is_array($property)) {
-            return !empty($property);
+            return ! empty($property);
         }
 
         // If the property is not null, it's considered active.
@@ -289,7 +286,7 @@ class Browse
      * and another to fetch the items with pagination (`makeOffsetQuery`). The results are
      * then wrapped in a `LengthAwarePaginator` to provide easy pagination functionality.
      *
-     * @param array $options Additional pagination options (e.g., custom page name).
+     * @param  array  $options  Additional pagination options (e.g., custom page name).
      * @return LengthAwarePaginator The paginated results.
      */
     public function paginate(array $options = []): LengthAwarePaginator
@@ -317,7 +314,7 @@ class Browse
             $this->getQuerySelect(),
             $this->getQueryFrom(),
             $this->getQueryFilters(),
-            $this->getQueryOrder()
+            $this->getQueryOrder(),
         ];
 
         // Join and return the parts as a single query string
@@ -339,7 +336,7 @@ class Browse
             $this->getQueryFrom(),
             $this->getQueryFilters(),
             $this->getQueryOrder(),
-            $this->getQueryOffset()
+            $this->getQueryOffset(),
         ];
 
         // Return the query by joining the array elements into a single string
@@ -359,7 +356,7 @@ class Browse
         $queryParts = [
             $this->getQueryCount(),
             $this->getQueryFrom(),
-            $this->getQueryFilters()
+            $this->getQueryFilters(),
         ];
 
         // Return the query by joining the array elements into a single string
@@ -416,8 +413,8 @@ class Browse
      * This version uses a set-based approach to optimize checking for existence
      * and avoid repeated traversals of the old list for each element in the new list.
      *
-     * @param array $oldList The existing list to which new elements may be added.
-     * @param array $newList The list of new elements to combine with the old list.
+     * @param  array  $oldList  The existing list to which new elements may be added.
+     * @param  array  $newList  The list of new elements to combine with the old list.
      * @return array The combined list, with no duplicates.
      */
     protected function combineList(array $oldList, array $newList): array
@@ -427,7 +424,7 @@ class Browse
 
         // Merge elements from the new list, checking if they already exist in the old set
         foreach ($newList as $el) {
-            if (!isset($oldSet[$el])) {
+            if (! isset($oldSet[$el])) {
                 $oldList[] = $el;
                 $oldSet[$el] = true; // Mark as seen
             }
@@ -452,8 +449,8 @@ class Browse
         return [
             self::ORDER_OPTION_CREATED => self::ORDER_BY_PACKET_CREATED,
             self::ORDER_OPTION_RELEASE => self::ORDER_BY_FILE_RELEASE,
-            self::ORDER_OPTION_GETS    => self::ORDER_BY_GETS,
-            self::ORDER_OPTION_NAME    => self::ORDER_BY_FILE_NAME,
+            self::ORDER_OPTION_GETS => self::ORDER_BY_GETS,
+            self::ORDER_OPTION_NAME => self::ORDER_BY_FILE_NAME,
         ];
     }
 
@@ -478,21 +475,21 @@ class Browse
      * depending on the filtering state. The method should be used when the column query follows a standard pattern.
      * For example, applying filters like `AND p.language IN ('german', 'korean', 'spanish')`.
      *
-     * @param string $column The column to apply the filter on.
-     * @param string $filter The filter condition to include in the query.
-     * @param string|null $negativeFilter The filter condition to exclude from the query, if any.
+     * @param  string  $column  The column to apply the filter on.
+     * @param  string  $filter  The filter condition to include in the query.
+     * @param  string|null  $negativeFilter  The filter condition to exclude from the query, if any.
      * @return string The SQL query snippet for the specified column filter.
      */
     protected function filterColumn(string $column, string $filter, ?string $negativeFilter): string
     {
         // Check if the positive filter is active
         if ($this->isFiltering($filter)) {
-            return "AND $column IN (" . $this->makeListStr($this->$filter) . ")\n";
+            return "AND $column IN (".$this->makeListStr($this->$filter).")\n";
         }
 
         // Check if the negative filter is active
         if ($negativeFilter !== null && $this->isFiltering($negativeFilter)) {
-            return "AND $column NOT IN (" . $this->makeListStr($this->$negativeFilter) . ")\n";
+            return "AND $column NOT IN (".$this->makeListStr($this->$negativeFilter).")\n";
         }
 
         // Return an empty string if no valid filters are found
@@ -511,12 +508,13 @@ class Browse
      */
     protected function filterSearchString(): string
     {
-        if (!$this->isFiltering(self::FILTER_SEARCH_STRING)) {
+        if (! $this->isFiltering(self::FILTER_SEARCH_STRING)) {
             return '';
         }
 
         // Get the search string and return the formatted SQL filter clause
         $searchString = $this->getSearchString();
+
         return "AND MATCH (p.file_name) AGAINST ('$searchString' IN BOOLEAN MODE)\n";
     }
 
@@ -527,13 +525,13 @@ class Browse
      * to each word, which is commonly used in full-text search queries to indicate a
      * match for all words (i.e., a logical AND).
      *
-     * @param string $searchString The search string to format.
+     * @param  string  $searchString  The search string to format.
      * @return string The formatted search string where each word is prefixed with a `+` symbol.
      */
     protected function formatSearchMatchAll(string $searchString): string
     {
         // Split the search string into words and add '+' to each word using array_map for efficiency
-        return implode(' ', array_map(fn($word) => "+$word", explode(' ', $searchString)));
+        return implode(' ', array_map(fn ($word) => "+$word", explode(' ', $searchString)));
     }
 
     /**
@@ -602,7 +600,7 @@ class Browse
         }
 
         // Only build the query if there are selected media types after filtering
-        if (!empty($selectedMediaTypes)) {
+        if (! empty($selectedMediaTypes)) {
             $listStr = $this->makeListStr($selectedMediaTypes);
             $query = "AND p.media_type $state ($listStr)\n";
         }
@@ -635,7 +633,7 @@ class Browse
             }
         }
         // Check for exclusion of dynamic range values
-        else if ($this->isFiltering(self::FILTER_OUT_DYNAMIC_RANGE)) {
+        elseif ($this->isFiltering(self::FILTER_OUT_DYNAMIC_RANGE)) {
             $filterOutDynamicRange = $this->getFilterOutDynamicRange();
 
             if (in_array(MediaDynamicRange::HDR, $filterOutDynamicRange)) {
@@ -673,8 +671,9 @@ class Browse
         }
 
         // Generate the query only if there are selected file extensions
-        if (!empty($selectedFileExtensions)) {
+        if (! empty($selectedFileExtensions)) {
             $listStr = $this->makeListStr($selectedFileExtensions);
+
             return "AND p.extension $state ($listStr)\n";
         }
 
@@ -695,7 +694,7 @@ class Browse
         $queryParts = [
             'FROM mcol.packets p',
             'JOIN mcol.bots b ON p.bot_id = b.id',
-            'JOIN mcol.networks n ON p.network_id = n.id'
+            'JOIN mcol.networks n ON p.network_id = n.id',
         ];
 
         // Conditionally add INNER JOIN for file_first_appearances if date filters are applied
@@ -739,7 +738,7 @@ class Browse
             'p.meta',
             'b.id as bot_id',
             'b.nick',
-            'n.name as network'
+            'n.name as network',
         ];
 
         // Conditionally add 'first_appearance' field if date filters are applied
@@ -801,7 +800,7 @@ class Browse
      * adds all the ways that each language is represented by looking up
      * language mappings from a predefined set of expanded languages.
      *
-     * @param array $mediaLanguageList A list of media languages to be expanded.
+     * @param  array  $mediaLanguageList  A list of media languages to be expanded.
      * @return array The expanded list of media languages.
      */
     protected function expandMediaLanguageList(array $mediaLanguageList): array
@@ -831,7 +830,7 @@ class Browse
      * Some dynamic ranges are represented in multiple ways.
      * This method expands each dynamic range in the list by adding all possible representations.
      *
-     * @param array $mediaDynamicRangeList The list of dynamic ranges to expand.
+     * @param  array  $mediaDynamicRangeList  The list of dynamic ranges to expand.
      * @return array The expanded list of dynamic ranges, including all their representations.
      */
     protected function expandMediaDynamicRangeList(array $mediaDynamicRangeList): array
@@ -856,7 +855,7 @@ class Browse
      * Ensures the value of direction is within the list of available direction options.
      * If the direction is valid, it returns the sanitized value. Otherwise, it returns the default direction.
      *
-     * @param string $direction The direction value to be sanitized.
+     * @param  string  $direction  The direction value to be sanitized.
      * @return string The sanitized direction value, either the input direction or the default.
      */
     protected function sanitizeDirection(string $direction): string
@@ -870,7 +869,7 @@ class Browse
      * Ensures the value of order is within the list of available order options.
      * If the order is valid, it returns the sanitized value. Otherwise, it returns the default order option.
      *
-     * @param string $order The order value to be sanitized.
+     * @param  string  $order  The order value to be sanitized.
      * @return string The sanitized order value, either the input order or the default.
      */
     protected function sanitizeOrder(string $order): string
@@ -884,7 +883,7 @@ class Browse
      * Filters a list of bot IDs through a query and returns only the IDs that exist in the database.
      * Ensures that only valid bot IDs are included in the result by querying the database.
      *
-     * @param array $botList An array of bot IDs to be filtered.
+     * @param  array  $botList  An array of bot IDs to be filtered.
      * @return array An array of existing bot IDs found in the database.
      */
     protected function sanitizeBotList(array $botList): array
@@ -898,7 +897,7 @@ class Browse
      * Checks the provided list of file extension IDs against a pre-existing list of valid file extensions.
      * Only the valid file extensions are returned.
      *
-     * @param array $fileExtensionList An array of file extension IDs to be filtered.
+     * @param  array  $fileExtensionList  An array of file extension IDs to be filtered.
      * @return array An array containing only the valid file extension IDs that exist.
      */
     protected function sanitizeFileExtensionList(array $fileExtensionList): array
@@ -918,7 +917,7 @@ class Browse
      * Checks the provided list of dynamic ranges against a pre-existing list of valid dynamic ranges.
      * Only the valid dynamic range strings are returned.
      *
-     * @param array $mediaDynamicRangeList An array of media dynamic range strings to be filtered.
+     * @param  array  $mediaDynamicRangeList  An array of media dynamic range strings to be filtered.
      * @return array An array containing only the valid dynamic range strings that exist.
      */
     protected function sanitizeMediaDynamicRangeList(array $mediaDynamicRangeList): array
@@ -938,7 +937,7 @@ class Browse
      * This method checks the provided list of media languages against a pre-existing list of valid languages.
      * Only the valid media language strings are returned.
      *
-     * @param array $mediaLanguageList An array of media language strings to be filtered.
+     * @param  array  $mediaLanguageList  An array of media language strings to be filtered.
      * @return array An array containing only the valid media language strings that exist.
      */
     protected function sanitizeMediaLanguageList(array $mediaLanguageList): array
@@ -957,7 +956,7 @@ class Browse
      * Checks the provided list of network names against the database.
      * Only the names that exist in the database are returned.
      *
-     * @param array $networkList An array of network names to be filtered.
+     * @param  array  $networkList  An array of network names to be filtered.
      * @return array An array containing only the network names that exist in the database.
      */
     protected function sanitizeNetworkList(array $networkList): array
@@ -969,7 +968,7 @@ class Browse
     /**
      * Filters a list of media resolution strings and returns only the valid ones.
      *
-     * @param array $mediaResolutionList An array of media resolution strings to be filtered.
+     * @param  array  $mediaResolutionList  An array of media resolution strings to be filtered.
      * @return array An array containing only the valid media resolution strings.
      */
     protected function sanitizeMediaResolutionList(array $mediaResolutionList): array
@@ -985,7 +984,7 @@ class Browse
     /**
      * Filters a list of media type strings and returns only the valid ones.
      *
-     * @param array $mediaTypeList An array of media type strings to be filtered.
+     * @param  array  $mediaTypeList  An array of media type strings to be filtered.
      * @return array An array containing only the valid media type strings.
      */
     protected function sanitizeMediaTypeList(array $mediaTypeList): array
@@ -1002,7 +1001,7 @@ class Browse
      * Converts an array of values into a string formatted for use in a SQL "WHERE IN" clause.
      * The values in the list are enclosed in single quotes and separated by commas.
      *
-     * @param array $list An array of values to be formatted into a string.
+     * @param  array  $list  An array of values to be formatted into a string.
      * @return string A string of values suitable for inclusion in a SQL "WHERE IN" clause.
      */
     protected function makeListStr(array $list): string
@@ -1011,13 +1010,11 @@ class Browse
             return '';
         }
 
-        return '\'' . implode('\',\'', $list) . '\'';
+        return '\''.implode('\',\'', $list).'\'';
     }
 
     /**
      * Get the value of filterInBots
-     *
-     * @return array
      */
     public function getFilterInBots(): array
     {
@@ -1026,9 +1023,6 @@ class Browse
 
     /**
      * Set the value of filterInBots
-     *
-     * @param array $filterInBots
-     * @return void
      */
     public function setFilterInBots(array $filterInBots): void
     {
@@ -1037,8 +1031,6 @@ class Browse
 
     /**
      * Get the value of filterOutBots
-     *
-     * @return array
      */
     public function getFilterOutBots(): array
     {
@@ -1047,9 +1039,6 @@ class Browse
 
     /**
      * Set the value of filterOutBots
-     *
-     * @param array $filterOutBots
-     * @return void
      */
     public function setFilterOutBots(array $filterOutBots): void
     {
@@ -1058,8 +1047,6 @@ class Browse
 
     /**
      * Get the value of filterInLanguages
-     *
-     * @return array
      */
     public function getFilterInLanguages(): array
     {
@@ -1068,9 +1055,6 @@ class Browse
 
     /**
      * Set the value of filterInLanguages
-     *
-     * @param array $filterInLanguages
-     * @return void
      */
     public function setFilterInLanguages(array $filterInLanguages): void
     {
@@ -1081,8 +1065,6 @@ class Browse
 
     /**
      * Get the value of filterOutLanguages
-     *
-     * @return array
      */
     public function getFilterOutLanguages(): array
     {
@@ -1091,9 +1073,6 @@ class Browse
 
     /**
      * Set the value of filterOutLanguages
-     *
-     * @param array $filterOutLanguages
-     * @return void
      */
     public function setFilterOutLanguages(array $filterOutLanguages): void
     {
@@ -1104,8 +1083,6 @@ class Browse
 
     /**
      * Get the value of filterInResolutions
-     *
-     * @return array
      */
     public function getFilterInResolutions(): array
     {
@@ -1114,9 +1091,6 @@ class Browse
 
     /**
      * Set the value of filterInResolutions
-     *
-     * @param array $filterInResolutions
-     * @return void
      */
     public function setFilterInResolutions(array $filterInResolutions): void
     {
@@ -1125,8 +1099,6 @@ class Browse
 
     /**
      * Get the value of filterOutResolutions
-     *
-     * @return array
      */
     public function getFilterOutResolutions(): array
     {
@@ -1135,9 +1107,6 @@ class Browse
 
     /**
      * Set the value of filterOutResolutions
-     *
-     * @param array $filterOutResolutions
-     * @return void
      */
     public function setFilterOutResolutions(array $filterOutResolutions): void
     {
@@ -1146,8 +1115,6 @@ class Browse
 
     /**
      * Get the value of filterInNetworks
-     *
-     * @return array
      */
     public function getFilterInNetworks(): array
     {
@@ -1156,9 +1123,6 @@ class Browse
 
     /**
      * Set the value of filterInNetworks
-     *
-     * @param array $filterInNetworks
-     * @return void
      */
     public function setFilterInNetworks(array $filterInNetworks): void
     {
@@ -1167,8 +1131,6 @@ class Browse
 
     /**
      * Get the value of filterOutNetworks
-     *
-     * @return array
      */
     public function getFilterOutNetworks(): array
     {
@@ -1177,9 +1139,6 @@ class Browse
 
     /**
      * Set the value of filterOutNetworks
-     *
-     * @param array $filterOutNetworks
-     * @return void
      */
     public function setFilterOutNetworks(array $filterOutNetworks): void
     {
@@ -1188,8 +1147,6 @@ class Browse
 
     /**
      * Get the value of filterInDynamicRange
-     *
-     * @return array
      */
     public function getFilterInDynamicRange(): array
     {
@@ -1198,9 +1155,6 @@ class Browse
 
     /**
      * Set the value of filterInDynamicRange
-     *
-     * @param array $filterInDynamicRange
-     * @return void
      */
     public function setFilterInDynamicRange(array $filterInDynamicRange): void
     {
@@ -1211,8 +1165,6 @@ class Browse
 
     /**
      * Get the value of filterOutDynamicRange
-     *
-     * @return array
      */
     public function getFilterOutDynamicRange(): array
     {
@@ -1221,9 +1173,6 @@ class Browse
 
     /**
      * Set the value of filterOutDynamicRange
-     *
-     * @param array $filterOutDynamicRange
-     * @return void
      */
     public function setFilterOutDynamicRange(array $filterOutDynamicRange): void
     {
@@ -1234,8 +1183,6 @@ class Browse
 
     /**
      * Get the value of filterInFileExtensions
-     *
-     * @return array
      */
     public function getFilterInFileExtensions(): array
     {
@@ -1244,9 +1191,6 @@ class Browse
 
     /**
      * Set the value of filterInFileExtensions
-     *
-     * @param array $filterInFileExtensions
-     * @return void
      */
     public function setFilterInFileExtensions(array $filterInFileExtensions): void
     {
@@ -1255,8 +1199,6 @@ class Browse
 
     /**
      * Get the value of filterOutFileExtensions
-     *
-     * @return array
      */
     public function getFilterOutFileExtensions(): array
     {
@@ -1265,9 +1207,6 @@ class Browse
 
     /**
      * Set the value of filterOutFileExtensions
-     *
-     * @param array $filterOutFileExtensions
-     * @return void
      */
     public function setFilterOutFileExtensions(array $filterOutFileExtensions): void
     {
@@ -1276,8 +1215,6 @@ class Browse
 
     /**
      * Get the value of filterInMediaTypes
-     *
-     * @return array
      */
     public function getFilterInMediaTypes(): array
     {
@@ -1286,9 +1223,6 @@ class Browse
 
     /**
      * Set the value of filterInMediaTypes
-     *
-     * @param array $filterInMediaTypes
-     * @return void
      */
     public function setFilterInMediaTypes(array $filterInMediaTypes): void
     {
@@ -1297,8 +1231,6 @@ class Browse
 
     /**
      * Get the value of filterOutMediaTypes
-     *
-     * @return array
      */
     public function getFilterOutMediaTypes(): array
     {
@@ -1307,9 +1239,6 @@ class Browse
 
     /**
      * Set the value of filterOutMediaTypes
-     *
-     * @param array $filterOutMediaTypes
-     * @return void
      */
     public function setFilterOutMediaTypes(array $filterOutMediaTypes): void
     {
@@ -1318,8 +1247,6 @@ class Browse
 
     /**
      * Get the value of filterInNicks
-     *
-     * @return array
      */
     public function getFilterInNicks(): array
     {
@@ -1328,20 +1255,16 @@ class Browse
 
     /**
      * Set the value of filterInNicks
-     *
-     * @param array $filterInNicks
-     * @return self
      */
     public function setFilterInNicks(array $filterInNicks): self
     {
         $this->filterInNicks = $filterInNicks;
+
         return $this;
     }
 
     /**
      * Get the value of filterOutNicks
-     *
-     * @return array
      */
     public function getFilterOutNicks(): array
     {
@@ -1350,20 +1273,16 @@ class Browse
 
     /**
      * Set the value of filterOutNicks
-     *
-     * @param array $filterOutNicks
-     * @return self
      */
     public function setFilterOutNicks(array $filterOutNicks): self
     {
         $this->filterOutNicks = $filterOutNicks;
+
         return $this;
     }
 
     /**
      * Get the value of searchString
-     *
-     * @return string|null
      */
     public function getSearchString(): ?string
     {
@@ -1372,9 +1291,6 @@ class Browse
 
     /**
      * Set the value of searchString
-     *
-     * @param string|null $searchString
-     * @return void
      */
     public function setSearchString(?string $searchString): void
     {
@@ -1383,8 +1299,6 @@ class Browse
 
     /**
      * Get the earliest DateTime of query.
-     *
-     * @return DateTime|null
      */
     public function getStartDate(): ?DateTime
     {
@@ -1393,9 +1307,6 @@ class Browse
 
     /**
      * Set the earliest DateTime of query.
-     *
-     * @param DateTime|null $startDate
-     * @return void
      */
     public function setStartDate(?DateTime $startDate): void
     {
@@ -1404,8 +1315,6 @@ class Browse
 
     /**
      * Get the latest DateTime of query.
-     *
-     * @return DateTime|null
      */
     public function getEndDate(): ?DateTime
     {
@@ -1414,9 +1323,6 @@ class Browse
 
     /**
      * Set the latest DateTime of query.
-     *
-     * @param DateTime|null $endDate
-     * @return void
      */
     public function setEndDate(?DateTime $endDate): void
     {
@@ -1425,8 +1331,6 @@ class Browse
 
     /**
      * Get the direction of result order.
-     *
-     * @return string|null
      */
     public function getDirection(): ?string
     {
@@ -1435,9 +1339,6 @@ class Browse
 
     /**
      * Set the direction of result order.
-     *
-     * @param string|null $direction
-     * @return void
      */
     public function setDirection(?string $direction): void
     {
@@ -1446,8 +1347,6 @@ class Browse
 
     /**
      * Get the value of the order.
-     *
-     * @return string|null
      */
     public function getOrder(): ?string
     {
@@ -1456,9 +1355,6 @@ class Browse
 
     /**
      * Set the value of the order.
-     *
-     * @param string|null $order
-     * @return void
      */
     public function setOrder(?string $order): void
     {
@@ -1467,8 +1363,6 @@ class Browse
 
     /**
      * Get records per page.
-     *
-     * @return int|null
      */
     public function getRpp(): ?int
     {
@@ -1478,8 +1372,6 @@ class Browse
     /**
      * Set records per page.
      *
-     * @param int|null $rpp
-     * @return void
      * @throws IllegalRppException
      */
     public function setRpp(?int $rpp): void
@@ -1492,8 +1384,6 @@ class Browse
 
     /**
      * Get page of the recordset.
-     *
-     * @return int|null
      */
     public function getPage(): ?int
     {
@@ -1503,8 +1393,6 @@ class Browse
     /**
      * Set page of the recordset.
      *
-     * @param int|null $page
-     * @return void
      * @throws IllegalPageException
      */
     public function setPage(?int $page): void
