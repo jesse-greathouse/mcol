@@ -25,6 +25,7 @@
           </li>
           <li
             v-for="channel in channels"
+            :key="`${network}-${channel}`"
             :ref="`${channel}-tab`"
             role="presentation"
             class="w-full block"
@@ -42,6 +43,7 @@
           </li>
           <li
             v-for="nick in privmsgTabs"
+            :key="`${network}-${nick}`"
             :ref="`${nick}-tab`"
             role="presentation"
             class="w-full block"

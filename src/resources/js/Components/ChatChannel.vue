@@ -216,9 +216,6 @@ export default {
       }
     }, eventInterval);
   },
-  beforeUnmount() {
-    this.clearAllIntervals();
-  },
   updated() {
     if (this.shouldScrollToBottom) {
       nextTick(() => {

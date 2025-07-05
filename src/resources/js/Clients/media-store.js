@@ -1,3 +1,4 @@
+/* global axios */
 import { has } from '@/funcs';
 import { mergeDataIntoQueryString, hrefToUrl } from '@inertiajs/core';
 

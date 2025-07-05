@@ -39,7 +39,6 @@ import {
   DOWNLOAD_STATE_INCOMPLETE,
   DOWNLOAD_STATE_QUEUED,
 } from '@/download-queue';
-import FileIcon from '@/Components/FileIcon.vue';
 import DownloadQueueDownloading from '@/Components/DownloadQueueDownloading.vue';
 import DownloadQueueCompleted from '@/Components/DownloadQueueCompleted.vue';
 import DownloadQueueQueued from '@/Components/DownloadQueueQueued.vue';
@@ -47,7 +46,6 @@ import DownloadQueueQueued from '@/Components/DownloadQueueQueued.vue';
 export default {
   inheritAttrs: false,
   components: {
-    FileIcon,
     DownloadQueueDownloading,
     DownloadQueueCompleted,
     DownloadQueueQueued,

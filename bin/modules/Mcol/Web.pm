@@ -25,6 +25,7 @@ my $optDir = "$applicationRoot/opt";
 my $tmpDir = "$applicationRoot/tmp";
 my $varDir = "$applicationRoot/var";
 my $cacheDir = "$varDir/cache";
+my $downloadDir = "$varDir/download";
 my $logDir = "$varDir/log";
 my $user = $ENV{"LOGNAME"};
 my $errorLog = "$logDir/error.log";
@@ -112,9 +113,9 @@ sub web_kill {
 
 # Starts the supervisor daemon.
 sub start_daemon {
-    @ENV{qw(USER BIN DIR ETC OPT TMP VAR SRC WEB CACHE_DIR LOG_DIR PORT SSL REDIS_HOST APP_NAME)} =
+    @ENV{qw(USER BIN DIR ETC OPT TMP VAR SRC WEB CACHE_DIR DOWNLOAD_DIR LOG_DIR PORT SSL REDIS_HOST APP_NAME)} =
         ($user, $binDir, $applicationRoot, $etcDir, $optDir, $tmpDir, $varDir, $srcDir, $webDir,
-         $cacheDir, $logDir, $cfg{nginx}{PORT}, $cfg{nginx}{IS_SSL}, $cfg{redis}{REDIS_HOST},
+         $cacheDir, $downloadDir, $logDir, $cfg{nginx}{PORT}, $cfg{nginx}{IS_SSL}, $cfg{redis}{REDIS_HOST},
          $cfg{laravel}{APP_NAME});
 
     print "Starting Web Daemon...\n";

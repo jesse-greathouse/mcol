@@ -68,7 +68,6 @@ import {
 } from '@/download-queue';
 import CancelIcon from '@/Components/CancelIcon.vue';
 import SaveDownloadButton from '@/Components/SaveDownloadButton.vue';
-import DirectoryBrowser from '@/Components/DirectoryBrowser.vue';
 import CancelCompletedDownloadButton from '@/Components/CancelCompletedDownloadButton.vue';
 
 export default {
@@ -76,7 +75,6 @@ export default {
     CancelIcon,
     CancelCompletedDownloadButton,
     SaveDownloadButton,
-    DirectoryBrowser,
   },
   props: {
     download: Object,

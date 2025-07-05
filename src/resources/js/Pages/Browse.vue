@@ -1,8 +1,9 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="py-12">
     <div class="max-w-full mx-auto sm:px-6 lg:px-8">
       <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5" :class="contentClass">
-        <Head title="Browse" />
+        <InertiaHead title="Browse" />
         <div class="flex items-start justify-start mb-4">
           <div class="relative flex w-1/5 min-w-72 m-0 mr-4">
             <search-filter
@@ -137,10 +138,10 @@
             />
             <browse-table-body
               :packets="packets"
-              :locks="locks"
-              :completed="completed"
-              :incomplete="incomplete"
-              :queued="queued"
+              :locks="downloadLocks"
+              :completed="downloadCompleted"
+              :incomplete="downloadIncomplete"
+              :queued="downloadQueued"
               :settings="settings"
               @call:requestDownload="requestDownload"
               @call:removeCompleted="removeCompleted"
@@ -172,7 +173,7 @@
 
 <script>
 import axios from 'axios';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head as InertiaHead } from '@inertiajs/vue3';
 import { initFlowbite } from 'flowbite';
 import { mergeDataIntoQueryString, hrefToUrl } from '@inertiajs/core';
 import Multiselect from '@vueform/multiselect';
@@ -189,12 +190,10 @@ import BrowseTableBody from '@/Components/BrowseTableBody.vue';
 import BrowseTableHead from '@/Components/BrowseTableHead.vue';
 import DownloadQueueDrawer from '@/Components/DownloadQueueDrawer.vue';
 import DynamicRangeFilter from '@/Components/DynamicRangeFilter.vue';
-import Icon from '@/Components/ApplicationMark.vue';
 import LanguageFilter from '@/Components/LanguageFilter.vue';
-import Pagination from '@/Components/Pagination.vue';
+import Pagination from '@/Components/AppPagination.vue';
 import NewRecordsAlert from '@/Components/NewRecordsAlert.vue';
 import SearchFilter from '@/Components/SearchFilter.vue';
-import SortButtons from '@/Components/SortButtons.vue';
 import { usePageStateSync, STATE_VERSION } from '@/Composables/usePageStateSync';
 
 const totalPacketsInterval = 60000; // Check total packets every 60 seconds.
@@ -230,9 +229,7 @@ const dynamicLabel = (selected, maxLen = 6) => {
 
 export default {
   components: {
-    Head,
-    Icon,
-    Link,
+    InertiaHead,
     BrowseTableBody,
     BrowseTableHead,
     DownloadQueueDrawer,
@@ -241,7 +238,6 @@ export default {
     LanguageFilter,
     NewRecordsAlert,
     SearchFilter,
-    SortButtons,
     Multiselect,
     VueTailwindDatepicker,
   },
@@ -334,11 +330,10 @@ export default {
       browseState,
       saveBrowseState,
       form,
-      packet_list: this.packet_list,
-      locks: this.locks,
-      completed: this.completed,
-      incomplete: this.incomplete,
-      queued: this.queued,
+      downloadLocks: this.locks,
+      downloadCompleted: this.completed,
+      downloadIncomplete: this.incomplete,
+      downloadQueued: this.queued,
       total: this.total_packets,
       downloadQueue: this.queue,
       showQueue: false,
@@ -391,30 +386,6 @@ export default {
         }
       },
     },
-    locks: {
-      deep: true,
-      handler: throttle(function (set) {
-        this.locks = set;
-      }, 150),
-    },
-    completed: {
-      deep: true,
-      handler(set) {
-        this.completed = set;
-      },
-    },
-    incomplete: {
-      deep: true,
-      handler(set) {
-        this.incomplete = set;
-      },
-    },
-    queued: {
-      deep: true,
-      handler(set) {
-        this.queued = set;
-      },
-    },
   },
   methods: {
     resetIntervals() {
@@ -460,10 +431,10 @@ export default {
       this.fetchLocks(this.packet_list);
 
       if (
-        this.locks.length > 0 ||
-        this.queued.length > 0 ||
-        this.incomplete.length > 0 ||
-        this.completed.length > 0
+        this.downloadLocks.length > 0 ||
+        this.downloadQueued.length > 0 ||
+        this.downloadIncomplete.length > 0 ||
+        this.downloadCompleted.length > 0
       ) {
         this.locksTimeoutId = setTimeout(this.checkLocks, locksInterval);
       }
@@ -644,7 +615,7 @@ export default {
       const { data, error } = await requestDownload(packetId);
 
       if (null === error) {
-        this.locks.push(data.result.packet.file_name);
+        this.downloadLocks.push(data.result.packet.file_name);
         // Schedule the next reload
         this.clearLocksInterval();
 
@@ -656,13 +627,13 @@ export default {
 
       if (null === error) {
         const fileName = data.result.packet.file_name;
-        const locksIndex = this.locks.indexOf(fileName);
+        const locksIndex = this.downloadLocks.indexOf(fileName);
         if (0 <= locksIndex) {
-          delete this.locks[locksIndex];
+          delete this.downloadLocks[locksIndex];
         }
 
-        if (has(this.queued, fileName)) {
-          delete this.queued[fileName];
+        if (has(this.downloadQueued, fileName)) {
+          delete this.downloadQueued[fileName];
         }
 
         if (has(this.downloadQueue.queued, fileName)) {
@@ -691,10 +662,10 @@ export default {
 
       if (null === error) {
         const { locks, queued, incomplete, completed } = data;
-        this.locks = locks;
-        this.queued = queued;
-        this.incomplete = incomplete;
-        this.completed = completed;
+        this.downloadLocks = locks;
+        this.downloadQueued = queued;
+        this.downloadIncomplete = incomplete;
+        this.downloadCompleted = completed;
 
         if (
           locks.length <= 0 &&
@@ -707,12 +678,7 @@ export default {
       }
     },
     async fetchBrowse(withData) {
-      const [_href, _data] = mergeDataIntoQueryString(
-        'get',
-        '/api/browse',
-        pickBy(this.form),
-        'brackets'
-      );
+      const [_href] = mergeDataIntoQueryString('get', '/api/browse', pickBy(this.form), 'brackets');
       const url = hrefToUrl(_href);
       const headers = {
         'Content-Type': 'application/json',

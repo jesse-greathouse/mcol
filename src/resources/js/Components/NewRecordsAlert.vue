@@ -1,7 +1,3 @@
-<script setup>
-import { FwbAlert } from 'flowbite-vue';
-</script>
-
 <template>
   <fwb-alert type="success">
     <template #icon>
@@ -58,6 +54,9 @@ import { FwbAlert } from 'flowbite-vue';
 import { FwbAlert } from 'flowbite-vue';
 
 export default {
+  components: {
+    FwbAlert,
+  },
   props: {
     count: {
       type: Number,

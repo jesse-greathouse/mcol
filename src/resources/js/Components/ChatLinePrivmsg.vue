@@ -24,10 +24,10 @@
 <script>
 import { parseDownload } from '@/chat';
 import { has, trim } from '@/funcs';
-import Generic from '@/Components/ChatMessageContent/Generic.vue';
+import Generic from '@/Components/ChatMessageContent/GenericMessage.vue';
 import ReDownload from '@/Components/ChatMessageContent/ReDownload.vue';
-import Download from '@/Components/ChatMessageContent/Download.vue';
-import Locked from '@/Components/ChatMessageContent/Locked.vue';
+import Download from '@/Components/ChatMessageContent/DownloadMessage.vue';
+import Locked from '@/Components/ChatMessageContent/LockedMessage.vue';
 
 const locksInterval = 2000; // Check download locks every 2 seconds.
 const lockTimeout = 180000; // A Lock times out after 3 minutes.

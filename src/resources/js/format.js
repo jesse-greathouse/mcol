@@ -12,8 +12,8 @@ const isChannelName = (str) => {
 const formatDate = (date, time = false) => {
   if (null === date) return '';
 
-  // regexr.com/890rg
-  const dateMask = /(\d{4}-\d{2}-\d{2})\s*(\d{2}\:\d{2}\:\d{2})*/;
+  // regexr.com/8fseq
+  const dateMask = /(\d{4}-\d{2}-\d{2})\s*(\d{2}:\d{2}:\d{2})*/;
 
   const matches = date.date.match(dateMask);
   const dateStr = matches[1];

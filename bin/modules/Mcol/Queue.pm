@@ -24,6 +24,7 @@ my $etcDir = "$applicationRoot/etc";
 my $optDir = "$applicationRoot/opt";
 my $varDir = "$applicationRoot/var";
 my $logDir = "$varDir/log";
+my $downloadDir = "$varDir/download";
 my $supervisorConfig = "$etcDir/supervisor/queue-manager.conf";
 my $supervisorLogFile = "$logDir/queue-manager.log";
 my $pidFile = "$varDir/pid/queue-manager.pid";
@@ -112,9 +113,9 @@ sub queue_kill {
 
 # Starts the supervisor daemon.
 sub start_daemon {
-    @ENV{qw(DIR ETC OPT VAR SRC LOG_DIR APP_NAME RABBITMQ_HOST RABBITMQ_NODENAME
+    @ENV{qw(DIR ETC OPT VAR SRC DOWNLOAD_DIR LOG_DIR APP_NAME RABBITMQ_HOST RABBITMQ_NODENAME
             RABBITMQ_PORT RABBITMQ_USERNAME RABBITMQ_PASSWORD RABBITMQ_VHOST)} =
-        ($applicationRoot, $etcDir, $optDir, $varDir, $srcDir, $logDir,
+        ($applicationRoot, $etcDir, $optDir, $varDir, $srcDir, $downloadDir, $logDir,
         $cfg{laravel}{APP_NAME}, $cfg{rabbitmq}{RABBITMQ_HOST}, $cfg{rabbitmq}{RABBITMQ_NODENAME},
         $cfg{rabbitmq}{RABBITMQ_PORT}, $cfg{rabbitmq}{RABBITMQ_USERNAME}, $cfg{rabbitmq}{RABBITMQ_PASSWORD}, $cfg{rabbitmq}{RABBITMQ_VHOST});
 

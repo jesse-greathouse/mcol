@@ -126,6 +126,7 @@
 </template>
 
 <script>
+import { Modal } from 'flowbite';
 import { FwbProgress } from 'flowbite-vue';
 import { formatSize } from '@/file-size';
 import { shouldDisableFileSave } from '@/download-queue';

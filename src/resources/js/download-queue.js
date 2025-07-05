@@ -77,20 +77,24 @@ function suggestDownloadDestination(download, settings) {
   switch (download.media_type) {
     case 'movie':
       return '';
+
     case 'tv season':
-      if (null !== title && null !== season) {
+      if (title !== null && season !== null) {
         return DS + title + DS + season;
       }
+      return '';
+
     case 'tv episode':
-      if (null !== title && null !== season) {
+      if (title !== null && season !== null) {
         return DS + title + DS + season;
       }
+      return '';
+
     default:
-      if (null !== title && '' !== title) {
+      if (title !== null && title !== '') {
         return DS + title;
-      } else {
-        return '';
       }
+      return '';
   }
 }
 

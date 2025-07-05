@@ -27,9 +27,9 @@
 <script>
 import { parseChatMessage, parsePacket } from '@/chat';
 import { has, trim } from '@/funcs';
-import Generic from '@/Components/ChatMessageContent/Generic.vue';
-import Packet from '@/Components/ChatMessageContent/Packet.vue';
-import Download from '@/Components/ChatMessageContent/Download.vue';
+import Generic from '@/Components/ChatMessageContent/GenericMessage.vue';
+import Packet from '@/Components/ChatMessageContent/PacketMessage.vue';
+import Download from '@/Components/ChatMessageContent/DownloadMessage.vue';
 
 const locksInterval = 2000; // Check download locks every 2 seconds.
 const lockTimeout = 180000; // A Lock times out after 3 minutes.

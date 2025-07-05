@@ -191,8 +191,8 @@ async function parseChatLog(data) {
 function parseChatMessage(message) {
   let [nick, content, error] = ['', '', null];
 
-  // https://regexr.com/890rs
-  const re = /(^([\S]+)\:\s)?(.*)/gs;
+  // https://regexr.com/8fset
+  const re = /(^([\S]+):\s)?(.*)/gs;
 
   try {
     [, , nick, content] = re.exec(message);
@@ -208,8 +208,8 @@ function parseChatMessage(message) {
 function parsePacket(message) {
   let [num, gets, size, fileName, error] = [null, null, null, null, null];
 
-  // https://regexr.com/89508
-  const re = /^\#(\d{1,4})\s+(\d+)x\s+\[(.*)\]\s+(.*)$/gs;
+  // https://regexr.com/8fsf0
+  const re = /^#(\d{1,4})\s+(\d+)x\s+\[(.*)\]\s+(.*)$/gs;
 
   try {
     const parts = re.exec(message);
