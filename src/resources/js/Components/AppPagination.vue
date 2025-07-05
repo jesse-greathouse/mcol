@@ -7,26 +7,26 @@
           v-if="link.url === null"
           v-html="link.label"
         />
-        <Link
+        <inertia-link
           class="mb-1 mr-1 px-4 py-3 focus:text-indigo-500 text-sm leading-4 hover:bg-white border focus:border-indigo-500 rounded"
           :class="{ 'bg-white': link.active, 'text-slate-300': link.active }"
           :href="link.url"
           v-else
           :key="`link-${key}`"
-          v-html="link.label"
           @click="nav(link)"
-        />
+          ><span v-html="link.label"
+        /></inertia-link>
       </template>
     </div>
   </div>
 </template>
 
 <script>
-import { Link } from '@inertiajs/vue3';
+import { Link as InertiaLink } from '@inertiajs/vue3';
 
 export default {
   components: {
-    Link,
+    InertiaLink,
   },
   props: {
     links: Array,

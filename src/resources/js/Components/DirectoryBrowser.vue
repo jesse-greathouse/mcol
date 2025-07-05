@@ -216,7 +216,7 @@
 
 <script>
 import { Popover } from 'flowbite';
-import { fetchStoreRoot, fetchUri, mkDir, rmDir, mediaStores } from '@/Clients/media-store';
+import { fetchUri, mkDir, mediaStores } from '@/Clients/media-store';
 import { mediaTypeToStoreMap } from '@/download-queue';
 import Multiselect from '@vueform/multiselect';
 import DirectoryBrowserRow from '@/Components/DirectoryBrowserRow.vue';

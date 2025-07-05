@@ -1,4 +1,6 @@
 <script setup>
+/* global axios */
+/* global route */
 import { ref, reactive, nextTick } from 'vue';
 import DialogModal from './DialogModal.vue';
 import InputError from './InputError.vue';

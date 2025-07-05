@@ -1,9 +1,10 @@
 <script setup>
+/* global route */
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import ActionMessage from '@/Components/ActionMessage.vue';
 import ActionSection from '@/Components/ActionSection.vue';
-import Checkbox from '@/Components/Checkbox.vue';
+import AppCheckbox from '@/Components/AppCheckbox.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import DialogModal from '@/Components/DialogModal.vue';
@@ -103,7 +104,7 @@ const deleteApiToken = () => {
           <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div v-for="permission in availablePermissions" :key="permission">
               <label class="flex items-center">
-                <Checkbox v-model:checked="createApiTokenForm.permissions" :value="permission" />
+                <AppCheckbox v-model:checked="createApiTokenForm.permissions" :value="permission" />
                 <span class="ms-2 text-sm text-gray-600">{{ permission }}</span>
               </label>
             </div>
@@ -204,7 +205,7 @@ const deleteApiToken = () => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div v-for="permission in availablePermissions" :key="permission">
             <label class="flex items-center">
-              <Checkbox v-model:checked="updateApiTokenForm.permissions" :value="permission" />
+              <AppCheckbox v-model:checked="updateApiTokenForm.permissions" :value="permission" />
               <span class="ms-2 text-sm text-gray-600">{{ permission }}</span>
             </label>
           </div>

@@ -1,9 +1,10 @@
 <script setup>
+/* global route */
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import ApplicationMark from '@/Components/ApplicationMark.vue';
-import Banner from '@/Components/Banner.vue';
-import Dropdown from '@/Components/Dropdown.vue';
+import AppBanner from '@/Components/AppBanner.vue';
+import AppDropdown from '@/Components/AppDropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
@@ -36,7 +37,7 @@ const logout = () => {
   <div>
     <Head :title="title" />
 
-    <Banner />
+    <AppBanner />
 
     <div class="min-h-screen bg-gray-100">
       <nav class="bg-white border-b border-gray-100">
@@ -69,7 +70,7 @@ const logout = () => {
             <div class="hidden sm:flex sm:items-center sm:ms-6">
               <div class="ms-3 relative">
                 <!-- Teams Dropdown -->
-                <Dropdown v-if="$page.props.jetstream.hasTeamFeatures" align="right" width="60">
+                <AppDropdown v-if="$page.props.jetstream.hasTeamFeatures" align="right" width="60">
                   <template #trigger>
                     <span class="inline-flex rounded-md">
                       <button
@@ -147,12 +148,12 @@ const logout = () => {
                       </template>
                     </div>
                   </template>
-                </Dropdown>
+                </AppDropdown>
               </div>
 
               <!-- Settings Dropdown -->
               <div class="ms-3 relative">
-                <Dropdown align="right" width="48">
+                <AppDropdown align="right" width="48">
                   <template #trigger>
                     <button
                       v-if="$page.props.jetstream.managesProfilePhotos"
@@ -210,7 +211,7 @@ const logout = () => {
                       <DropdownLink as="button"> Log Out </DropdownLink>
                     </form>
                   </template>
-                </Dropdown>
+                </AppDropdown>
               </div>
             </div>
 

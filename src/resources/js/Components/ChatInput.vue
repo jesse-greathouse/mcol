@@ -69,15 +69,15 @@ export default {
   props: {
     users: {
       type: Array,
-      default: [],
+      default: () => [],
     },
     channels: {
       type: Array,
-      default: [],
+      default: () => [],
     },
     servers: {
       type: Array,
-      default: [],
+      default: () => [],
     },
     defaultCommand: {
       type: [String, null],

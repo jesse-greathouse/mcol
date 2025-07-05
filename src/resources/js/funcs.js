@@ -1,4 +1,5 @@
 // A collection of functions that get used a lot but don't belong in any certain module.
+const FUNC_ERROR_TEXT = 'Expected a function';
 
 const inList = function (value, list) {
   return list.indexOf(value) > -1;
@@ -6,15 +7,19 @@ const inList = function (value, list) {
 
 // replaces lodash _.has
 const has = function (obj, key) {
-  // first start with he easiest qualifier
   if (!obj) return false;
 
-  if (obj.hasOwnProperty(key)) {
+  if (Object.prototype.hasOwnProperty.call(obj, key)) {
     return true;
   }
 
   const keyParts = key.split('.');
-  return keyParts.length > 1 && has(obj[key.split('.')[0]], keyParts.slice(1).join('.'));
+  if (keyParts.length > 1) {
+    const [first, ...rest] = keyParts;
+    return has(obj[first], rest.join('.'));
+  }
+
+  return false;
 };
 
 // replaces lodash _.isUndefined

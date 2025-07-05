@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import Packet from '@/Components/ChatMessageContent/Packet.vue';
+import Packet from '@/Components/ChatMessageContent/PacketMessage.vue';
 
 export default {
   inheritAttrs: false,

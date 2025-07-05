@@ -1,8 +1,9 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="py-6">
     <div class="max-w-full mx-auto sm:px-6 lg:px-8">
       <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5" :class="contentClass">
-        <Head title="Chat" />
+        <InertiaHead title="Chat" />
         <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
           <ul
             class="flex flex-wrap -mb-px text-sm font-medium text-center"
@@ -57,9 +58,8 @@
 
 <script>
 import { nextTick } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { initFlowbite, Tabs } from 'flowbite';
-import Multiselect from '@vueform/multiselect';
+import { Head as InertiaHead } from '@inertiajs/vue3';
+import { initFlowbite } from 'flowbite';
 import { saveDownloadDestination } from '@/Clients/download-destination';
 import { has } from '@/funcs';
 
@@ -83,9 +83,7 @@ const locksInterval = 5000; // Check download locks every 5 seconds.
 
 export default {
   components: {
-    Head,
-    Link,
-    Multiselect,
+    InertiaHead,
     ChatClient,
   },
   layout: AppLayout,
@@ -252,9 +250,9 @@ export default {
 
       if (null === error) {
         const fileName = data.result.packet.file_name;
-        const locksIndex = this.locks.indexOf(fileName);
+        const locksIndex = this.downloadLocks.indexOf(fileName);
         if (0 <= locksIndex) {
-          delete this.locks[locksIndex];
+          delete this.downloadLocks[locksIndex];
         }
 
         if (has(this.queued, fileName)) {
@@ -330,7 +328,3 @@ export default {
   },
 };
 </script>
-
-<style>
-@import '@vueform/multiselect/themes/tailwind.css';
-</style>

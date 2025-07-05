@@ -1,8 +1,10 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <script setup>
+/* global route */
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticationCard from '@/Components/AuthenticationCard.vue';
 import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
-import Checkbox from '@/Components/Checkbox.vue';
+import AppCheckbox from '@/Components/AppCheckbox.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -88,7 +90,7 @@ const submit = () => {
       <div v-if="$page.props.jetstream.hasTermsAndPrivacyPolicyFeature" class="mt-4">
         <InputLabel for="terms">
           <div class="flex items-center">
-            <Checkbox id="terms" v-model:checked="form.terms" name="terms" required />
+            <AppCheckbox id="terms" v-model:checked="form.terms" name="terms" required />
 
             <div class="ms-2">
               I agree to the

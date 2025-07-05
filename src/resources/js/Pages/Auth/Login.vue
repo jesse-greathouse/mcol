@@ -1,8 +1,10 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <script setup>
+/* global route */
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticationCard from '@/Components/AuthenticationCard.vue';
 import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
-import Checkbox from '@/Components/Checkbox.vue';
+import AppCheckbox from '@/Components/AppCheckbox.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -73,7 +75,7 @@ const submit = () => {
 
       <div class="block mt-4">
         <label class="flex items-center">
-          <Checkbox v-model:checked="form.remember" name="remember" />
+          <AppCheckbox v-model:checked="form.remember" name="remember" />
           <span class="ms-2 text-sm text-gray-600">Remember me</span>
         </label>
       </div>

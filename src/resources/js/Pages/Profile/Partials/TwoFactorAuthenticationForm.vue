@@ -1,4 +1,6 @@
 <script setup>
+/* global axios */
+/* global route */
 import { ref, computed, watch } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import ActionSection from '@/Components/ActionSection.vue';

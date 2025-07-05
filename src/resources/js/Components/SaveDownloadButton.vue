@@ -121,13 +121,11 @@ import {
   splitDestinationDir,
 } from '@/download-queue';
 import DirectoryBrowser from '@/Components/DirectoryBrowser.vue';
-import DownloadingIcon from '@/Components/DownloadingIcon.vue';
 import Multiselect from '@vueform/multiselect';
 
 export default {
   components: {
     DirectoryBrowser,
-    DownloadingIcon,
     Multiselect,
   },
   props: {
@@ -202,23 +200,30 @@ export default {
         }
       },
     },
+    'destination.status': {
+      immediate: true,
+      handler(newStatus) {
+        if (newStatus === 'incomplete' || newStatus === 'completed') {
+          this.disableSaveFile = true;
+        } else {
+          this.disableSaveFile = false;
+        }
+      },
+    },
   },
   computed: {
     saveClass() {
       let color = 'blue';
-      if (null !== this.destination) {
+      if (this.destination) {
         switch (this.destination.status) {
           case 'incomplete':
             color = 'amber';
-            this.disableSaveFile = true;
             break;
           case 'completed':
             color = 'gray';
-            this.disableSaveFile = true;
             break;
           default:
             color = 'green';
-            break;
         }
       }
 

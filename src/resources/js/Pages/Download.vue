@@ -1,8 +1,9 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="py-6">
     <div class="max-w-full mx-auto sm:px-6 lg:px-8">
       <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-2.5" :class="contentClass">
-        <Head title="Download" />
+        <InertiaHead title="Download" />
         <section class="bg-white dark:bg-gray-900">
           <div class="py-4 px-4 w-full">
             <div v-if="hasCards()" class="flex flex-wrap gap-4 justify-start">
@@ -34,7 +35,7 @@
 
 <script>
 import { toRaw } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head as InertiaHead } from '@inertiajs/vue3';
 import { has } from '@/funcs';
 import { initFlowbite } from 'flowbite';
 
@@ -52,8 +53,7 @@ const locksInterval = 10000;
 
 export default {
   components: {
-    Head,
-    Link,
+    InertiaHead,
     DownloadCard,
   },
   layout: AppLayout,
@@ -212,8 +212,8 @@ export default {
       const { data, error } = await requestRemove(packetId);
       if (error === null) {
         const fileName = data.result.packet.file_name;
-        const locksIndex = this.locks.indexOf(fileName);
-        if (locksIndex >= 0) delete this.locks[locksIndex];
+        const locksIndex = this.downloadLocks.indexOf(fileName);
+        if (locksIndex >= 0) delete this.downloadLocks[locksIndex];
         if (has(this.queued, fileName)) delete this.queued[fileName];
         if (has(this.downloadQueue.queued, fileName)) delete this.downloadQueue.queued[fileName];
       }

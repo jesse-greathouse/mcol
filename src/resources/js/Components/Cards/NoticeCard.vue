@@ -16,11 +16,10 @@
 </template>
 
 <script>
-import DefaultNotice from '@/Components/Cards/Partials/Notice.vue';
+import DefaultNotice from '@/Components/Cards/Partials/DefaultNotice.vue';
 import NoticeBullitin from '@/Components/Cards/Partials/NoticeBullitin.vue';
 import NoticeDownloadCard from '@/Components/Cards/Partials/DownloadCard.vue';
-import NoticeQueued from '@/Components/Cards/Partials/Queued.vue';
-import ChatConsole from '../ChatConsole.vue';
+import NoticeQueued from '@/Components/Cards/Partials/NoticeQueued.vue';
 
 const partialMap = {
   default: DefaultNotice,

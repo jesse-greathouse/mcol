@@ -1,4 +1,5 @@
 <script setup>
+/* global route */
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import ActionMessage from '@/Components/ActionMessage.vue';

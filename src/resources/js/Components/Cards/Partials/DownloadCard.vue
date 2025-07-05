@@ -47,7 +47,7 @@ export default {
           ref.innerHTML = svg;
           this.lnk = `/download#${fileName}`;
         } catch (error) {
-          console.error(`Attempt ${attempt} failed for ${fileName}:`, error);
+          console.error(`Failed to fetch ${fileName}:`, error);
         }
       }
     },

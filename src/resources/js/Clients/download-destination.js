@@ -1,5 +1,5 @@
 import { has } from '@/funcs';
-import { get, save } from '@/Clients/client';
+import { save } from '@/Clients/client';
 
 const endpoint = '/api/download-destination';
 const headers = {

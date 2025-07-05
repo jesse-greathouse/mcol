@@ -1582,7 +1582,16 @@ export default {
     },
     options: {
       type: Array,
-      default: ['movie', 'tv episode', 'tv season', 'book', 'music', 'game', 'application', 'porn'],
+      default: () => [
+        'movie',
+        'tv episode',
+        'tv season',
+        'book',
+        'music',
+        'game',
+        'application',
+        'porn',
+      ],
     },
   },
 };

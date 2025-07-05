@@ -25,8 +25,8 @@ import { toRaw } from 'vue';
 import { streamSystemMessage } from '@/Clients/stream';
 import { parseSystemMessage } from '@/system-message';
 import DefaultCard from '@/Components/Cards/SystemMessage.vue';
-import NoticeCard from '@/Components/Cards/Notice.vue';
-import MsgCard from '@/Components/Cards/Msg.vue';
+import NoticeCard from '@/Components/Cards/NoticeCard.vue';
+import MsgCard from '@/Components/Cards/MsgCard.vue';
 
 const cardTypeMap = {
   notice: NoticeCard,

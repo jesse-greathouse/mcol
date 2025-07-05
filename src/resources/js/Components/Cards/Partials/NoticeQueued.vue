@@ -111,7 +111,7 @@ export default {
       // Queued 0h59m for "SOME MEDIA TITLE 2015 1080p 264.mkv", in position 1 of 1. 111h54m or more remaining. (at 19:11)
       // regexr.com/8de39
       const re =
-        /Queued\s+(\d{1,}h\d{1,}m)\s+for\s\"(.*)\",\s+in\s+position\s+(\w+)\s+of\s+(\w+)\.\s+(\d{1,}h\d{1,2}m)\s+or\s+(?:more|less)\s+remaining\.\s+\(at\s+(\d+:\d+)\)/g;
+        /Queued\s+(\d{1,}h\d{1,}m)\s+for\s"(.*)",\s+in\s+position\s+(\w+)\s+of\s+(\w+)\.\s+(\d{1,}h\d{1,2}m)\s+or\s+(?:more|less)\s+remaining\.\s+\(at\s+(\d+:\d+)\)/g;
 
       const match = re.exec(this.msg);
 
@@ -124,14 +124,14 @@ export default {
     matchQueuedNotice() {
       // Queued for #3690 Some.Media.Title.1080p.H264.mkv - 1.3G
       // regexr.com/8de2q
-      const re = /Queued\s+for\s+\#(\d{1,})\s+([\w\-\.\_]+)\s+?.+?$/g;
+      const re = /Queued\s+for\s+#(\d{1,})\s+([\w\-._]+)\s+?.+?$/g;
 
       return re.exec(this.msg);
     },
     matchFallback() {
       // Queued for #82 The Brutalist (2024) Bluray-1080p.mkv -  31G
       // regexr.com/8de3f
-      const re = /Queued\s+for\s+\#(\d{1,})\s+(.*)$/g;
+      const re = /Queued\s+for\s+#(\d{1,})\s+(.*)$/g;
 
       return re.exec(this.msg);
     },

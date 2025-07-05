@@ -1,15 +1,10 @@
 <script setup>
 import { reactive } from 'vue';
-import { router } from '@inertiajs/vue3';
 import SearchFilter from '@/Components/SearchFilter.vue';
 
 const form = reactive({
   search_string: null,
 });
-
-function submit() {
-  router.get('/api/browse', form);
-}
 </script>
 
 <template>

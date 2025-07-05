@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import DefaultMsg from '@/Components/Cards/Partials/Msg.vue';
+import DefaultMsg from '@/Components/Cards/Partials/DefaultMsg.vue';
 import MsgDccSend from '@/Components/Cards/Partials/MsgDccSend.vue';
 
 const partialMap = {

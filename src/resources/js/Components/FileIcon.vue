@@ -6,26 +6,26 @@
 
 <script>
 import { has } from '@/funcs';
-import DirectoryIcon from '@/Components/FileIcons/Directory.vue';
-import DiscImageIcon from '@/Components/FileIcons/DiscImage.vue';
-import EbookIcon from '@/Components/FileIcons/Ebook.vue';
-import ExeIcon from '@/Components/FileIcons/Exe.vue';
-import FlacIcon from '@/Components/FileIcons/Flac.vue';
-import GenericIcon from '@/Components/FileIcons/Generic.vue';
-import LinkedLibraryIcon from '@/Components/FileIcons/LinkedLibrary.vue';
-import MkvIcon from '@/Components/FileIcons/Mkv.vue';
-import MusicIcon from '@/Components/FileIcons/Music.vue';
-import MobileIcon from '@/Components/FileIcons/Mobile.vue';
-import Mp4Icon from '@/Components/FileIcons/Mp4.vue';
-import NspIcon from '@/Components/FileIcons/Nsp.vue';
-import PackageIcon from '@/Components/FileIcons/Package.vue';
-import PdfIcon from '@/Components/FileIcons/Pdf.vue';
-import RarIcon from '@/Components/FileIcons/Rar.vue';
-import SrtIcon from '@/Components/FileIcons/Srt.vue';
-import TarIcon from '@/Components/FileIcons/Tar.vue';
-import TxtIcon from '@/Components/FileIcons/Txt.vue';
-import VideoIcon from '@/Components/FileIcons/Video.vue';
-import ZipIcon from '@/Components/FileIcons/Zip.vue';
+import DirectoryIcon from '@/Components/FileIcons/DirectoryIcon.vue';
+import DiscImageIcon from '@/Components/FileIcons/DiscImageIcon.vue';
+import EbookIcon from '@/Components/FileIcons/EbookIcon.vue';
+import ExeIcon from '@/Components/FileIcons/ExeIcon.vue';
+import FlacIcon from '@/Components/FileIcons/FlacIcon.vue';
+import GenericIcon from '@/Components/FileIcons/GenericIcon.vue';
+import LinkedLibraryIcon from '@/Components/FileIcons/LinkedLibraryIcon.vue';
+import MkvIcon from '@/Components/FileIcons/MkvIcon.vue';
+import MusicIcon from '@/Components/FileIcons/MusicIcon.vue';
+import MobileIcon from '@/Components/FileIcons/MobileIcon.vue';
+import Mp4Icon from '@/Components/FileIcons/Mp4Icon.vue';
+import NspIcon from '@/Components/FileIcons/NspIcon.vue';
+import PackageIcon from '@/Components/FileIcons/PackageIcon.vue';
+import PdfIcon from '@/Components/FileIcons/PdfIcon.vue';
+import RarIcon from '@/Components/FileIcons/RarIcon.vue';
+import SrtIcon from '@/Components/FileIcons/SrtIcon.vue';
+import TarIcon from '@/Components/FileIcons/TarIcon.vue';
+import TxtIcon from '@/Components/FileIcons/TxtIcon.vue';
+import VideoIcon from '@/Components/FileIcons/VideoIcon.vue';
+import ZipIcon from '@/Components/FileIcons/ZipIcon.vue';
 
 const extensionToComponentMap = {
   avi: 'VideoIcon',
