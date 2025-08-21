@@ -24,8 +24,6 @@ class Server extends Model
      * Get the Network associated with this server.
      *
      * Efficiently retrieves the related Network model.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function network(): BelongsTo
     {

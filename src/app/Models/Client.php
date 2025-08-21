@@ -26,8 +26,6 @@ class Client extends Model
 
     /**
      * Get the content for the nick.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function nick(): BelongsTo
     {
@@ -36,8 +34,6 @@ class Client extends Model
 
     /**
      * Get the content for the network.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function network(): BelongsTo
     {
@@ -46,8 +42,6 @@ class Client extends Model
 
     /**
      * Get the instance associated with this client.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function instance(): HasOne
     {

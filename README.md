@@ -1,6 +1,6 @@
 # Media Collector
 
-![Mcol -- Media Collector](https://i.imgflip.com/9mmeq8.jpg 'Mcol Browse Web Interface')
+![Mcol -- Media Collector](https://i.imgflip.com/9mmeq8.jpg "Mcol Browse Web Interface")
 
 - Built with [PHP 8.4](https://www.php.net/releases/8.4/en.php) and [Openresty](https://openresty.org/en/).
 - Uses [Laravel](https://laravel.com/) and [ReactPHP](https://reactphp.org/) to connect to IRC networks and collect information about shared files.
@@ -23,6 +23,10 @@ cd mcol
 ### TLDR
 
 ```bash
+# Verifies perl and cpan are available and installs perl modules.
+bin/bootstrap
+
+# Installs all necessary dependencies (Requires sudo/elevated privelages)
 bin/install
 
 # wait...

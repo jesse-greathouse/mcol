@@ -24,8 +24,6 @@ class PacketSearchResult extends Model
      * Get the PacketSearch associated with this result.
      *
      * Efficiently retrieves the related PacketSearch model.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function packetSearch(): BelongsTo
     {
@@ -36,8 +34,6 @@ class PacketSearchResult extends Model
      * Get the Packet associated with this result.
      *
      * Efficiently retrieves the related Packet model.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function packet(): BelongsTo
     {

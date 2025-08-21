@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 package Mcol::Install::Ubuntu;
 use strict;

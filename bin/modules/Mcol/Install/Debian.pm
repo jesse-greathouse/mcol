@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 package Mcol::Install::Debian;
 use strict;
@@ -12,12 +12,12 @@ use Exporter 'import';
 our @EXPORT_OK = qw(install_system_dependencies install_php install_bazelisk);
 
 my @systemDependencies = qw(
-    supervisor authbind expect openssl build-essential intltool autoconf
-    automake gcc curl pkg-config cpanminus libncurses-dev libpcre3-dev
+    rsync libc-bin supervisor authbind expect openssl build-essential intltool autoconf
+    automake gcc curl pkg-config cpanminus libncurses-dev libpcre2-dev
     libcurl4-openssl-dev libmagickwand-dev libssl-dev libxslt1-dev
-    libmysqlclient-dev libxml2 libxml2-dev libicu-dev libmagick++-dev
+    default-libmysqlclient-dev libxml2 libxml2-dev libicu-dev libmagick++-dev
     libzip-dev libonig-dev libsodium-dev libglib2.0-dev libwebp-dev
-    mysql-client imagemagick golang
+    default-mysql-client imagemagick golang
 );
 
 sub install_system_dependencies {
@@ -47,6 +47,13 @@ sub install_system_dependencies {
         command_result($?, $!, "Installed missing dependencies...", \@installCmd);
     } else {
         print "All system dependencies already installed.\n";
+    }
+
+    # ensure ldconfig is on PATH
+    my $check = system('command -v ldconfig >/dev/null 2>&1');
+    if ($check != 0) {
+        system('sudo', 'ln', '-sf', '/sbin/ldconfig', '/usr/local/bin/ldconfig');
+        print "✓ Linked /sbin/ldconfig into /usr/local/bin so it's in PATH.\n";
     }
 }
 

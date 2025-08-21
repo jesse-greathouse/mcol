@@ -146,8 +146,6 @@ class TransferCompleted extends Command
      *
      * Checks if a download destination is waiting for transfer and then queues
      * the transfer job and a file removal check job.
-     *
-     * @param  \App\Models\Download  $download
      */
     protected function handleDownloadDestination(Download $download): void
     {

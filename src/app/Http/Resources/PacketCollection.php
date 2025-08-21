@@ -20,7 +20,6 @@ class PacketCollection extends ResourceCollection
     /**
      * Transform the resource collection into an array.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return array<int|string, PacketResource>
      */
     public function toArray(Request $request): array

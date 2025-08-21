@@ -45,8 +45,6 @@ class Download extends Model
 
     /**
      * Get the associated Packet for this Download.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function packet(): BelongsTo
     {
@@ -55,8 +53,6 @@ class Download extends Model
 
     /**
      * Get the associated DownloadDestination for this Download.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function destination(): HasOne
     {

@@ -33,8 +33,6 @@ class Instance extends Model
 
     /**
      * Get the client that owns the instance.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function client(): BelongsTo
     {
