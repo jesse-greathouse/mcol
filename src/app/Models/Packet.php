@@ -58,8 +58,6 @@ class Packet extends Model
 
     /**
      * Get the bot associated with the packet.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function bot(): BelongsTo
     {
@@ -68,8 +66,6 @@ class Packet extends Model
 
     /**
      * Get the network associated with the packet.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function network(): BelongsTo
     {
@@ -78,8 +74,6 @@ class Packet extends Model
 
     /**
      * Get the channel associated with the packet.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function channel(): BelongsTo
     {

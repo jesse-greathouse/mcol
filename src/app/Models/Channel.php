@@ -39,8 +39,6 @@ class Channel extends Model
 
     /**
      * Get all the child channels related to this channel.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function children(): HasMany
     {
@@ -49,8 +47,6 @@ class Channel extends Model
 
     /**
      * Get the parent channel of this channel.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function parent(): BelongsTo
     {
@@ -59,8 +55,6 @@ class Channel extends Model
 
     /**
      * Get the network associated with this channel.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function network(): BelongsTo
     {

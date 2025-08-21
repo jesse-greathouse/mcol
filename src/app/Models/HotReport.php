@@ -23,8 +23,6 @@ class HotReport extends Model
 
     /**
      * Get the hotReportLines associated with this report.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function hotReportLines(): HasMany
     {
@@ -33,8 +31,6 @@ class HotReport extends Model
 
     /**
      * Get the channel associated with this report.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function channel(): BelongsTo
     {

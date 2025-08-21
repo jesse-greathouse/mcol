@@ -27,8 +27,6 @@ class Network extends Model
      * Get the servers for the network.
      *
      * This defines a one-to-many relationship between the network and servers.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function servers(): HasMany
     {
@@ -39,8 +37,6 @@ class Network extends Model
      * Get the first server on the list.
      *
      * This defines a one-to-one relationship but ensures the oldest server is selected.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function firstServer(): HasOne
     {

@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 warn <<"END";
 [WARNING] CentOS support in this installer is deprecated and no longer maintained.

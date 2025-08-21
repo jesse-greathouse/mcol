@@ -26,8 +26,6 @@ class HotReportLine extends Model
      *
      * This defines a one-to-many relationship where each HotReportLine
      * belongs to a single HotReport.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function hotReport(): BelongsTo
     {

@@ -29,8 +29,6 @@ class Bot extends Model
      * Get the content for the network.
      *
      * Defines the relationship where each bot belongs to a network.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function network(): BelongsTo
     {

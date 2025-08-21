@@ -1,0 +1,126 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Config;
+use Time::HiRes qw(sleep);
+use Cwd qw(getcwd);
+
+# --- Utility: find_in_path ---
+sub find_in_path {
+    my ($prog, $extra_dir) = @_;
+    my @dirs = split /$Config{path_sep}/, $ENV{PATH};
+    push @dirs, $extra_dir if $extra_dir;
+    for my $dir (@dirs) {
+        my $full = "$dir/$prog";
+        return $full if -x $full;
+    }
+    return undef;
+}
+
+# --- Step 1: Check Perl version ---
+if ($] < 5.016) {
+    die <<"EOF";
+
+❌ Perl 5.16 or higher is recommended, but you are running version $].
+
+Please install a recent version of Perl:
+  → https://www.perl.org/get.html
+
+EOF
+}
+
+# --- Step 2: Locate cpanm ---
+my $cpanm = find_in_path('cpanm')
+    || find_in_path('cpanm', "$ENV{HOME}/perl5/bin");
+unless ($cpanm) {
+    die <<"EOF";
+
+❌ cpanm (App::cpanminus) is not installed or not in your PATH.
+
+To install it, run:
+
+  curl -L https://cpanmin.us | perl - --sudo App::cpanminus
+
+Or visit:
+
+  → https://metacpan.org/pod/App::cpanminus
+
+If you use local::lib, make sure ~/perl5/bin is in your PATH.
+EOF
+}
+
+# --- Step 3: Check for cpanfile ---
+my $cpanfile = "$ENV{PWD}/cpanfile";
+unless (-e $cpanfile) {
+    die "❌ No cpanfile found in current directory ($ENV{PWD}). Aborting.\n";
+}
+
+# --- Step 4: Check if using local::lib or root ---
+my $is_local_lib = $ENV{PERL_MM_OPT} || $ENV{PERL_LOCAL_LIB_ROOT};
+my $is_root = $> == 0;
+
+unless ($is_local_lib || $is_root) {
+    print <<"WARN";
+
+===============================================================
+⚠️  You are not root and local::lib does not appear to be enabled.
+
+   You may see warnings about permissions during dependency installation.
+   For best results, run:
+
+     perl -Mlocal::lib >> ~/.profile
+     source ~/.profile
+
+   or consider running as root (not recommended).
+
+WARN
+
+    print "\nInstalling Perl dependencies momentarily...\n";
+    sleep 25;
+}
+
+# --- Step 5: Run cpanm --installdeps ---
+print "📦 Installing Perl dependencies from cpanfile...\n";
+my $cwd = getcwd();
+system($cpanm, '--installdeps', '--notest', $cwd) == 0
+    or die "❌ Failed to install dependencies with cpanm.\n";
+
+print "✅ All dependencies installed successfully.\n";
+
+# --- Step 6: After install, check Perl/local::lib visibility ---
+my $local_lib_path = "$ENV{HOME}/perl5/lib/perl5";
+my $local_bin_path = "$ENV{HOME}/perl5/bin";
+my $warned_local_lib = 0;
+
+if (-d $local_lib_path) {
+    my $inc_output = qx($^X -e "print join(qq{\\n}, \@INC), qq{\\n}" 2>/dev/null);
+    $inc_output = '' unless defined $inc_output;
+    my $lib_in_inc = ($inc_output =~ /\Q$local_lib_path\E/);
+    my $bin_in_path = grep { $_ eq $local_bin_path } split /$Config{path_sep}/, $ENV{PATH};
+
+    if (!$lib_in_inc or !$bin_in_path) {
+        $warned_local_lib = 1;
+        print <<"EOW";
+
+===============================================================
+⚠️  Detected potential Perl library visibility issue:
+
+    Your local::lib ($local_lib_path) may not be visible to Perl
+    and/or scripts in $local_bin_path may not be in your PATH.
+
+    To fix:
+      export PERL5LIB="\$HOME/perl5/lib/perl5:\$PERL5LIB"
+      export PATH="\$HOME/perl5/bin:\$PATH"
+
+    Or, run:
+      perl -Mlocal::lib >> ~/.profile
+      source ~/.profile
+
+  (After fixing, restart your shell.)
+===============================================================
+
+EOW
+
+    }
+}

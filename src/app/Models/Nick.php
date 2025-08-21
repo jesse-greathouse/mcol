@@ -30,8 +30,6 @@ class Nick extends Model
      * Get the content for the network.
      *
      * Defines the inverse relationship between Nick and Network.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function network(): BelongsTo
     {
