@@ -4,7 +4,10 @@ use strict;
 use warnings;
 use Config;
 use Time::HiRes qw(sleep);
-use Cwd qw(getcwd);
+use Cwd qw(getcwd abs_path);
+use FindBin qw($RealBin);
+use lib "$RealBin/modules";                  # make bin/modules/* available
+use Mcol::Utility qw(get_operating_system);  # uses only core deps
 
 # --- Utility: find_in_path ---
 sub find_in_path {
@@ -30,7 +33,41 @@ Please install a recent version of Perl:
 EOF
 }
 
-# --- Step 2: Locate cpanm ---
+# --- Step 2: Install minimal native toolchain via Mcol::Bootstrap::<OS> ---
+{
+    my $os = get_operating_system();               # e.g. Debian, Ubuntu, Fedora, OpenSUSE, Arch, Alpine, Gentoo, OpenMandriva, MacOS
+    my $osModule = 'Mcol::Bootstrap::' . $os;
+
+    my $ok = eval "use $osModule qw(install_bootstrap_toolchain); 1;";
+    if (!$ok) {
+        die <<"EOF";
+
+❌ Failed to load $osModule (derived from detected OS: $os)
+
+$@
+
+Ensure the corresponding file exists at:
+  bin/modules/${\('Mcol/Bootstrap/' . $os . '.pm')}
+
+EOF
+    }
+
+    print "🔧 Detected OS: $os — running minimal toolchain bootstrap...\n";
+    my $rc = eval { install_bootstrap_toolchain(); 1 };
+    if (!$rc) {
+        die <<"EOF";
+
+❌ install_bootstrap_toolchain() from $osModule failed.
+
+$@
+
+Please review the OS-specific bootstrap module for required packages.
+EOF
+    }
+    print "✅ Minimal toolchain bootstrap complete.\n";
+}
+
+# --- Step 3: Locate cpanm ---
 my $cpanm = find_in_path('cpanm')
     || find_in_path('cpanm', "$ENV{HOME}/perl5/bin");
 unless ($cpanm) {
@@ -50,13 +87,13 @@ If you use local::lib, make sure ~/perl5/bin is in your PATH.
 EOF
 }
 
-# --- Step 3: Check for cpanfile ---
+# --- Step 4: Check for cpanfile ---
 my $cpanfile = "$ENV{PWD}/cpanfile";
 unless (-e $cpanfile) {
     die "❌ No cpanfile found in current directory ($ENV{PWD}). Aborting.\n";
 }
 
-# --- Step 4: Check if using local::lib or root ---
+# --- Step 5: Check if using local::lib or root ---
 my $is_local_lib = $ENV{PERL_MM_OPT} || $ENV{PERL_LOCAL_LIB_ROOT};
 my $is_root = $> == 0;
 
@@ -80,7 +117,7 @@ WARN
     sleep 25;
 }
 
-# --- Step 5: Run cpanm --installdeps ---
+# --- Step 6: Run cpanm --installdeps ---
 print "📦 Installing Perl dependencies from cpanfile...\n";
 my $cwd = getcwd();
 system($cpanm, '--installdeps', '--notest', $cwd) == 0
@@ -88,7 +125,7 @@ system($cpanm, '--installdeps', '--notest', $cwd) == 0
 
 print "✅ All dependencies installed successfully.\n";
 
-# --- Step 6: After install, check Perl/local::lib visibility ---
+# --- Step 7: After install, check Perl/local::lib visibility ---
 my $local_lib_path = "$ENV{HOME}/perl5/lib/perl5";
 my $local_bin_path = "$ENV{HOME}/perl5/bin";
 my $warned_local_lib = 0;
