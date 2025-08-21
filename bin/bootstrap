@@ -7,7 +7,7 @@ use Time::HiRes qw(sleep);
 use Cwd qw(getcwd abs_path);
 use FindBin qw($RealBin);
 use lib "$RealBin/modules";                  # make bin/modules/* available
-use Mcol::Utility qw(get_operating_system);  # uses only core deps
+use Mcol::Utility qw(get_operating_system install_the_installer_splash);  # uses only core deps
 
 # --- Utility: find_in_path ---
 sub find_in_path {
@@ -20,6 +20,8 @@ sub find_in_path {
     }
     return undef;
 }
+
+install_the_installer_splash();
 
 # --- Step 1: Check Perl version ---
 if ($] < 5.016) {

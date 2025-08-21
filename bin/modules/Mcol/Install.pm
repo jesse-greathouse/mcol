@@ -12,6 +12,7 @@ use Mcol::Utility qw(
     str_replace_in_file
     get_operating_system
     command_result
+    mcol_splash
 );
 use Mcol::System qw(how_many_threads_should_i_use);
 use Exporter 'import';
@@ -57,6 +58,7 @@ sub install {
     my %options = handle_options();
 
     if ($options{'system'}) {
+        mcol_splash();
         install_system_dependencies();
     }
 
@@ -727,48 +729,57 @@ sub install_rabbitmq {
 
 }
 
+# Helper to source NVM in a fresh bash -lc
+sub _nvm_source {
+    return q{export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"};
+}
+
+# Run a command in a shell with NVM loaded; optionally require `nvm use $nodeVersion` first
 sub sh_nvm {
-    my ($cmd) = @_;
-    my $nvm_env = q{export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"};
-    system('bash','-lc', "$nvm_env && nvm use $nodeVersion >/dev/null && $cmd");
+    my ($cmd, $use_node) = @_;
+    my $env = _nvm_source();
+    my $prefix = $use_node ? "nvm use $nodeVersion >/dev/null 2>&1 && " : "";
+    return system('bash', '-lc', "$env; $prefix$cmd");
 }
 
 sub install_node {
     my ($dir) = @_;
-    my $nvmDir = "$dir/.nvm";
     my $nvmInstallScript = 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh';
+    my $nvmDir = "$ENV{HOME}/.nvm";  # <-- NVM installs here
 
-    # Is NVM already available?
-    my $nvmCheck = `bash -lc 'export NVM_DIR="\$HOME/.nvm"; [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"; command -v nvm'`;
-    chomp $nvmCheck;
-
-    unless ($nvmCheck) {
+    # Is NVM available?
+    my $nvmCheck = system('bash','-lc', _nvm_source() . q{; command -v nvm >/dev/null});
+    if ($nvmCheck != 0) {
+        # Fresh install
         unless (-d $nvmDir) {
             system('bash', '-c', "curl -o- $nvmInstallScript | bash");
             command_result($?, $!, 'Installing NVM...', "curl -o- $nvmInstallScript | bash");
         }
+        # Re-check
+        $nvmCheck = system('bash','-lc', _nvm_source() . q{; command -v nvm >/dev/null});
+        die "Failed to install NVM\n" if $nvmCheck != 0;
     }
 
-    # Ensure the requested Node version exists
-    my $checkNodeInstalled = sh_nvm("nvm ls $nodeVersion > /dev/null 2>&1");
-    if ($checkNodeInstalled != 0) {
-        sh_nvm("nvm install $nodeVersion");
+    # Ensure the requested Node version exists (no `nvm use` gate here)
+    my $haveNode = sh_nvm("nvm ls $nodeVersion >/dev/null 2>&1", 0);
+    if ($haveNode != 0) {
+        sh_nvm("nvm install $nodeVersion", 0);
         command_result($?, $!, "Installing Node.js via NVM...", "nvm install $nodeVersion");
     } else {
         print "Node.js $nodeVersion is already installed. Skipping installation.\n";
     }
 
-    # Switch to requested Node version
-    sh_nvm("nvm use $nodeVersion");
+    # Set default and switch to it
+    sh_nvm("nvm alias default $nodeVersion", 0);
+    sh_nvm("nvm use $nodeVersion", 0);
     command_result($?, $!, "Switching to Node.js $nodeVersion...", "nvm use $nodeVersion");
 
-    # Check NPM version (capture output once)
-    my $npmCheck = `bash -lc 'export NVM_DIR="\$HOME/.nvm"; [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"; nvm use '$nodeVersion' >/dev/null; npm -v'`;
-    chomp($npmCheck);
-
+    # Check/upgrade npm (this DOES require the active node)
+    my $npmCheck = `bash -lc '@{[_nvm_source()]} ; nvm use $nodeVersion >/dev/null 2>&1 ; npm -v 2>/dev/null'`;
+    chomp($npmCheck //= '');
     if ($npmCheck ne $npmVersion) {
         my $npm_cmd = "npm install -g npm\@$npmVersion";
-        sh_nvm($npm_cmd);
+        sh_nvm($npm_cmd, 1);
         command_result($?, $!, "Upgrading NPM to $npmVersion...", $npm_cmd);
     } else {
         print "NPM $npmVersion is already installed. Skipping upgrade.\n";
@@ -783,21 +794,21 @@ sub node_build {
 
     chdir($srcDir) or die "Failed to change directory to $srcDir: $!";
 
-    # Ensure we’re on the right Node for every step (same subshell each time)
-    sh_nvm("nvm use $nodeVersion");
+    # Ensure the correct Node is active for all Node-dependent steps
+    sh_nvm("nvm use $nodeVersion", 0);
     command_result($?, $!, "Switching to Node.js $nodeVersion...", "nvm use $nodeVersion");
 
+    # Remove node_modules if present (doesn't need Node, but harmless)
     if (-d $modulesDir) {
-        # rm doesn't require nvm, but harmless to run under the same shim
-        sh_nvm("rm -rf \"$modulesDir\"");
+        system('rm', '-rf', $modulesDir);
         command_result($?, $!, "Removing existing node_modules...", "rm -rf $modulesDir");
     }
 
-    # Install & build under the NVM-sourced environment
-    sh_nvm("npm ci || npm install");
+    # Install & build
+    sh_nvm("npm ci || npm install", 1);
     command_result($?, $!, "Installing dependencies...", "npm ci || npm install");
 
-    sh_nvm("npm run build");
+    sh_nvm("npm run build", 1);
     command_result($?, $!, "Building project...", "npm run build");
 
     chdir($originalDirectory) or die "Failed to change back to $originalDirectory: $!";
