@@ -17,7 +17,7 @@ my @systemDependencies = qw(
     libcurl4-openssl-dev libmagickwand-dev libssl-dev libxslt1-dev
     default-libmysqlclient-dev libxml2 libxml2-dev libicu-dev libmagick++-dev
     libzip-dev libonig-dev libsodium-dev libglib2.0-dev libwebp-dev
-    default-mysql-client imagemagick golang
+    default-mysql-client imagemagick golang redis
 );
 
 sub install_system_dependencies {

@@ -16,7 +16,7 @@ my @systemDependencies = qw(
     perl-App-cpanminus ncurses-devel pcre-devel libcurl-devel
     ImageMagick-devel libxslt-devel mariadb-devel libxml2-devel
     libicu-devel libzip-devel oniguruma-devel libsodium-devel
-    glib2-devel libwebp-devel mariadb imagemagick bash make golang
+    glib2-devel libwebp-devel mariadb imagemagick bash make golang redis
 );
 
 sub install_system_dependencies {

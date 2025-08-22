@@ -16,7 +16,7 @@ my @systemDependencies = qw(
     ncurses pcre libcurl imagemagick openssl libxslt mariadb-libs
     libxml2 icu imagemagick imagemagick libzip oniguruma
     libsodium glib2 libwebp mariadb imagemagick git go expect
-    systemd supervisord
+    systemd supervisord redis
 );
 
 sub install_system_dependencies {

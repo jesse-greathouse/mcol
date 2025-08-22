@@ -17,7 +17,7 @@ my @systemDependencies = qw(
     libcurl4t64 libcurl4-openssl-dev libmagickwand-dev libssl-dev libxslt1-dev default-jdk
     libmysqlclient-dev libxml2 libxml2-dev libicu-dev libmagick++-dev libglu1-mesa-dev
     libzip-dev libonig-dev libsodium-dev libglib2.0-dev libwebp-dev libwxgtk3.2-dev
-    mysql-client imagemagick golang-go xsltproc fop libxml2-utils libexpat1-dev libwxgtk-webview3.2-dev
+    mysql-client imagemagick golang-go xsltproc fop libxml2-utils libexpat1-dev libwxgtk-webview3.2-dev redis
 );
 
 # ====================================

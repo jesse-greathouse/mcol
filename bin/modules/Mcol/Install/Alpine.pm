@@ -17,7 +17,7 @@ my @systemDependencies = qw(
     libcurl libcurl-dev imagemagick-dev libxslt-dev mysql-dev libxml2-dev
     icu-dev imagemagick imagemagick-c++ libzip-dev oniguruma-dev
     libsodium-dev glib-dev libwebp-dev mysql-client bash musl-dev make
-    go
+    go redis
 );
 
 sub install_system_dependencies {

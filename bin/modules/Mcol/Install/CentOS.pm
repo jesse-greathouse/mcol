@@ -22,7 +22,7 @@ my @systemDependencies = qw(
     epel-release supervisor authbind expect openssl-devel gcc curl
     pkgconfig mysql-devel imagemagick pcre-devel libcurl-devel
     libxml2-devel libicu-devel libxslt-devel libzip-devel oniguruma-devel
-    libsodium-devel glib2-devel libwebp-devel
+    libsodium-devel glib2-devel libwebp-devel redis
 );
 
 # ====================================

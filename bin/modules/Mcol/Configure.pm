@@ -113,13 +113,13 @@ my %defaults = (
         SSL_KEY                     => $sslKey,
     },
     redis => {
-        REDIS_HOST                  => '/var/run/redis/redis.sock',
-        REDIS_PORT                  => '0',
+        REDIS_HOST                  => '127,0.0.1',
+        REDIS_PORT                  => '6379',
         REDIS_PASSWORD              => 'null',
         REDIS_DB                    => '0',
     },
     rabbitmq => {
-        RABBITMQ_HOST               => '127.0.0.1',
+        RABBITMQ_HOST               => 'localhost',
         RABBITMQ_PORT               => '5861',
         RABBITMQ_USERNAME           => 'guest',
         RABBITMQ_PASSWORD           => 'guest',
@@ -333,7 +333,7 @@ sub assign_dynamic_config {
     $cfg{laravel}{RABBITMQ_PASSWORD} //= $cfg{laravel}{RABBITMQ_PASSWORD} // $cfg{rabbitmq}{RABBITMQ_PASSWORD};
     $cfg{laravel}{RABBITMQ_VHOST} //= $cfg{laravel}{RABBITMQ_VHOST} // $cfg{rabbitmq}{RABBITMQ_VHOST};
     $cfg{rabbitmq}{APP_NAME} //= $cfg{rabbitmq}{APP_NAME} // $cfg{laravel}{APP_NAME};
-    $cfg{rabbitmq}{RABBITMQ_NODENAME} //= $cfg{rabbitmq}{RABBITMQ_NODENAME} // $cfg{rabbitmq}{APP_NAME} . '@' .  $cfg{laravel}{SESSION_DOMAIN};
+    $cfg{rabbitmq}{RABBITMQ_NODENAME} //= $cfg{rabbitmq}{RABBITMQ_NODENAME} // $cfg{rabbitmq}{APP_NAME} . '@' .  $cfg{rabbitmq}{RABBITMQ_HOST};
 
     # Initd configuration values.
     $cfg{initd}{APP_NAME} //= $cfg{laravel}{APP_NAME};

@@ -18,7 +18,7 @@ my $applicationRoot = abs_path(dirname($bin));
 my @systemDependencies = qw(
     intltool autoconf automake expect gcc pcre2 curl libiconv pkg-config
     openssl@3.0 mysql-client oniguruma libxml2 icu4c imagemagick mysql
-    libsodium libzip glib webp go cpanminus
+    libsodium libzip glib webp go cpanminus redis
 );
 
 # ====================================

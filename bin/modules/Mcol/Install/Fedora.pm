@@ -16,7 +16,7 @@ my @systemDependencies = qw(
     ncurses-devel pcre-devel libcurl-devel ImageMagick-devel libxslt-devel
     mariadb-connector-c-devel libxml2-devel libicu-devel ImageMagick-c++-devel
     libzip-devel oniguruma-devel libsodium-devel glib2-devel libwebp-devel
-    mariadb ImageMagick bash make golang
+    mariadb ImageMagick bash make golang redis
 );
 
 sub install_system_dependencies {

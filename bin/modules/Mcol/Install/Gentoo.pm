@@ -15,7 +15,7 @@ my @systemDependencies = qw(
     supervisor authbind expect openssl gcc curl pkgconfig app-cpanminus
     ncurses pcre libcurl media-gfx/imagemagick libxslt dev-db/mariadb-connector-c
     libxml2 dev-libs/icu media-libs/libzip dev-libs/oniguruma dev-libs/libsodium
-    dev-libs/glib media-libs/libwebp mariadb media-gfx/imagemagick dev-lang/go
+    dev-libs/glib media-libs/libwebp mariadb media-gfx/imagemagick dev-lang/go redis
 );
 
 sub install_system_dependencies {
