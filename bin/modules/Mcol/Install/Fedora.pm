@@ -16,7 +16,7 @@ my @systemDependencies = qw(
     ncurses-devel pcre-devel libcurl-devel ImageMagick-devel libxslt-devel
     mariadb-connector-c-devel libxml2-devel libicu-devel ImageMagick-c++-devel
     libzip-devel oniguruma-devel libsodium-devel glib2-devel libwebp-devel
-    mariadb ImageMagick bash make golang redis libpng-devel libjpeg-turbo-devel
+    mariadb ImageMagick bash make golang redis valkey libpng-devel libjpeg-turbo-devel
     mesa-libGL-devel mesa-libGLU-devel bzip2-devel
     autoconf automake libtool m4 re2c
 );
@@ -152,7 +152,11 @@ sub install_system_dependencies {
     # *** CRITICAL: prime the current runtime for the rest of this long install ***
     _prepare_build_env();
 
-    # From here on, every system(...) inherits the env (no profile sourcing needed).
+    # Enable redis
+    my @redis = ('sudo', 'systemctl', 'enable', '--now', 'redis');
+    system(@redis);
+
+
 }
 
 sub install_php {

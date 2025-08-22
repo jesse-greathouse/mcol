@@ -113,7 +113,7 @@ my %defaults = (
         SSL_KEY                     => $sslKey,
     },
     redis => {
-        REDIS_HOST                  => '127,0.0.1',
+        REDIS_HOST                  => '127.0.0.1',
         REDIS_PORT                  => '6379',
         REDIS_PASSWORD              => 'null',
         REDIS_DB                    => '0',
