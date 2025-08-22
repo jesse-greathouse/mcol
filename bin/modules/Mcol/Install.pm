@@ -605,11 +605,26 @@ sub install_erlang {
     system("./configure --prefix=$erlangDir");
     command_result($?, $!, 'Configure erlang ...', './configure');
 
-    system("make -j$threads SKIP='tftp'");
-    command_result($?, $!, 'Make erlang ...', 'make');
+    # Skip some OTP apps (e.g., tftp)
+    my @otp_skip = qw(tftp);
+    my $skip = join(' ', @otp_skip);
 
-    system('make install');
-    command_result($?, $!, 'Install erlang ...', 'make install');
+    # Marker file so sub-makes also skip
+    for my $app (@otp_skip) {
+        my $marker = "$erlangDir/lib/$app/SKIP";
+        if (-d "$erlangDir/lib/$app" && !-e $marker) {
+            open my $fh, '>', $marker or die "Can't create $marker: $!";
+            close $fh;
+        }
+    }
+
+    # Build (skip)
+    system('make', "SKIP=$skip", "-j$threads");
+    command_result($?, $!, 'Make erlang ...', "make SKIP=$skip -j$threads");
+
+    # Install (skip too!)
+    system('make', "SKIP=$skip", 'install');
+    command_result($?, $!, 'Install erlang ...', "make SKIP=$skip install");
 
     # Add expected OTP_VERSION layout for Bazel rules
     my $otp_version_file = "$erlangDir/OTP_VERSION";
