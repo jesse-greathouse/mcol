@@ -16,11 +16,13 @@ my @base_deps = qw(
   openssl-devel ncurses-devel pcre2-devel libcurl-devel
   libxml2-devel libxslt-devel libicu-devel glib2-devel
   libwebp-devel libpng-devel libjpeg-turbo-devel bzip2-devel
+  zlib-devel freetype-devel
   libzip-devel oniguruma-devel
   autoconf automake libtool m4
   perl-App-cpanminus
   golang bash
   mariadb-connector-c-devel
+  valkey
 );
 
 # These typically come from EPEL on EL systems

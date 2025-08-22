@@ -507,7 +507,7 @@ sub install_composer {
 
     # Remove the composer artifact if it already exists.
     if (-e "$binDir/$composerArtifact") {
-         unlink "$binDir/$composerArtifact";
+        unlink "$binDir/$composerArtifact";
     }
 
     system(('bash', '-c', $composerDownloadCommand));
@@ -524,7 +524,7 @@ sub install_composer {
 
     # Move the composer artifact to the right place in bin/
     if (-e $composerArtifact) {
-         move($composerArtifact, "$binDir/$composerArtifact");
+        move($composerArtifact, "$binDir/$composerArtifact");
     }
 }
 
@@ -556,10 +556,14 @@ sub cleanup {
     my ($dir) = @_;
     my $phpBuildDir = glob("$dir/opt/php-*/");
     my $openrestyBuildDir = glob("$dir/opt/openresty-*/");
+    my $erlangSrcDir     = "$dir/opt/erlang-src";
+
     system(('bash', '-c', "rm -rf $phpBuildDir"));
     command_result($?, $!, 'Remove PHP Build Dir...', "rm -rf $phpBuildDir");
     system(('bash', '-c', "rm -rf $openrestyBuildDir"));
     command_result($?, $!, 'Remove Openresty Build Dir...', "rm -rf $openrestyBuildDir");
+    system(('bash', '-c', "rm -rf $erlangSrcDir"));
+    command_result($?, $!, 'Remove Erlang Src Dir...', "rm -rf $erlangSrcDir");
 }
 
 sub install_elixir {
@@ -746,7 +750,6 @@ sub install_rabbitmq {
     }
 
     chdir $originalDir;
-
 }
 
 # Helper to source NVM in a fresh bash -lc

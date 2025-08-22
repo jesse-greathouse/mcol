@@ -9,6 +9,7 @@ our @EXPORT_OK = qw(install_bootstrap_toolchain);
 # Minimal toolchain for XS builds
 my @pkgs = qw(
   gcc make pkgconf openssl-devel perl-App-cpanminus curl tar unzip
+  git zip xz rsync which jq python3
 );
 
 sub install_bootstrap_toolchain {
