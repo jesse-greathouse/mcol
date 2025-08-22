@@ -30,15 +30,13 @@ my @epel_deps = qw(
   re2c
 );
 
-# Some packages changed names between Fedora and Rocky
-# We'll pick the first available from each candidate set below.
-my @imagemagick_candidates      = qw(imagemagick-devel ImageMagick-devel);
-my @imagemagick_cpp_candidates  = qw(imagemagick-c++-devel ImageMagick-c++-devel);
-my @imagemagick_runtime         = qw(imagemagick ImageMagick);
+my @imagemagick_runtime         = qw(ImageMagick);
+my @imagemagick_candidates      = qw(ImageMagick-devel);
+my @imagemagick_cpp_candidates  = qw(ImageMagick-c++-devel);
 
 # Message queue: prefer Valkey (base/AppStream on newer EL),
 # fall back to Redis (EPEL) if Valkey isn’t available.
-my @mq_candidates = qw(valkey valkey-compat-redis redis);
+my @mq_candidates = qw(valkey redis);
 
 # ---------------- helpers ----------------
 sub _has_cmd {
@@ -51,10 +49,16 @@ sub _has_cmd {
 
 sub _enable_repos_rocky {
     my ($dnf) = @_;
-    # Enable CRB (EL9/EL10) – ignore failures if not present
-    system('sudo', $dnf, 'config-manager', '--set-enabled', 'crb');
-    # Enable EPEL for extra tooling (supervisor, libsodium, re2c, etc.)
+    # EPEL provides supervisor, libsodium*, re2c, ImageMagick*
     system('sudo', $dnf, 'install', '-y', 'epel-release');
+
+    # CRB: use helper if present (as the epel-release script suggests)
+    if (-x '/usr/bin/crb') {
+        system('sudo', '/usr/bin/crb', 'enable');
+    } else {
+        # fallback if crb helper is missing
+        system('sudo', $dnf, 'config-manager', '--set-enabled', 'crb');
+    }
 }
 
 sub _pkg_installed {
@@ -64,22 +68,17 @@ sub _pkg_installed {
 
 sub _pkg_available {
     my ($dnf, $name) = @_;
-    # dnf and dnf5 both accept `list`; quiet the output
-    return system($dnf, 'list', $name, '>/dev/null', '2>&1') == 0;
+    my $cmd = "$dnf list --available $name >/dev/null 2>&1";
+    return system('bash','-lc',$cmd) == 0;
 }
 
 sub _first_available {
     my ($dnf, @candidates) = @_;
-    # Already installed wins immediately
-    for my $p (@candidates) {
-        return $p if _pkg_installed($p);
-    }
-    # Otherwise pick the first resolvable in repos
-    for my $p (@candidates) {
-        return $p if _pkg_available($dnf, $p);
-    }
+    for my $p (@candidates) { return $p if _pkg_installed($p) }
+    for my $p (@candidates) { return $p if _pkg_available($dnf, $p) }
     return undef;
 }
+
 
 # Prime env for builds (unchanged from your good version)
 sub _prepare_build_env {
@@ -132,46 +131,53 @@ sub install_system_dependencies {
             : _has_cmd('dnf')  ? 'dnf'
             : die "No dnf/dnf5 found in PATH\n";
 
-    my $username = getpwuid($<);
-    print "Sudo is required for updating and installing system dependencies.\n";
-    print "Please enter sudoers password for: $username elevated privileges.\n";
-
-    # Enable CRB + EPEL; ignore failures (already enabled or not present)
     _enable_repos_rocky($dnf);
 
-    # Refresh metadata
+    # refresh metadata
     my @updateCmd = ('sudo', $dnf, 'makecache', '--refresh');
     system(@updateCmd);
     command_result($?, $!, "Updated package index...", \@updateCmd);
 
-    # Resolve candidate sets against what Rocky actually offers
+    # base deps (you already adjusted pcre2, etc.)
+    my @base_deps = qw(
+      gcc gcc-c++ make curl pkgconf pkgconf-pkg-config
+      openssl-devel ncurses-devel pcre2-devel libcurl-devel
+      libxml2-devel libxslt-devel libicu-devel glib2-devel
+      libwebp-devel libpng-devel libjpeg-turbo-devel bzip2-devel
+      libzip-devel oniguruma-devel
+      autoconf automake libtool m4 re2c
+      perl-App-cpanminus
+      golang bash
+      mariadb-connector-c-devel
+      supervisor
+      libsodium libsodium-devel
+    );
+
+    # resolve optional candidates to names Rocky actually provides
     my @resolved_optional;
     if (my $mq = _first_available($dnf, @mq_candidates)) {
         push @resolved_optional, $mq;
     } else {
         warn "No Valkey/Redis provider found (tried: @mq_candidates). Skipping MQ package.\n";
     }
-
     if (my $im = _first_available($dnf, @imagemagick_runtime)) {
         push @resolved_optional, $im;
     } else {
-        warn "No ImageMagick runtime found (tried: @imagemagick_runtime).";
+        warn "No ImageMagick runtime found (tried: @imagemagick_runtime).\n";
     }
     if (my $imd = _first_available($dnf, @imagemagick_candidates)) {
         push @resolved_optional, $imd;
     } else {
-        warn "No ImageMagick devel found (tried: @imagemagick_candidates).";
+        warn "No ImageMagick devel found (tried: @imagemagick_candidates).\n";
     }
     if (my $imcpp = _first_available($dnf, @imagemagick_cpp_candidates)) {
         push @resolved_optional, $imcpp;
     } else {
-        warn "No ImageMagick C++ devel found (tried: @imagemagick_cpp_candidates).";
+        warn "No ImageMagick C++ devel found (tried: @imagemagick_cpp_candidates).\n";
     }
 
-    # Build final install list:
-    my @wanted = (@base_deps, @epel_deps, @resolved_optional);
-
-    # Filter: remove already-installed, and only keep packages that are in repos
+    # compute final list: only install if available and not already installed
+    my @wanted = (@base_deps, @resolved_optional);
     my @to_install;
     for my $pkg (@wanted) {
         next if _pkg_installed($pkg);
@@ -189,10 +195,16 @@ sub install_system_dependencies {
 
     _prepare_build_env();
 
-    # If Valkey installed, you can enable it. Service name differs by distro,
-    # so try both and ignore failures.
-    system('sudo','systemctl','enable','--now','valkey');
-    system('sudo','systemctl','enable','--now','redis');  # if EPEL Redis exists
+    # enable whichever MQ we actually installed (service name-safe)
+    my @svc_try;
+    if (_pkg_installed('valkey')) { push @svc_try, qw(valkey valkey-server); }
+    if (_pkg_installed('redis'))  { push @svc_try, qw(redis redis-server);    }
+    for my $svc (@svc_try) {
+        my $r = system('bash','-lc', "systemctl list-unit-files | grep -q '^$svc\\.service'");
+        next if $r != 0;
+        system('sudo','systemctl','enable','--now',$svc);
+        last if $? == 0;
+    }
 }
 
 sub install_php {
