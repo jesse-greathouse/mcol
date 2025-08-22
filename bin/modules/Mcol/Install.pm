@@ -715,7 +715,7 @@ sub install_rabbitmq {
     print "=================================================================\n\n";
 
     # make
-    my $makeCmd = "make package-generic-unix";
+    my $makeCmd = "make -j1 package-generic-unix";
     system($makeCmd);
     command_result($?, $!, 'Make rabbitmq ...', $makeCmd);
 
