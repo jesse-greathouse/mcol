@@ -150,18 +150,18 @@ sub write_file {
 
 sub command_result {
     my ($exit, $err, $operation_str, @cmd) = @_;
-
-    if ($exit == -1) {
-        print "failed to execute: $err \n";
+    if ($exit == 0) {
+        print "$operation_str success!\n";
+    } elsif ($exit == -1) {
+        print "failed to execute: $err\n";
         exit $exit;
-    }
-    elsif ($exit & 127) {
+    } elsif ($exit & 127) {
         printf "child died with signal %d, %s coredump\n",
             ($exit & 127),  ($exit & 128) ? 'with' : 'without';
         exit $exit;
-    }
-    else {
-        print "$operation_str success!\n";
+    } else {
+        printf "$operation_str failed (exit=%d)\n", $exit >> 8;
+        exit $exit;
     }
 }
 

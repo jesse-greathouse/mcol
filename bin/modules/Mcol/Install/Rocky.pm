@@ -151,6 +151,7 @@ sub install_system_dependencies {
       mariadb-connector-c-devel
       supervisor
       libsodium libsodium-devel
+      rsync
     );
 
     # resolve optional candidates to names Rocky actually provides
