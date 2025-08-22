@@ -174,12 +174,12 @@ sub install_php {
     my ($dir) = @_;
     my $threads = how_many_threads_should_i_use();
 
-    my @configurePhp =
+    my @configurePhp = (
         './configure',
-        '--prefix=' . $dir . '/opt/php',
-        '--sysconfdir=' . $dir . '/etc',
-        '--with-config-file-path=' . $dir . '/etc/php',
-        '--with-config-file-scan-dir=' . $dir . '/etc/php/conf.d',
+        "--prefix=$dir/opt/php",
+        "--sysconfdir=$dir/etc",
+        "--with-config-file-path=$dir/etc/php",
+        "--with-config-file-scan-dir=$dir/etc/php/conf.d",
         '--enable-opcache', '--enable-fpm', '--enable-dom', '--enable-exif',
         '--enable-fileinfo', '--enable-mbstring', '--enable-bcmath',
         '--enable-intl', '--enable-ftp', '--enable-pcntl', '--enable-gd',
@@ -187,7 +187,7 @@ sub install_php {
         '--without-pdo-sqlite', '--with-libxml', '--with-xsl', '--with-zlib',
         '--with-curl', '--with-webp', '--with-openssl', '--with-zip', '--with-bz2',
         '--with-sodium', '--with-mysqli', '--with-pdo-mysql', '--with-mysql-sock',
-        '--with-iconv'
+        '--with-iconv',
     );
 
     my $originalDir = getcwd();

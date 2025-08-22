@@ -25,6 +25,17 @@ my $osModule = 'Mcol::Install::' . $os;
 my $nodeVersion = '22.14';
 my $npmVersion = '11.2.0';
 
+print "OS Module Selected: $osModule\n";
+
+my $ok = eval "use $osModule qw(install_system_dependencies install_php install_bazelisk); 1;";
+die "Failed to load $osModule: $@" unless $ok;
+
+# sanity: did the symbols arrive?
+for my $sym (qw(install_system_dependencies install_php install_bazelisk)) {
+    die "$osModule did not export $sym"
+        unless __PACKAGE__->can($sym);
+}
+
 eval "use $osModule qw(install_system_dependencies install_php install_bazelisk)";
 
 my @perlModules = (
