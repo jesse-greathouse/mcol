@@ -16,13 +16,14 @@ my @base_deps = qw(
   openssl-devel ncurses-devel pcre2-devel libcurl-devel
   libxml2-devel libxslt-devel libicu-devel glib2-devel
   libwebp-devel libpng-devel libjpeg-turbo-devel bzip2-devel
-  zlib-devel freetype-devel
   libzip-devel oniguruma-devel
-  autoconf automake libtool m4
+  autoconf automake libtool m4 re2c
   perl-App-cpanminus
   golang bash
   mariadb-connector-c-devel
-  valkey
+  supervisor
+  libsodium libsodium-devel
+  redis valkey
 );
 
 # These typically come from EPEL on EL systems
@@ -81,6 +82,35 @@ sub _first_available {
     return undef;
 }
 
+sub _ensure_authbind_passthrough {
+    # If authbind exists, do nothing.
+    my $have = system('bash','-lc','command -v authbind >/dev/null 2>&1');
+    return if $have == 0;
+
+    # Create an inert shim that swallows --deep and execs the command.
+    my $shim = <<'SH';
+#!/usr/bin/env bash
+# Inert authbind shim for systems without authbind.
+# Usage: authbind [--deep] <cmd> [args...]
+set -euo pipefail
+if [[ "${1-}" == "--deep" ]]; then
+  shift
+fi
+exec "$@"
+SH
+
+    my $tmp = "/tmp/authbind.shim.$$";
+    open my $fh, '>', $tmp or die "open $tmp: $!";
+    print {$fh} $shim;
+    close $fh;
+    chmod 0755, $tmp or die "chmod $tmp: $!";
+
+    # Install to /usr/local/bin so 'authbind' is found without PATH edits.
+    # (coreutils 'install' is present on Rocky.)
+    system('sudo','install','-m','0755',$tmp,'/usr/local/bin/authbind');
+    unlink $tmp;
+    print "Installed inert authbind shim at /usr/local/bin/authbind\n";
+}
 
 # Prime env for builds (unchanged from your good version)
 sub _prepare_build_env {
@@ -140,22 +170,6 @@ sub install_system_dependencies {
     system(@updateCmd);
     command_result($?, $!, "Updated package index...", \@updateCmd);
 
-    # base deps (you already adjusted pcre2, etc.)
-    my @base_deps = qw(
-      gcc gcc-c++ make curl pkgconf pkgconf-pkg-config
-      openssl-devel ncurses-devel pcre2-devel libcurl-devel
-      libxml2-devel libxslt-devel libicu-devel glib2-devel
-      libwebp-devel libpng-devel libjpeg-turbo-devel bzip2-devel
-      libzip-devel oniguruma-devel
-      autoconf automake libtool m4 re2c
-      perl-App-cpanminus
-      golang bash
-      mariadb-connector-c-devel
-      supervisor
-      libsodium libsodium-devel
-      rsync
-    );
-
     # resolve optional candidates to names Rocky actually provides
     my @resolved_optional;
     if (my $mq = _first_available($dnf, @mq_candidates)) {
@@ -208,6 +222,9 @@ sub install_system_dependencies {
         system('sudo','systemctl','enable','--now',$svc);
         last if $? == 0;
     }
+
+    # Ensure an authbind-compatible passthrough exists if the real tool is absent
+    _ensure_authbind_passthrough();
 }
 
 sub install_php {
