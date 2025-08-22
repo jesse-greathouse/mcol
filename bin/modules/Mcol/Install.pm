@@ -619,7 +619,8 @@ sub install_erlang {
     command_result($?, $!, 'Configure erlang ...', "./configure --prefix=$erlangPrefixDir");
 
     # Optionally skip apps like tftp
-    my @otp_skip = qw(tftp);
+    #my @otp_skip = qw(tftp);
+    my @otp_skip = ();
     my $skip = join(' ', @otp_skip);
 
     for my $app (@otp_skip) {
