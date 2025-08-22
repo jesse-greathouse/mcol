@@ -259,14 +259,12 @@ sub install_symlinks {
 
 # installs Perl Modules.
 sub install_perl_modules {
-    foreach my $perlModule (@perlModules) {
-        my @cmd = ('sudo');
-        push @cmd, 'cpanm';
-        push @cmd, $perlModule;
-        system(@cmd);
+    my @cmd = ();
+    push @cmd, 'sudo' if $> != 0;
+    push @cmd, 'cpanm', '--notest', '--quiet', '--no-man-pages', '--skip-satisfied', @perlModules;
 
-        command_result($?, $!, "Shared library pass for: $_", \@cmd);
-    }
+    system(@cmd);
+    command_result($?, $!, 'Installed Perl modules (no tests)', \@cmd);
 }
 
 # installs Pear.
