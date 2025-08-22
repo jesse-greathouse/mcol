@@ -7,7 +7,8 @@ use Exporter 'import';
 our @EXPORT_OK = qw(install_bootstrap_toolchain);
 
 my @pkgs = qw(
-  gcc make pkg-config libopenssl-devel perl-App-cpanminus curl tar unzip
+  gcc gcc-c++ make pkg-config libopenssl-devel perl-App-cpanminus
+  curl tar unzip git
 );
 
 sub install_bootstrap_toolchain {
