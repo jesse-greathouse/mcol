@@ -14,6 +14,18 @@ warn $@ if $@; # Handle exceptions
 
 my $binDir = abs_path(dirname(__FILE__));
 
+# Ensure app's CLI tools (rabbitmqctl, escript, etc.) are on PATH.
+# rabbitmqctl uses `#!/usr/bin/env escript`, so PATH must include $binDir.
+{
+    my @path = ($binDir, split(/:/, $ENV{PATH} // ''));
+    my %seen;
+    @path = grep { !$seen{$_}++ && length } @path;  # de-dup, keep order
+    $ENV{PATH} = join(':', @path);
+}
+
+# Prefer the copy we ship; fall back to system rabbitmqctl if not present.
+my $rmqctl = -x "$binDir/rabbitmqctl" ? "$binDir/rabbitmqctl" : "rabbitmqctl";
+
 # Load config
 my %cfg = get_configuration();
 my $rabbitmq_nodename = $cfg{rabbitmq}{RABBITMQ_NODENAME} || 'mcol@localhost';
@@ -22,7 +34,7 @@ my $rabbitmq_nodename = $cfg{rabbitmq}{RABBITMQ_NODENAME} || 'mcol@localhost';
 my ($action) = @ARGV;
 
 if (not defined $action) {
-  die "Available actions are start, restart stop and kill.\n";
+  die "Available actions are start, restart, stop and kill.\n";
 }
 
 if ("start" eq $action) {
@@ -35,7 +47,7 @@ if ("start" eq $action) {
     print "Waiting for RabbitMQ node '$rabbitmq_nodename' to become ready...\n";
 
     while ($elapsed < $timeout) {
-        my $status = system("$binDir/rabbitmqctl --node $rabbitmq_nodename status > /dev/null 2>&1");
+        my $status = system("$rmqctl --node $rabbitmq_nodename status > /dev/null 2>&1");
         if ($status == 0) {
             print "RabbitMQ is ready.\n";
             last;
@@ -67,5 +79,5 @@ if ("start" eq $action) {
     instance_kill();
     queue_kill();
 } else {
-    die "Available actions are start, restart stop and kill.\n";
+    die "Available actions are start, restart, stop and kill.\n";
 }
