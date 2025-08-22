@@ -588,75 +588,71 @@ sub install_elixir {
 sub install_erlang {
     my ($dir) = @_;
     my $threads = how_many_threads_should_i_use();
-    my $erlangVersion = 'maint-25';
-    my $originalDir = getcwd();
-    my $erlangDir = glob("$dir/opt/erlang");
 
-    if (-d $erlangDir) {
-        print "Erlang dependency already exists, skipping...(`rm -rf $erlangDir` to rebuild)\n";
+    my $erlangSrcDir     = "$dir/opt/erlang-src";  # source checkout lives here
+    my $erlangPrefixDir  = "$dir/opt/erlang";      # installed runtime lives here
+    my $erlangVersion    = 'maint-25';
+    my $originalDir      = getcwd();
+
+    # Clean slate if desired:
+    # system("rm -rf '$erlangSrcDir' '$erlangPrefixDir'");
+
+    if (-d $erlangPrefixDir) {
+        print "Erlang already installed at $erlangPrefixDir, skipping... (`rm -rf $erlangPrefixDir` to rebuild)\n";
         return;
     }
 
-    system("git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangDir");
-    command_result($?, $!, 'Clone erlang ...', "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangDir");
+    # Clone sources
+    unless (-d $erlangSrcDir) {
+        system("git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git '$erlangSrcDir'");
+        command_result($?, $!, 'Clone erlang ...', "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangSrcDir");
+    }
 
-    chdir $erlangDir;
+    chdir $erlangSrcDir;
 
-    system("./configure --prefix=$erlangDir");
-    command_result($?, $!, 'Configure erlang ...', './configure');
+    # Configure to install OUTSIDE the source tree
+    system("./configure --prefix='$erlangPrefixDir'");
+    command_result($?, $!, 'Configure erlang ...', "./configure --prefix=$erlangPrefixDir");
 
-    # Skip some OTP apps (e.g., tftp)
+    # Optionally skip apps like tftp
     my @otp_skip = qw(tftp);
     my $skip = join(' ', @otp_skip);
 
-    # Marker file so sub-makes also skip
     for my $app (@otp_skip) {
-        my $marker = "$erlangDir/lib/$app/SKIP";
-        if (-d "$erlangDir/lib/$app" && !-e $marker) {
+        my $marker = "$erlangSrcDir/lib/$app/SKIP";
+        if (-d "$erlangSrcDir/lib/$app" && !-e $marker) {
             open my $fh, '>', $marker or die "Can't create $marker: $!";
             close $fh;
         }
     }
 
-    # Build (skip)
     system('make', "SKIP=$skip", "-j$threads");
     command_result($?, $!, 'Make erlang ...', "make SKIP=$skip -j$threads");
 
-    # Install (skip too!)
     system('make', "SKIP=$skip", 'install');
     command_result($?, $!, 'Install erlang ...', "make SKIP=$skip install");
 
     # Add expected OTP_VERSION layout for Bazel rules
-    my $otp_version_file = "$erlangDir/OTP_VERSION";
+    my $otp_version_file = "$erlangPrefixDir/OTP_VERSION";
     if (-f $otp_version_file) {
-        my $otp_release = `cat $otp_version_file`;
-        chomp($otp_release);
-
-        # Extract major version for Bazel
+        my $otp_release = `cat '$otp_version_file'`; chomp($otp_release);
         my ($otp_major) = $otp_release =~ /^(\d+)/;
-
-        my $release_dir = "$erlangDir/releases/$otp_major";
-        unless (-d $release_dir) {
-            make_path($release_dir) or die "Could not create directory $release_dir: $!";
-        }
-
+        my $release_dir = "$erlangPrefixDir/releases/$otp_major";
+        require File::Path; File::Path::make_path($release_dir) unless -d $release_dir;
         my $target_file = "$release_dir/OTP_VERSION";
-        unless (-e $target_file) {
-            copy($otp_version_file, $target_file)
-                or die "Failed to copy $otp_version_file to $target_file: $!";
-            print "Copied OTP_VERSION to: $target_file\n";
-        }
+        require File::Copy;
+        File::Copy::copy($otp_version_file, $target_file) unless -e $target_file;
+        print "Copied OTP_VERSION to: $target_file\n";
     } else {
-        warn "OTP_VERSION file not found at $otp_version_file, skipping Bazel compatibility fix.\n";
+        warn "OTP_VERSION not found at $otp_version_file; skipping Bazel compatibility fix.\n";
     }
 
-    # Add RabbitMQ compatibility fix: create bin/x86_64-pc-linux-gnu/erl symlink
-    my $erl_bin = "$erlangDir/bin/erl";
-    my $platform_bin_dir = "$erlangDir/bin/x86_64-pc-linux-gnu";
+    # RabbitMQ compatibility symlink
+    my $erl_bin = "$erlangPrefixDir/bin/erl";
+    my $platform_bin_dir = "$erlangPrefixDir/bin/x86_64-pc-linux-gnu";
     my $platform_erl = "$platform_bin_dir/erl";
-
     unless (-e $platform_erl) {
-        make_path($platform_bin_dir);
+        require File::Path; File::Path::make_path($platform_bin_dir);
         symlink("../erl", $platform_erl)
             or warn "Failed to create RabbitMQ-compatible symlink: $platform_erl → ../erl ($!)\n";
         print "Created RabbitMQ-compatible symlink: $platform_erl → ../erl\n";
