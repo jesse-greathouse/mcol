@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-package Mcol::Install::Fedora;
+package Mcol::Install::Rocky;
 use strict;
 use Cwd qw(getcwd abs_path);
 use File::Basename;
@@ -163,7 +163,7 @@ sub install_php {
     my ($dir) = @_;
     my $threads = how_many_threads_should_i_use();
 
-    my @configurePhp = 
+    my @configurePhp =
         './configure',
         '--prefix=' . $dir . '/opt/php',
         '--sysconfdir=' . $dir . '/etc',

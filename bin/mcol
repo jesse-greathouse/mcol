@@ -29,7 +29,7 @@ if ("start" eq $action) {
     queue_start();
 
     # Wait until RabbitMQ is accepting commands
-    my $timeout = 30;
+    my $timeout = 60;
     my $elapsed = 0;
 
     print "Waiting for RabbitMQ node '$rabbitmq_nodename' to become ready...\n";
