@@ -42,87 +42,79 @@ sub get_operating_system {
 }
 
 # Detects the Linux distribution.
+# Detects the Linux distribution.
 sub get_linux_distribution {
-    my @os_release_dists = (
-        { pattern => 'rocky',        name => 'Rocky' },
-        { pattern => 'centos',       name => 'CentOS' },
-        { pattern => 'ubuntu',       name => 'Ubuntu' },
-        { pattern => 'fedora',       name => 'Fedora' },
-        { pattern => 'debian',       name => 'Debian' },
-        { pattern => 'opensuse',     name => 'OpenSUSE' },
-        { pattern => 'arch',         name => 'Arch' },
-        { pattern => 'alpine',       name => 'Alpine' },
-        { pattern => 'gentoo',       name => 'Gentoo' },
-        { pattern => 'openmandriva', name => 'OpenMandriva' },
+    my %map = (
+        rocky                 => 'Rocky',
+        centos                => 'CentOS',
+        rhel                  => 'RHEL',
+        fedora                => 'Fedora',
+        ubuntu                => 'Ubuntu',
+        debian                => 'Debian',
+        'opensuse'            => 'OpenSUSE',
+        'opensuse-leap'       => 'OpenSUSE',
+        'opensuse-tumbleweed' => 'OpenSUSE',
+        arch                  => 'Arch',
+        alpine                => 'Alpine',
+        gentoo                => 'Gentoo',
+        openmandriva          => 'OpenMandriva',
     );
 
-    # Check /etc/os-release first (most modern distros)
+    # 1) Prefer /etc/os-release
     if (open my $fh, '<', '/etc/os-release') {
+        my ($id, $id_like);
         while (my $line = <$fh>) {
-            chomp $line;
+            next unless $line =~ /^([A-Z_]+)\s*=\s*(.*)$/;
+            my ($k, $v) = (lc $1, $2);
 
-            # Match ID="<id>" (quotes optional, whitespace tolerant)
-            foreach my $dist (@os_release_dists) {
-                if ($line =~ /^ID\s*=\s*["']?\Q$dist->{pattern}\E["']?\s*$/i) {
-                    close $fh;
-                    return $dist->{name};
-                }
+            # strip surrounding single/double quotes and outer whitespace
+            $v =~ s/^\s*["']?//;
+            $v =~ s/["']?\s*$//;
+
+            $id      = lc $v if $k eq 'id';
+            $id_like = lc $v if $k eq 'id_like';
+        }
+        close $fh;
+
+        if (defined $id && exists $map{$id}) {
+            return $map{$id};
+        }
+        if (defined $id_like) {
+            for my $tok (split /\s+/, $id_like) {
+                return $map{$tok} if exists $map{$tok};
             }
+        }
+    }
 
-            # Also allow ID_LIKE="rhel centos fedora" style matches
-            if ($line =~ /^ID_LIKE\s*=\s*["']?(.+?)["']?\s*$/i) {
-                my $likes = lc $1;
-                foreach my $dist (@os_release_dists) {
-                    if ($likes =~ /\b\Q$dist->{pattern}\E\b/) {
-                        close $fh;
-                        return $dist->{name};
-                    }
-                }
+    # 2) Fallbacks
+    if (-e '/etc/lsb-release' && open my $fh, '<', '/etc/lsb-release') {
+        while (my $line = <$fh>) {
+            if ($line =~ /DISTRIB_ID\s*=\s*["']?([\w-]+)["']?/i) {
+                my $id = lc $1;
+                close $fh;
+                return $map{$id} if exists $map{$id};
             }
         }
         close $fh;
     }
 
-    # Fallback to other common files
-    if (-e '/etc/lsb-release') {
-        if (open my $fh, '<', '/etc/lsb-release') {
-            while (my $line = <$fh>) {
-                foreach my $dist (@os_release_dists) {
-                    if ($line =~ /DISTRIB_ID\s*=\s*["']?\Q$dist->{name}\E["']?/i) {
-                        close $fh;
-                        return $dist->{name};
-                    }
-                }
-            }
-            close $fh;
+    if (-e '/etc/redhat-release' && open my $fh, '<', '/etc/redhat-release') {
+        while (my $line = <$fh>) {
+            return 'Rocky'  if $line =~ /Rocky/i;
+            return 'CentOS' if $line =~ /CentOS/i;
+            return 'RHEL'   if $line =~ /Red Hat/i;
+            return 'Fedora' if $line =~ /Fedora/i;
         }
+        close $fh;
     }
 
-    if (-e '/etc/redhat-release') {
-        if (open my $fh, '<', '/etc/redhat-release') {
-            while (my $line = <$fh>) {
-                foreach my $dist (@os_release_dists) {
-                    if ($line =~ /\b\Q$dist->{name}\E\b/i) {
-                        close $fh;
-                        return $dist->{name};
-                    }
-                }
-            }
-            close $fh;
-        }
-    }
+    # 3) Debian marker
+    return 'Debian' if -e '/etc/debian_version';
 
-    # Check /etc/debian_version for Debian-based distros
-    if (-e '/etc/debian_version') {
-        return 'Debian';
-    }
-
-    # Use uname as a last resort (generic fallback)
+    # 4) Last resort
     my $uname = `uname -a`;
-    foreach my $dist (@os_release_dists) {
-        if ($uname =~ /\b\Q$dist->{name}\E\b/i) {
-            return $dist->{name};
-        }
+    for my $k (keys %map) {
+        return $map{$k} if $uname =~ /\b\Q$map{$k}\E\b/i;
     }
 
     die "Unable to determine Linux distribution.\n";
