@@ -605,7 +605,7 @@ sub install_erlang {
     system("./configure --prefix=$erlangDir");
     command_result($?, $!, 'Configure erlang ...', './configure');
 
-    system("make -j$threads");
+    system("make -j$threads SKIP='tftp'");
     command_result($?, $!, 'Make erlang ...', 'make');
 
     system('make install');
