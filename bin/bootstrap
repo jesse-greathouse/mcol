@@ -2,6 +2,59 @@
 
 use strict;
 use warnings;
+
+BEGIN {
+    my $RealBin;
+
+    # 1) Try FindBin first
+    my $have_findbin = eval { require FindBin; FindBin->import(qw($RealBin)); 1 };
+
+    unless ($have_findbin) {
+        # 2) Look specifically for 'dnf' (Fedora/RHEL/Rocky)
+        my $dnf;
+        for my $dir (split /:/, ($ENV{PATH} // '')) {
+            if (-x "$dir/dnf") { $dnf = 'dnf'; last }
+        }
+
+        if ($dnf) {
+            # Decide if we can/should use sudo
+            my $use_sudo = ($> != 0); # not root
+            if ($use_sudo) {
+                my $have_sudo = 0;
+                for my $dir (split /:/, ($ENV{PATH} // '')) {
+                    if (-x "$dir/sudo") { $have_sudo = 1; last }
+                }
+                $use_sudo = $have_sudo;
+            }
+
+            # Build and run: dnf -y install perl-FindBin
+            my @cmd = ($dnf, '-y', 'install', 'perl-FindBin');
+            unshift @cmd, 'sudo', '-n' if $use_sudo;
+            system @cmd;
+
+            # If that failed, try broader 'perl' meta as a fallback
+            if ($? != 0) {
+                @cmd = ($dnf, '-y', 'install', 'perl');
+                unshift @cmd, 'sudo', '-n' if $use_sudo;
+                system @cmd;
+            }
+
+            # Re-attempt to load FindBin after installs
+            $have_findbin = eval { require FindBin; FindBin->import(qw($RealBin)); 1 };
+        }
+
+        # 3) Final fallback if FindBin still unavailable
+        unless ($have_findbin) {
+            require Cwd;            Cwd->import('abs_path');
+            require File::Basename; File::Basename->import('dirname');
+            $RealBin = File::Basename::dirname(Cwd::abs_path($0));
+        }
+    }
+
+    # Ensure bin/modules/* is on @INC early
+    require lib; lib->import("$RealBin/modules");
+}
+
 use Config;
 use Cwd qw(getcwd abs_path);
 use FindBin qw($RealBin);
