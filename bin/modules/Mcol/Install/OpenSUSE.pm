@@ -21,7 +21,6 @@ my @mysql_dev_candidates     = qw(libmariadb-devel mariadb-connector-c-devel lib
 my @onig_candidates          = qw(oniguruma-devel libonig-devel onig-devel);
 my @sodium_candidates        = qw(libsodium-devel);
 my @supervisor_candidates    = qw(python3-supervisor supervisor);
-my @redis_candidates         = qw(redis);
 
 # always-try base deps (these names are correct on openSUSE)
 my @base_deps = qw(
@@ -30,7 +29,7 @@ my @base_deps = qw(
   libxml2-devel libxslt-devel libicu-devel glib2-devel
   libwebp-devel libpng16-devel libjpeg-turbo libjpeg-turbo-devel libjpeg62-devel bzip2-devel
   libzip-devel autoconf automake libtool m4
-  perl-App-cpanminus expect go bash
+  perl-App-cpanminus expect go bash redis
 );
 
 # ---------------- helpers ----------------
@@ -170,6 +169,37 @@ SH
     }
 }
 
+# Does a Redis unit exist (plain or template)?
+sub _has_redis_service {
+    # plain unit: redis.service
+    my $plain = system('bash','-lc',
+        q{systemctl list-unit-files --type=service --no-legend | awk '{print $1}' | grep -qx redis.service}
+    ) == 0;
+    return 1 if $plain;
+
+    # template unit: redis@.service (common on openSUSE)
+    my $templ = system('bash','-lc',
+        q{systemctl list-unit-files --type=service --no-legend | awk '{print $1}' | grep -qx 'redis@.service'}
+    ) == 0;
+    return 1 if $templ;
+
+    return 0;
+}
+
+# Start Redis via the simple service wrapper if present
+sub _start_redis_if_present {
+    if (_has_redis_service()) {
+        my $rc = system('sudo','service','redis','start');
+        if ($rc == 0) {
+            print "Started Redis via 'service redis start'.\n";
+        } else {
+            warn "Tried to start Redis (exit=$rc). Check with: sudo systemctl status redis\n";
+        }
+    } else {
+        print "Redis service not found; skipping start.\n";
+    }
+}
+
 # --------------- main installer ---------------
 sub install_system_dependencies {
     my $username = getpwuid($<);
@@ -205,9 +235,6 @@ sub install_system_dependencies {
     if (my $sup = _first_available(@supervisor_candidates))      { push @resolved_optional, $sup }
     else { warn "No supervisor package found (tried: @supervisor_candidates)\n" }
 
-    if (my $redis = _first_available(@redis_candidates))         { push @resolved_optional, $redis }
-    else { warn "No redis package found (tried: @redis_candidates)\n" }
-
     my @wanted = (@base_deps, @resolved_optional);
 
     my @to_install;
@@ -226,13 +253,8 @@ sub install_system_dependencies {
     }
 
     _prepare_build_env();
+    _start_redis_if_present();
     _ensure_passthrough_authbind();
-
-    # enable redis if present
-    my $has_unit = system('bash','-lc', "systemctl list-unit-files | grep -q '^redis\\.service'") == 0;
-    if ($has_unit && _pkg_installed('redis')) {
-        system('sudo','systemctl','enable','--now','redis');
-    }
 }
 
 sub install_php {
