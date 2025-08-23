@@ -147,30 +147,7 @@ unless (-e $cpanfile) {
     die "❌ No cpanfile found in current directory ($ENV{PWD}). Aborting.\n";
 }
 
-# --- Step 5: Check if using local::lib or root ---
-my $is_local_lib = $ENV{PERL_MM_OPT} || $ENV{PERL_LOCAL_LIB_ROOT};
-my $is_root = $> == 0;
-
-unless ($is_local_lib || $is_root) {
-    print <<"WARN";
-
-===============================================================
-⚠️  You are not root and local::lib does not appear to be enabled.
-
-   You may see warnings about permissions during dependency installation.
-   For best results, run:
-
-     perl -Mlocal::lib >> ~/.profile
-     source ~/.profile
-
-   or consider running as root (not recommended).
-
-WARN
-
-    print "\nInstalling Perl dependencies momentarily...\n";
-}
-
-# --- Step 6: Run cpanm --installdeps ---
+# --- Step 5: Run cpanm --installdeps ---
 print "📦 Installing Perl dependencies from cpanfile...\n";
 my $cwd = getcwd();
 system($cpanm, '--installdeps', '--notest', $cwd) == 0
@@ -178,18 +155,19 @@ system($cpanm, '--installdeps', '--notest', $cwd) == 0
 
 print "✅ All dependencies installed successfully.\n";
 
-# --- Step 7: After install, check Perl/local::lib visibility ---
-my $local_lib_path = "$ENV{HOME}/perl5/lib/perl5";
-my $local_bin_path = "$ENV{HOME}/perl5/bin";
+# --- Step 6: After install, check Perl/local::lib visibility ---
+my $local_lib_path   = "$ENV{HOME}/perl5/lib/perl5";
+my $local_bin_path   = "$ENV{HOME}/perl5/bin";
 my $warned_local_lib = 0;
 
 if (-d $local_lib_path) {
-    my $inc_output = qx($^X -e "print join(qq{\\n}, \@INC), qq{\\n}" 2>/dev/null);
+    my $inc_output = qx{$^X -e "print join(qq{\\n}, \@INC), qq{\\n}"};  # 2>/dev/null not needed in qx context
     $inc_output = '' unless defined $inc_output;
-    my $lib_in_inc = ($inc_output =~ /\Q$local_lib_path\E/);
+
+    my $lib_in_inc  = ($inc_output =~ /\Q$local_lib_path\E/);
     my $bin_in_path = grep { $_ eq $local_bin_path } split /$Config{path_sep}/, $ENV{PATH};
 
-    if (!$lib_in_inc or !$bin_in_path) {
+    if (!$lib_in_inc || !$bin_in_path) {
         $warned_local_lib = 1;
         print <<"EOW";
 
@@ -199,18 +177,29 @@ if (-d $local_lib_path) {
     Your local::lib ($local_lib_path) may not be visible to Perl
     and/or scripts in $local_bin_path may not be in your PATH.
 
-    To fix:
+    To proceed set these lines in your shell:
+
       export PERL5LIB="\$HOME/perl5/lib/perl5:\$PERL5LIB"
       export PATH="\$HOME/perl5/bin:\$PATH"
 
-    Or, run:
-      perl -Mlocal::lib >> ~/.profile
-      source ~/.profile
-
-  (After fixing, restart your shell.)
 ===============================================================
 
 EOW
-
     }
+}
+
+# If we didn't warn, guide the user to the next step.
+if (!$warned_local_lib) {
+    print <<'EON';
+
+===============================================================
+✅ Environment looks good.
+
+Next step: install the software:
+
+  bin/install
+
+===============================================================
+
+EON
 }

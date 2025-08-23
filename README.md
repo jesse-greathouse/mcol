@@ -25,8 +25,18 @@ cd mcol
 ```bash
 # Verifies perl and cpan are available and installs perl modules.
 bin/bootstrap
+```
 
+> If you dont have a local Perl library set up on your PATH, you may need to add thse variables to your terminal session:
+
+```bash
+    export PERL5LIB="\$HOME/perl5/lib/perl5:\$PERL5LIB"
+    export PATH="\$HOME/perl5/bin:\$PATH"
+```
+
+```bash
 # Installs all necessary dependencies (Requires sudo/elevated privelages)
+
 bin/install
 
 # wait...
@@ -43,6 +53,19 @@ bin/mcol start
 ```
 
 ### Detailed instructions
+
+```bash
+bin/bootstrap
+```
+
+A minimal system build toolchain is required to run the installer. `bin/bootstrap` just sets up the installer to be able to build.
+
+It's best if you use the local perl library. Set these variables if your local perl library is not on your PATH:
+
+```bash
+    export PERL5LIB="\$HOME/perl5/lib/perl5:\$PERL5LIB"
+    export PATH="\$HOME/perl5/bin:\$PATH"
+```
 
 ```bash
 bin/install
