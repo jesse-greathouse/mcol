@@ -18,7 +18,7 @@ my $applicationRoot = abs_path(dirname($bin));
 my @systemDependencies = qw(
     intltool autoconf automake expect gcc pcre2 curl libiconv pkg-config
     openssl@3 mysql-client oniguruma libxml2 libxslt icu4c imagemagick mysql
-    libsodium libzip glib webp go cpanminus redis python@3.12
+    libsodium libzip glib webp go cpanminus redis python@3.12 libmd
 );
 
 # ====================================
@@ -72,7 +72,7 @@ sub _prepare_build_env_macos {
     $ENV{CPPFLAGS}        = join(' ', (map { "-I$_" } grep {-d} @inc), split(' ', $ENV{CPPFLAGS}//''));
     $ENV{LDFLAGS}         = join(' ', (map { "-L$_" } grep {-d} @lib), split(' ', $ENV{LDFLAGS}//''));
 
-    # Make Autoconf’s “undeclared builtins” probe a no-op
+    # Make Autoconf probe a no-op
     $ENV{ac_cv_c_undeclared_builtin_options} //= 'none needed';
 
     # Use clang explicitly on macOS
@@ -95,33 +95,41 @@ sub _prepare_build_env_macos {
 }
 
 sub _prepare_build_env_macos_for_erlang {
-    # toolchain & warnings
+    # toolchain
     $ENV{CC} ||= 'clang';
     $ENV{CFLAGS} = join(' ', grep { length } (
         $ENV{CFLAGS} // '',
-        '-std=gnu99', '-O2', '-g',
+        '-std=gnu99','-O2','-g',
         '-fno-builtin',
         '-Werror=implicit-function-declaration',
         '-Qunused-arguments'
     ));
 
-    # Homebrew kegs
-    my @kegs = qw(openssl@3);
+    # openssl prefixes (existing)
     my @pc; my @inc; my @lib;
-    for my $k (@kegs) {
+    for my $k (qw(openssl@3)) {
         chomp(my $p = `brew --prefix $k 2>/dev/null`); next unless $p;
         push @pc,  "$p/lib/pkgconfig";
         push @inc, "$p/include";
         push @lib, "$p/lib";
     }
+
+    # NEW: libmd (BSD MD5 with MD5Init/MD5Update/MD5Final)
+    chomp(my $libmd = `brew --prefix libmd 2>/dev/null`);
+    if ($libmd && -d "$libmd/include" && -d "$libmd/lib") {
+        push @inc, "$libmd/include";
+        push @lib, "$libmd/lib";
+        $ENV{LIBS} = join(' ', grep { length } ($ENV{LIBS}//'', '-lmd'));
+        print "Using libmd from $libmd (adding -lmd)\n";
+    }
+
     $ENV{PKG_CONFIG_PATH} = join(':', grep {-d} @pc, split(':', $ENV{PKG_CONFIG_PATH}//''));
     $ENV{CPPFLAGS}        = join(' ', (map { "-I$_" } grep {-d} @inc), split(' ', $ENV{CPPFLAGS}//''));
     $ENV{LDFLAGS}         = join(' ', (map { "-L$_" } grep {-d} @lib), split(' ', $ENV{LDFLAGS}//''));
 
-    # Autoconf probe workaround
+    # Autoconf probe workaround seen earlier
     $ENV{ac_cv_c_undeclared_builtin_options} //= 'none needed';
 
-    # Nice to have for CLT-only setups
     chomp(my $sdk = `xcrun --sdk macosx --show-sdk-path 2>/dev/null`);
     $ENV{SDKROOT} = $sdk if $sdk;
 }
@@ -133,7 +141,7 @@ sub build_erlang_otp_on_macos {
     my $threads          = eval { require POSIX; POSIX::sysconf(POSIX::_SC_NPROCESSORS_ONLN()) } || 2;
     my $erlangSrcDir     = "$dir/opt/erlang-src";   # source checkout lives here
     my $erlangPrefixDir  = "$dir/opt/erlang";       # installed runtime lives here
-    my $erlangVersion    = 'maint-25';
+    my $erlangVersion    = 'OTP-25.3.2.21';
     my $originalDir      = getcwd();
 
     # If already installed, bail early (same behavior as Linux)
@@ -145,8 +153,7 @@ sub build_erlang_otp_on_macos {
     # Clone sources if missing (parity with Linux path)
     unless (-d $erlangSrcDir) {
         system("git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git '$erlangSrcDir'");
-        command_result($?, $!, 'Clone erlang ...',
-            "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangSrcDir");
+        command_result($?, $!, 'Clone erlang ...', "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangSrcDir");
     }
 
     # Prime macOS build env (Clang, Homebrew kegs, Autoconf workaround, etc.)
@@ -161,7 +168,7 @@ sub build_erlang_otp_on_macos {
     system('bash','-lc', $configure_cmd);
     command_result($?, $!, 'Configure Erlang/OTP...', $configure_cmd);
 
-    # (Optional) SKIP apps parity — keep empty by default
+    # (Optional) SKIP apps parity keep empty by default
     my @otp_skip = ();
     my $skip = join(' ', @otp_skip);
     for my $app (@otp_skip) {
@@ -211,8 +218,8 @@ sub build_erlang_otp_on_macos {
         require File::Path; File::Path::make_path($platform_bin_dir) unless -d $platform_bin_dir;
         unless (-e $platform_erl) {
             symlink("../erl", $platform_erl)
-                or warn "Failed to create platform symlink: $platform_erl → ../erl ($!)\n";
-            print "Created platform symlink: $platform_erl → ../erl\n";
+                or warn "Failed to create platform symlink: $platform_erl -> ../erl ($!)\n";
+            print "Created platform symlink: $platform_erl -> ../erl\n";
         }
     } else {
         warn "Could not determine Darwin target triplet; skipping platform symlink.\n";
@@ -238,7 +245,7 @@ sub install_system_dependencies {
         if ($check != 0) {
             push @to_install, $pkg;
         } else {
-            print "✓ $pkg already installed, skipping.\n";
+            print "$pkg already installed, skipping.\n";
         }
     }
 
@@ -314,15 +321,15 @@ sub install_pip {
     # Check if pip is already available
     my $pipStatus = `python3 -m pip --version 2>&1`;
     if ($? == 0 && $pipStatus =~ /^pip\s+\d+\./) {
-        print "✓ Pip already installed: $pipStatus";
+        print "Pip already installed: $pipStatus";
         return;
     }
 
     # Try ensurepip first (works with Homebrew python too), fall back to get-pip.py
-    print "Installing pip via ensurepip…\n";
+    print "Installing pip via ensurepip\n";
     system('python3','-m','ensurepip','--upgrade');
     if ($? != 0) {
-        print "ensurepip failed; falling back to get-pip.py…\n";
+        print "ensurepip failed; falling back to get-pip.py\n";
         my $pipInstallScript = 'get-pip.py';
         system("curl -fsSL https://bootstrap.pypa.io/get-pip.py -o $pipInstallScript");
         command_result($?, $!, "Downloaded pip installer...");
@@ -337,7 +344,7 @@ sub install_supervisor {
     my $check = system('python3', '-m', 'pip', 'show', 'supervisor') == 0;
 
     if ($check) {
-        print "✓ Supervisor already installed (via pip), skipping.\n";
+        print "Supervisor already installed (via pip), skipping.\n";
         return;
     }
 
@@ -359,7 +366,7 @@ sub install_supervisor {
 sub install_bazelisk {
     my ($dir) = @_;
     print "\n=================================================================\n";
-    print " Installing Bazelisk…\n";
+    print " Installing Bazelisk\n";
     print "=================================================================\n\n";
     local $ENV{GOBIN} = "$dir/bin";
     system('go','install','github.com/bazelbuild/bazelisk@latest');

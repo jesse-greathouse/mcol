@@ -608,7 +608,7 @@ sub install_erlang {
 
     my $erlangSrcDir     = "$dir/opt/erlang-src";  # source checkout lives here
     my $erlangPrefixDir  = "$dir/opt/erlang";      # installed runtime lives here
-    my $erlangVersion    = 'maint-25';
+    my $erlangVersion    = 'OTP-25.3.2.11';
     my $originalDir      = getcwd();
 
     # Clean slate if desired:
