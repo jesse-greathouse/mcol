@@ -141,7 +141,7 @@ sub build_erlang_otp_on_macos {
     my $threads          = eval { require POSIX; POSIX::sysconf(POSIX::_SC_NPROCESSORS_ONLN()) } || 2;
     my $erlangSrcDir     = $ENV{MCOL_ERLANG_SRC} // "$dir/opt/erlang-src";   # allow external clone in $HOME
     my $erlangPrefixDir  = "$dir/opt/erlang";
-    my $erlangRef        = 'OTP-25.3.2.11';
+    my $erlangRef        = 'OTP-25.3.2.21';
     my $originalDir      = getcwd();
 
     if (-d $erlangPrefixDir) {
