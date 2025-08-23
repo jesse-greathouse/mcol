@@ -221,6 +221,34 @@ CONF
     return 1;
 }
 
+# Returns true if any Redis unit is enabled (plain or templated)
+sub _any_redis_enabled {
+    # Plain unit
+    my $plain = system('bash','-lc', q{systemctl is-enabled redis >/dev/null 2>&1}) == 0;
+    return 1 if $plain;
+
+    # Any enabled templated instance, e.g. redis@default.service
+    my $templ = system('bash','-lc', q{
+        systemctl list-unit-files 'redis@*.service' --type=service --no-legend --no-pager 2>/dev/null |
+        awk '$2 ~ /^enabled/ {found=1} END {exit found?0:1}'
+    }) == 0;
+    return 1 if $templ;
+
+    return 0;
+}
+
+# Enables and starts redis@default if none are enabled yet
+sub _enable_default_redis_if_none_enabled {
+    return if _any_redis_enabled();
+
+    # Optional: make sure /etc/redis/default.conf exists first
+    _ensure_redis_instance_conf('default') unless -f '/etc/redis/default.conf';
+
+    my @cmd = ('sudo','systemctl','enable','--now','redis@default');
+    system(@cmd);
+    command_result($?, $!, "Enabled and started redis@default", \@cmd);
+}
+
 # Does a Redis unit exist (plain or template)?
 sub _has_redis_service {
     # plain unit: redis.service
@@ -306,6 +334,7 @@ sub install_system_dependencies {
 
     _prepare_build_env();
     _ensure_redis_instance_config();
+    _enable_default_redis_if_none_enabled();
     _start_redis_if_present();
     _ensure_passthrough_authbind();
 }
