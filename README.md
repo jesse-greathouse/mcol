@@ -63,8 +63,8 @@ A minimal system build toolchain is required to run the installer. `bin/bootstra
 It's best if you use the local perl library. Set these variables if your local perl library is not on your PATH:
 
 ```bash
-    export PERL5LIB="\$HOME/perl5/lib/perl5:\$PERL5LIB"
-    export PATH="\$HOME/perl5/bin:\$PATH"
+    export PERL5LIB="$HOME/perl5/lib/perl5:$PERL5LIB"
+    export PATH="$HOME/perl5/bin:$PATH"
 ```
 
 ```bash
