@@ -5,6 +5,7 @@ use strict;
 use Cwd qw(getcwd abs_path);
 use File::Basename qw(dirname);
 use File::Path qw(make_path);
+use File::Temp qw(tempfile);
 use lib dirname(abs_path(__FILE__)) . "/modules";
 use Mcol::Utility qw(command_result);
 use Mcol::System qw(how_many_threads_should_i_use);
@@ -92,26 +93,39 @@ sub _prepare_build_env {
 }
 
 sub _ensure_passthrough_authbind {
-    # if real authbind exists, do nothing
-    my $have = system('bash','-lc','command -v authbind >/dev/null') == 0;
-    return if $have;
+    # If a real authbind exists anywhere common, bail out.
+    for my $p (split(/:/, $ENV{PATH} // ''), qw(/usr/sbin /sbin)) {
+        return if -x "$p/authbind";
+    }
 
-    # create a simple passthrough ahead of PATH noise
-    # prefer /usr/local/bin (system-wide), else fall back to ~/.local/bin
-    my $dest = '/usr/local/bin/authbind';
-    my $target_dir = '/usr/local/bin';
+    # Decide target: prefer system-wide if /usr/local/bin exists; else ~/.local/bin
+    my $system_dir = '/usr/local/bin';
+    my $home_dir   = ($ENV{HOME} // '.') . '/.local/bin';
+
+    my ($target_dir, $dest, $use_sudo);
+    if (-d $system_dir) {
+        ($target_dir, $dest, $use_sudo) = ($system_dir, "$system_dir/authbind", 1);
+    } else {
+        ($target_dir, $dest, $use_sudo) = ($home_dir,   "$home_dir/authbind",   0);
+    }
+
+    # Ensure target dir exists (sudo for system dir; mkpath for user dir)
     if (!-d $target_dir) {
-        my $home = $ENV{HOME} || '.';
-        $target_dir = "$home/.local/bin";
-        $dest = "$target_dir/authbind";
-    }
-    unless (-d $target_dir) {
-        eval { make_path($target_dir) };
+        if ($use_sudo) {
+            system('sudo', 'mkdir', '-p', $target_dir) == 0
+              or warn "Could not create $target_dir with sudo\n";
+        } else {
+            make_path($target_dir);
+        }
     }
 
-    my $shim = <<"SH";
+    # Always create the temp file in a writable tmp dir, not in the target dir
+    my ($fh, $tmp) = tempfile('authbindXXXX',
+                              DIR    => ($ENV{TMPDIR} // '/tmp'),
+                              UNLINK => 0);
+    print $fh <<"SH";
 #!/usr/bin/env bash
-# inert authbind shim for openSUSE: ignore --deep and exec the program
+# inert authbind shim: ignore --deep and exec the program unchanged
 args=()
 for a in "\$@"; do
   if [[ "\$a" == "--deep" ]]; then
@@ -122,14 +136,38 @@ for a in "\$@"; do
 done
 exec "\${args[@]}"
 SH
-
-    my $tmp = "$dest.$$";
-    open my $fh, '>', $tmp or do { warn "authbind shim create failed: $!"; return; };
-    print $fh $shim;
-    close $fh;
+    close $fh or warn "Close failed for shim: $!";
     chmod 0755, $tmp;
-    system('sudo','mv',$tmp,$dest) == 0 or warn "Could not install authbind shim to $dest\n";
-    print "Installed inert authbind shim at $dest\n";
+
+    # Install into place (sudo for system dir)
+    my $ok;
+    if ($use_sudo) {
+        # 'install' sets mode atomically and avoids partial writes
+        $ok = (system('sudo', 'install', '-m', '0755', $tmp, $dest) == 0);
+    } else {
+        $ok = rename($tmp, $dest);
+        if (!$ok) {
+            # cross-filesystem or other issue: fall back to copy+chmod
+            require File::Copy;
+            $ok = File::Copy::copy($tmp, $dest) && chmod 0755, $dest;
+            unlink $tmp;
+        } else {
+            # ensure mode if rename preserved odd perms
+            chmod 0755, $dest;
+            unlink $tmp;
+        }
+    }
+
+    if ($ok) {
+        print "Installed inert authbind shim at $dest\n";
+        # Make it usable immediately if we put it in ~/.local/bin but PATH lacks it
+        if (!$use_sudo && (':' . ($ENV{PATH} // '') . ':') !~ /:\Q$target_dir\E:/) {
+            $ENV{PATH} = "$target_dir:" . ($ENV{PATH} // '');
+            print "Added $target_dir to PATH for this process.\n";
+        }
+    } else {
+        warn "Failed to install authbind shim to $dest\n";
+    }
 }
 
 # --------------- main installer ---------------
