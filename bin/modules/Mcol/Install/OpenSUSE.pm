@@ -246,7 +246,7 @@ sub _enable_default_redis_if_none_enabled {
 
     my @cmd = ('sudo','systemctl','enable','--now','redis@default');
     system(@cmd);
-    command_result($?, $!, "Enabled and started redis@default", \@cmd);
+    command_result($?, $!, 'Enabled and started redis@default', \@cmd);
 }
 
 # Does a Redis unit exist (plain or template)?
