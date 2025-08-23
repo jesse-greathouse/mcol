@@ -81,6 +81,13 @@ sub _prepare_build_env {
     );
     $ENV{PKG_CONFIG_PATH} = join(':', @pc);
 
+    # ensure ldconfig is on PATH
+    my $check = system('command -v ldconfig >/dev/null 2>&1');
+    if ($check != 0) {
+        system('sudo', 'ln', '-sf', '/sbin/ldconfig', '/usr/local/bin/ldconfig');
+        print "✓ Linked /sbin/ldconfig into /usr/local/bin so it's in PATH.\n";
+    }
+
     print "Build env primed (CFLAGS='$ENV{CFLAGS}').\n";
 }
 
