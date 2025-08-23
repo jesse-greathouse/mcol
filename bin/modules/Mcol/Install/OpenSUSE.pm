@@ -259,7 +259,7 @@ sub _enable_default_redis_if_none_enabled {
     command_result($?, $!, 'Enabled and started a Redis instance', $ok ? \@tries : $tries[-1]);
 
     unless ($ok) {
-        warn "Could not start Redis (tried redis@redis then redis@default). See: sudo journalctl -xeu 'redis@*.service'\n";
+        warn 'Could not start Redis (tried redis@redis then redis@default). See: sudo journalctl -xeu \'redis@*.service\'' . "\n";
     }
 }
 
