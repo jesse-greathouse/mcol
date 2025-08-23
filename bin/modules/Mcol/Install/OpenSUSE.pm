@@ -169,31 +169,23 @@ SH
     }
 }
 
-# Ensure there is a usable per-instance Redis config and data dir.
-# Returns 1 on success/existing, 0 on failure.
+# Ensure there is a usable per-instance Redis config and also /etc/redis/redis.conf.
 sub _ensure_redis_instance_config {
     my ($instance) = @_;
     $instance ||= 'default';
 
     my $conf_dir   = '/etc/redis';
-    my $conf_file  = "$conf_dir/$instance.conf";
+    my $def_conf   = "$conf_dir/$instance.conf";   # /etc/redis/default.conf
+    my $main_conf  = "$conf_dir/redis.conf";       # SUSE-friendly path
     my $data_dir   = "/var/lib/redis/$instance";
     my $run_dir    = '/run/redis';
 
-    # If config already exists, we're done
-    if (-f $conf_file) {
-        print "Redis config exists: $conf_file\n";
-        return 1;
-    }
-
-    # Make required directories (use sudo because /etc and /var need root)
+    # dirs
     system('sudo','install','-d','-m','0755', $conf_dir);
     system('sudo','install','-d','-m','0755', $run_dir);
     system('sudo','install','-d','-o','redis','-g','redis','-m','0750', $data_dir);
 
-    # Write minimal config to a temp file, then move it into place with sudo
-    my ($fh, $tmp) = tempfile('mcol-redis-XXXX', TMPDIR => 1, UNLINK => 0);
-    print $fh <<"CONF";
+    my $content = <<"CONF";
 bind 127.0.0.1 ::1
 port 6379
 protected-mode yes
@@ -203,21 +195,33 @@ dir $data_dir
 logfile ""
 daemonize no
 CONF
-    close $fh;
 
-    if (system('sudo','mv',$tmp,$conf_file) != 0) {
-        unlink $tmp;
-        warn "Failed to install $conf_file\n";
-        return 0;
-    }
-    system('sudo','chmod','0644',$conf_file);
+    require File::Temp;
+    my ($fh, $tmp) = File::Temp::tempfile('mcol-redis-XXXX', TMPDIR => 1, UNLINK => 0);
+    print $fh $content; close $fh;
 
-    # Ensure ownership of the data dir if the 'redis' user exists
-    if (defined getpwnam('redis')) {
-        system('sudo','chown','-R','redis:redis', $data_dir);
+    # Install default.conf (don’t clobber if present)
+    if (!-f $def_conf) {
+        system('sudo','install','-m','0640','-o','root','-g','redis', $tmp, $def_conf) == 0
+          or warn "Failed to install $def_conf\n";
     }
 
-    print "Wrote minimal Redis config to $conf_file\n";
+    # Also ensure redis.conf exists (copy or symlink to our default)
+    if (!-f $main_conf) {
+        # safest is a copy with proper ownership/mode
+        system('sudo','install','-m','0640','-o','root','-g','redis', $tmp, $main_conf) == 0
+          or warn "Failed to install $main_conf\n";
+        # If you prefer a symlink instead:
+        # system('sudo','ln','-sfn',$def_conf,$main_conf);
+    }
+
+    unlink $tmp;
+
+    # Make sure redis can traverse/read
+    system('sudo','chgrp','redis',$conf_dir);
+    system('sudo','chmod','0755',$conf_dir);
+
+    print "Ensured $def_conf and $main_conf exist (root:redis, 0640).\n";
     return 1;
 }
 
@@ -237,16 +241,26 @@ sub _any_redis_enabled {
     return 0;
 }
 
-# Enables and starts redis@default if none are enabled yet
+# Prefer SUSE-friendly instance first, then fall back
 sub _enable_default_redis_if_none_enabled {
     return if _any_redis_enabled();
 
-    # Optional: make sure /etc/redis/default.conf exists first
-    _ensure_redis_instance_conf('default') unless -f '/etc/redis/default.conf';
+    _ensure_redis_instance_config('default');
 
-    my @cmd = ('sudo','systemctl','enable','--now','redis@default');
-    system(@cmd);
-    command_result($?, $!, 'Enabled and started redis@default', \@cmd);
+    my @tries = (
+        [qw(systemctl enable --now redis@redis)],    # reads /etc/redis/redis.conf
+        [qw(systemctl enable --now redis@default)],  # reads /etc/redis/default.conf
+    );
+    my $ok = 0;
+    for my $cmd (@tries) {
+        system('sudo', @$cmd);
+        if ($? == 0) { $ok=1; last }
+    }
+    command_result($?, $!, 'Enabled and started a Redis instance', $ok ? \@tries : $tries[-1]);
+
+    unless ($ok) {
+        warn "Could not start Redis (tried redis@redis then redis@default). See: sudo journalctl -xeu 'redis@*.service'\n";
+    }
 }
 
 # Does a Redis unit exist (plain or template)?
