@@ -171,7 +171,7 @@ sub install_supervisor {
     my $user_bin = "$user_base/bin";
     for my $exe (qw(supervisord supervisorctl)) {
         my $src = "$user_bin/$exe";
-        my $dst = "$dir/bin/$exe";
+        my $dst = "$applicationRoot/bin/$exe";
         if (-x $src && !-e $dst) { symlink $src, $dst or warn "symlink $src -> $dst failed: $!"; }
     }
 }
