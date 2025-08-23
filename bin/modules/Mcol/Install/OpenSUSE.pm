@@ -27,7 +27,7 @@ my @base_deps = qw(
   gcc gcc-c++ make curl pkg-config
   libopenssl-devel ncurses-devel libcurl-devel
   libxml2-devel libxslt-devel libicu-devel glib2-devel
-  libwebp-devel libpng-devel libjpeg-turbo-devel bzip2-devel
+  libwebp-devel libpng16-devel libjpeg-turbo libjpeg-turbo-devel libjpeg62-devel bzip2-devel
   libzip-devel autoconf automake libtool m4
   perl-App-cpanminus expect go bash
 );
