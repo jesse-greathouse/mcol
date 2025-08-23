@@ -593,6 +593,18 @@ sub install_erlang {
     my ($dir) = @_;
     my $threads = how_many_threads_should_i_use();
 
+    # ---- macOS fast path ----
+    if (defined $os && $os eq 'MacOS') {
+        # Load only on macOS to avoid hard dep on other platforms
+        eval { require Mcol::Install::MacOS; 1 }
+            or die "Failed to load Mcol::Install::MacOS: $@";
+
+        # No need to import; call fully-qualified
+        Mcol::Install::MacOS::build_erlang_otp_on_macos($dir);
+        return;  # return early; skip Linux-specific flow below
+    }
+    # ---- end macOS fast path ----
+
     my $erlangSrcDir     = "$dir/opt/erlang-src";  # source checkout lives here
     my $erlangPrefixDir  = "$dir/opt/erlang";      # installed runtime lives here
     my $erlangVersion    = 'maint-25';

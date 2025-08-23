@@ -11,7 +11,7 @@ use Mcol::System qw(how_many_threads_should_i_use);
 use Exporter 'import';
 use POSIX qw(uname);
 
-our @EXPORT_OK = qw(install_system_dependencies install_php install_bazelisk);
+our @EXPORT_OK = qw(install_system_dependencies install_php install_bazelisk build_erlang_otp_on_macos);
 
 my $bin = abs_path(dirname(__FILE__) . '/../../../');
 my $applicationRoot = abs_path(dirname($bin));
@@ -92,6 +92,59 @@ sub _prepare_build_env_macos {
     $ENV{KERL_CONFIGURE_OPTIONS} = $kerl;
 
     print "macOS build env primed for Erlang (CC=$ENV{CC}; CFLAGS='$ENV{CFLAGS}').\n";
+}
+
+sub _prepare_build_env_macos_for_erlang {
+    # toolchain & warnings
+    $ENV{CC} ||= 'clang';
+    $ENV{CFLAGS} = join(' ', grep { length } (
+        $ENV{CFLAGS} // '',
+        '-std=gnu99', '-O2', '-g',
+        '-fno-builtin',
+        '-Werror=implicit-function-declaration',
+        '-Qunused-arguments'
+    ));
+
+    # Homebrew kegs
+    my @kegs = qw(openssl@3);
+    my @pc; my @inc; my @lib;
+    for my $k (@kegs) {
+        chomp(my $p = `brew --prefix $k 2>/dev/null`); next unless $p;
+        push @pc,  "$p/lib/pkgconfig";
+        push @inc, "$p/include";
+        push @lib, "$p/lib";
+    }
+    $ENV{PKG_CONFIG_PATH} = join(':', grep {-d} @pc, split(':', $ENV{PKG_CONFIG_PATH}//''));
+    $ENV{CPPFLAGS}        = join(' ', (map { "-I$_" } grep {-d} @inc), split(' ', $ENV{CPPFLAGS}//''));
+    $ENV{LDFLAGS}         = join(' ', (map { "-L$_" } grep {-d} @lib), split(' ', $ENV{LDFLAGS}//''));
+
+    # Autoconf probe workaround
+    $ENV{ac_cv_c_undeclared_builtin_options} //= 'none needed';
+
+    # Nice to have for CLT-only setups
+    chomp(my $sdk = `xcrun --sdk macosx --show-sdk-path 2>/dev/null`);
+    $ENV{SDKROOT} = $sdk if $sdk;
+}
+
+sub build_erlang_otp_on_macos {
+    my ($dir) = @_;
+    my $erl_top = "$dir/opt/erlang-src";
+    die "Missing $erl_top\n" unless -d $erl_top;
+
+    local $ENV{ERL_TOP} = $erl_top;
+    _prepare_build_env_macos_for_erlang();
+
+    # Configure from top-level for fewer edge cases
+    system('bash','-lc', "cd '$erl_top' && ./configure");
+    command_result($?, $!, "Configure Erlang/OTP...", ['configure']);
+
+    # Serialize erts; then parallelize the rest
+    system('bash','-lc', "cd '$erl_top' && make -C erts clean && make -C erts -j1");
+    command_result($?, $!, "Build erts (serialized)...", ['make','-C','erts','-j1']);
+
+    my $jobs = eval { require POSIX; POSIX::sysconf(POSIX::_SC_NPROCESSORS_ONLN()) } || 2;
+    system('bash','-lc', "cd '$erl_top' && make -j$jobs");
+    command_result($?, $!, "Build Erlang/OTP...", ["make","-j$jobs"]);
 }
 
 # Installs OS level system dependencies.
