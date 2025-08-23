@@ -12,7 +12,7 @@
 
 ### Download
 
-Currently the only way to download the project is with git:
+> Currently the only way to download the project is with git:
 
 ```bash
 git clone https://github.com/jesse-greathouse/mcol.git
@@ -22,20 +22,27 @@ cd mcol
 
 ### TLDR
 
+#### _Some of the install operations require elevated privelages. DO NOT run as root or sudo, the scripts will prompt you for operations that require elevated privelages_
+
+> First run the bootstrap script
+
 ```bash
-# Verifies perl and cpan are available and installs perl modules.
+# Installs a small amount of utilities that the installer runtime depends on
+
 bin/bootstrap
 ```
 
-> If you dont have a local Perl library set up on your PATH, you may need to add thse variables to your terminal session:
+> If you dont have a local [Perl library](https://www.cpan.org/modules/index.html) on your `$PATH`, you may need to set these variables in your terminal session
 
 ```bash
-    export PERL5LIB="$HOME/perl5/lib/perl5:$PERL5LIB"
-    export PATH="$HOME/perl5/bin:$PATH"
+export PERL5LIB="$HOME/perl5/lib/perl5:$PERL5LIB"
+export PATH="$HOME/perl5/bin:$PATH"
 ```
 
+> Next run the scripts in this sequence
+
 ```bash
-# Installs all necessary dependencies (Requires sudo/elevated privelages)
+# Installs all necessary dependencies (It will prompt when it needs sudo/elevated privelages)
 
 bin/install
 
@@ -184,7 +191,7 @@ bin/migrate
 
 Migrates the database to the newest schema design. This may be necessary after the application has recieved an update. If it's not needed, no migrations will be run.
 
-### Download
+### Download Command
 
 ```bash
 bin/download packetId
@@ -202,10 +209,11 @@ Given the inputs of a network and a channel, this command will print a report to
 
 ex:
 
-```
+```bash
 myuser@mycomputer:~/mcol$ bin/hot-report "Abjects" "#mg-chat"
 Looking for the hottest search terms on: #mg-chat@Abjects ...
-What's hot in #moviegods: - 978 Releases with a total of 254.4 downloads per hour
+Whats hot in #moviegods: - 978 Releases with a total of 254.4 downloads per hour
+
 +------+--------+------------------------------------------+
 | rank | rating | term                                     |
 +------+--------+------------------------------------------+
@@ -238,10 +246,11 @@ Given the inputs of a network and a channel and search string, this command will
 
 ex:
 
-```
+```bash
 myuser@mycomputer:~/mcol$ bin/packet-search "Abjects" "#mg-chat" "Breaking.Bad"
 Searching for: Breaking.Bad ...
 Found 10 results in #moviegods
+
 +-------+------+-------------------------------------------------------------------------------------+
 | id    | size | file                                                                                |
 +-------+------+-------------------------------------------------------------------------------------+
@@ -268,99 +277,99 @@ Requested packet: 4692 -- Breaking.Bad.S01.1080p.BluRay.DTS5.1.x264-iNGOT.tar
 
   #### `APP_NAME` `mcol`
 
-        The "name" of the app.
+  ##### _The "name" of the app_
 
   #### `VITE_APP_NAME` `mcol`
 
-        Vite needs an application name, usually just mirrors APP_NAME
+  ##### _Vite needs an application name, usually just mirrors APP_NAME_
 
   #### `APP_DEBUG` `'false'`
 
-        Puts the app in debug mode.
+  ##### _Puts the app in debug mode_
 
   #### `APP_ENV` `local`
 
-        The "name" of the environment.
+  ##### _The "name" of the environment_
 
   #### `APP_KEY` `base64:cjePqIw0DrwVlC8E/JHPtPQutbTPNenWDBsp1dGKecI=`
 
-        Auto generated base64 encoded string. Do not alter.
+  ##### _Auto generated base64 encoded string. Do not alter_
 
   #### `APP_TIMEZONE` `UTC`
 
-        Should be the same as the host server.
+  ##### _Should be the same as the host server_
 
   #### `APP_URL` `http://myserver:8080`
 
-        The web address that will have the user interface.
+  ##### _The web address that will have the user interface_
 
   #### `CACHE_DIR` `/home/myuser/mcol/var/cache`
 
-        System "cache" directory.
+  ##### _System "cache" directory_
 
   #### `CACHE_DRIVER` `redis`
 
-        Laravel value for cache driver.
+  ##### _Laravel value for cache driver_
 
   #### `DB_CONNECTION` `mysql`
 
-        Only MySQL is supported presently. Theoretically it could be using an alternate database using the underlying Laravel database connection, however I never intended to support different database platforms and so there is a large chunk of raw SQL submitted in the `App\Packet\Browse` class that would need to be adapted. It's recommended just to use MySQL because that's the only way I can guarantee the best performance.
+  ##### _Only MySQL is supported presently. Theoretically it could be using an alternate database using the underlying Laravel database connection, however I never intended to support different database platforms and so there is a large chunk of raw SQL submitted in the `App\Packet\Browse` class that would need to be adapted. It's recommended just to use MySQL because that's the only way I can guarantee the best performance._
 
   #### `DB_DATABASE` `mcol`
 
-        The schema name.
+  ##### _The schema name_
 
   #### `DB_HOST` `127.0.0.1`
 
-        The Database Host Address.
+  ##### _The Database Host Address_
 
   #### `DB_USERNAME` `mcol`
 
-        The Database User.
+  ##### _The Database User_
 
   #### `DB_PASSWORD` `mcol`
 
-        The Database Password.
+  ##### _The Database Password_
 
   #### `DB_PORT` `'3306'`
 
-        The Database Port.
+  ##### _The Database Port_
 
   #### `SESSION_DOMAIN` `myserver`
 
-        The domain that is hosting the web application. Variable to strictly limit sessions to that domain.
+  ##### _The domain that is hosting the web application. Variable to strictly limit sessions to that domain_
 
   #### `SANCTUM_STATEFUL_DOMAINS` `myserver`
 
-        For supporting authentication, should simply mirror SESSION_DOMAINS.
+  ##### _For supporting authentication, should simply mirror SESSION_DOMAINS_
 
   #### `SESSION_DRIVER` `cookie`
 
-        Session driver.
+  ##### _Session driver_
 
   #### `DIR` `/home/myuser/mcol`
 
-        Home directory of the running user.
+  ##### _Home directory of the running user_
 
   #### `VAR` `/home/myuser/mcol/var`
 
-        The "var" directory. Handles logs and files that get bigger.
+  ##### _The "var" directory. Handles logs and files that get bigger_
 
   #### `WEB` `/home/myuser/mcol/src/public`
 
-        The directory whehere the web root is served from.
+  ##### _The directory whehere the web root is served from_
 
-  ### `ETC` `/home/myuser/mcol/etc`
+  #### `ETC` `/home/myuser/mcol/etc`
 
-        The Configuration directory.
+  ##### _The Configuration directory_
 
-  ### `SRC` `/home/myuser/mcol/src`
+  #### `SRC` `/home/myuser/mcol/src`
 
-        The Source Code directory.
+  ##### _The Source Code directory_
 
   #### `DOWNLOAD_DIR` `/home/myuser/mcol/var/download`
 
-        Directory where downloads will be held.
+  ##### _Directory where downloads will be held_
 
   #### `LOG` `/home/myuser/mcol/var/log/error.log`
 
@@ -372,41 +381,11 @@ Requested packet: 4692 -- Breaking.Bad.S01.1080p.BluRay.DTS5.1.x264-iNGOT.tar
 
   #### `LOG_URI` `/home/myuser/mcol/var/log/error.log`
 
-        The logging variables.
+  ##### _The logging variables_
 
   #### `QUEUE_CONNECTION` `database`
 
-  #### `REDIS_CLIENT` `phpredis`
-
-  #### `REDIS_DB` `'0'`
-
-  #### `REDIS_HOST` `/var/run/redis/redis.sock`
-
-  #### `REDIS_PASSWORD` `'null'`
-
-  #### `REDIS_PORT` `'0'`
-
-        Redis configurations
-
-  #### `INSTANCECTL_PORT` `5859`
-
-  #### `INSTANCECTL_SECRET` `...`
-
-  #### `INSTANCECTL_USER` `myuser`
-
-  #### `QUEUECTL_PORT` `5860`
-
-  #### `QUEUECTL_SECRET` `...`
-
-  #### `QUEUECTL_USER` `myuser`
-
-  #### `SUPERVISORCTL_PORT` `5861`
-
-  #### `SUPERVISORCTL_SECRET` `...`
-
-  #### `SUPERVISORCTL_USER` `myuser`
-
-        The Application does not currently send signals to supervisor. Theoretically it might be added.
+  ##### _Tells Laravel which Queue adapter to use. It's recommended to stick with `database`_
 
 - ### SUPERVISOR
 
@@ -428,84 +407,60 @@ Requested packet: 4692 -- Breaking.Bad.S01.1080p.BluRay.DTS5.1.x264-iNGOT.tar
 
   #### `SUPERVISORCTL_USER` `myuser`
 
-        These are supervisor daemon configurations. They can be used to send signals to the supervisor daemons.
+  ##### _These are supervisor daemon configuration values_
 
 - ### NGINX
 
-  #### `DIR` `/home/myuser/mcol`
-
-        The application user's home directory.
-
   #### `DOMAINS` `localhost`
 
-        The value for the domains directive in nginx.
+  ##### _The value for the domains directive in nginx_
 
   #### `USER` `myuser`
 
-        The system username.
-
-  #### `ETC` `/home/myuser/mcol/etc`
-
-        The Cxnfiguration directory.
-
-  #### `VAR` `/home/myuser/mcol/var`
-
-        The "var" directory. Handles logs and files that get bigger.
-
-  #### `SRC` `/home/myuser/mcol/src`
-
-        The directory where source code resides.
-
-  #### `WEB` `/home/myuser/mcol/src/public`
-
-        The directory of the web files.
-
-  #### `LOG` `/home/myuser/mcol/var/log/error.log`
-
-        The error log.
+  ##### _The system username_
 
   #### `PORT` `'8080'`
 
-        The port that the web UI will be served at.
+  ##### _The port that the web UI will be served at_
 
   #### `SESSION_SECRET` `...`
 
-        The secret that authenticates the session. This is dynamically generated when you run the
+  ##### _The secret that authenticates the session. This is dynamically generated_
 
   #### `IS_SSL` `'false'`
 
-        Flags using SSL in the webserver configuration.
+  ##### _Flags using SSL in the webserver configuration_
 
   #### `SSL` `''`
 
-        The SSL configuration (auto-generated.)
+  ##### _The SSL configuration (auto-generated)_
 
   #### `INCLUDE_FORCE_SSL_LINE` `''`
 
-        The "force" SSL Line (auto-generated.)
+  ##### _The "force" SSL Line (auto-generated)_
 
   #### `SSL_CERT_LINE` `''`
 
-        The line to include the SSL cert.
+  ##### _The line to include the SSL cert_
 
   #### `SSL_KEY_LINE` `''`
 
-        The line to unclude the SSL key.
+  ##### _The line to unclude the SSL key_
 
 - ### REDIS
 
   #### `REDIS_DB` `'0'`
 
-        Used to specify a specific DB in Redis.
+  ##### _Used to specify a specific DB in Redis_
 
-  #### `REDIS_HOST` `/var/run/redis/redis.sock`
+  #### `REDIS_HOST` `127.0.0.1`
 
-        The redis host (Can be a unix socket file).
+  ##### _The redis host (Can be a unix socket file)_
 
   #### `REDIS_PASSWORD` `'null'`
 
-        The redis password.
+  ##### _The redis password_
 
-  #### `REDIS_PORT` `'0'`
+  #### `REDIS_PORT` `6379`
 
-        The redis port.
+  ##### _The redis port_
