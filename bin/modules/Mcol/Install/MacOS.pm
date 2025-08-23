@@ -139,61 +139,66 @@ sub build_erlang_otp_on_macos {
     my ($dir) = @_;
 
     my $threads          = eval { require POSIX; POSIX::sysconf(POSIX::_SC_NPROCESSORS_ONLN()) } || 2;
-    my $erlangSrcDir     = "$dir/opt/erlang-src";   # source checkout lives here
-    my $erlangPrefixDir  = "$dir/opt/erlang";       # installed runtime lives here
-    my $erlangVersion    = 'OTP-25.3.2.21';
+    my $erlangSrcDir     = $ENV{MCOL_ERLANG_SRC} // "$dir/opt/erlang-src";   # allow external clone in $HOME
+    my $erlangPrefixDir  = "$dir/opt/erlang";
+    my $erlangRef        = 'OTP-25.3.2.11';
     my $originalDir      = getcwd();
 
-    # If already installed, bail early (same behavior as Linux)
     if (-d $erlangPrefixDir) {
         print "Erlang already installed at $erlangPrefixDir, skipping... (`rm -rf $erlangPrefixDir` to rebuild)\n";
         return;
     }
 
-    # Clone sources if missing (parity with Linux path)
-    unless (-d $erlangSrcDir) {
-        system("git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git '$erlangSrcDir'");
-        command_result($?, $!, 'Clone erlang ...', "git clone --depth 1 --branch $erlangVersion https://github.com/erlang/otp.git $erlangSrcDir");
+    # Clone if we own the path and it's not a usable checkout (missing ./configure)
+    unless (defined $ENV{MCOL_ERLANG_SRC}) {
+        my $need_clone = (!-d $erlangSrcDir) || !-x "$erlangSrcDir/configure";
+        if ($need_clone) {
+            system("rm -rf '$erlangSrcDir'") if -d $erlangSrcDir;  # avoid the "empty dir" trap
+            system("git clone --depth 1 --branch $erlangRef https://github.com/erlang/otp.git '$erlangSrcDir'");
+            command_result($?, $!, 'Clone erlang ...',
+                "git clone --depth 1 --branch $erlangRef https://github.com/erlang/otp.git $erlangSrcDir");
+        }
+    } else {
+        die "No configure in $erlangSrcDir (set MCOL_ERLANG_SRC to a valid OTP checkout)\n"
+            unless -x "$erlangSrcDir/configure";
     }
 
-    # Prime macOS build env (Clang, Homebrew kegs, Autoconf workaround, etc.)
+    # Prime macOS build env (clang, Homebrew, -lmd, autoconf workaround, etc.)
     local $ENV{ERL_TOP} = $erlangSrcDir;
     _prepare_build_env_macos_for_erlang();
 
-    # Configure with explicit prefix and SSL from Homebrew
-    my $ossl_prefix = _brew_prefix('openssl@3');
+    my $ossl_prefix  = _brew_prefix('openssl@3');
     my $configure_cmd = "./configure --prefix='$erlangPrefixDir' --with-ssl='$ossl_prefix'";
 
-    chdir $erlangSrcDir;
+    chdir $erlangSrcDir or die "chdir $erlangSrcDir: $!";
     system('bash','-lc', $configure_cmd);
     command_result($?, $!, 'Configure Erlang/OTP...', $configure_cmd);
 
-    # (Optional) SKIP apps parity keep empty by default
-    my @otp_skip = ();
-    my $skip = join(' ', @otp_skip);
-    for my $app (@otp_skip) {
-        my $marker = "$erlangSrcDir/lib/$app/SKIP";
-        if (-d "$erlangSrcDir/lib/$app" && !-e $marker) {
-            open my $fh, '>', $marker or die "Can't create $marker: $!";
-            close $fh;
-        }
+    # 1) Build erl_interface FIRST so -lei is satisfiable
+    system('bash','-lc', "make -C lib/erl_interface clean && make -C lib/erl_interface -j1");
+    command_result($?, $!, "Build erl_interface (serialized)...", ['make','-C','lib/erl_interface','-j1']);
+
+    # 2) After erl_interface exists, add its libdir to LDFLAGS (helps erts link find -lei)
+    my $triplet = `bash -lc '$erlangSrcDir/erts/autoconf/config.guess'`; chomp $triplet;
+    my $ei_libdir = "$erlangSrcDir/lib/erl_interface/obj/$triplet/lib";
+    if (-d $ei_libdir) {
+        $ENV{LDFLAGS} = join(' ', "-L$ei_libdir", ($ENV{LDFLAGS}//''));
+        print "Added erl_interface libdir to LDFLAGS: $ei_libdir\n";
     }
 
-    # Serialize erts to avoid macOS race; then parallel build
-    system('bash','-lc', "make -C erts clean");
-    command_result($?, $!, "Clean erts...", ['make','-C','erts','clean']);
+    # 3) Build erts serialized (avoids race seen on macOS)
+    system('bash','-lc', "make -C erts clean && make -C erts -j1");
+    command_result($?, $!, "Build erts (serialized)...", ['make','-C','erts','-j1']);
 
-    my $skip_env = $skip ? "SKIP='$skip' " : "";
-    system('bash','-lc', "$skip_env make -C erts -j1");
-    command_result($?, $!, "Build erts (serialized)...", [$skip ? "SKIP=$skip" : (), 'make','-C','erts','-j1']);
+    # 4) Build the rest in parallel
+    system('bash','-lc', "make -j$threads");
+    command_result($?, $!, "Build Erlang/OTP...", ["make","-j$threads"]);
 
-    system('bash','-lc', "$skip_env make -j$threads");
-    command_result($?, $!, "Build Erlang/OTP...", [$skip ? "SKIP=$skip" : (), "make","-j$threads"]);
+    # 5) Install
+    system('bash','-lc', "make install");
+    command_result($?, $!, "Install Erlang/OTP...", ["make","install"]);
 
-    system('bash','-lc', "$skip_env make install");
-    command_result($?, $!, "Install Erlang/OTP...", [$skip ? "SKIP=$skip" : (), "make","install"]);
-
-    # Add expected OTP_VERSION layout for Bazel rules (same as Linux)
+    # Bazel: ensure releases/<major>/OTP_VERSION exists
     my $otp_version_file = "$erlangPrefixDir/OTP_VERSION";
     if (-f $otp_version_file) {
         my $otp_release = `cat '$otp_version_file'`; chomp($otp_release);
@@ -201,24 +206,20 @@ sub build_erlang_otp_on_macos {
         my $release_dir = "$erlangPrefixDir/releases/$otp_major";
         require File::Path; File::Path::make_path($release_dir) unless -d $release_dir;
         my $target_file = "$release_dir/OTP_VERSION";
-        require File::Copy;
-        File::Copy::copy($otp_version_file, $target_file) unless -e $target_file;
+        require File::Copy; File::Copy::copy($otp_version_file, $target_file) unless -e $target_file;
         print "Copied OTP_VERSION to: $target_file\n";
     } else {
         warn "OTP_VERSION not found at $otp_version_file; skipping Bazel compatibility fix.\n";
     }
 
-    # Platform-arch symlink (RabbitMQ-style), but using the actual Darwin triplet
-    # This mirrors your Linux intent without hardcoding x86_64-pc-linux-gnu
-    my $triplet = `bash -lc '$erlangSrcDir/erts/autoconf/config.guess'`;
-    chomp($triplet);
+    # Platform-arch symlink using Darwin triplet
     if ($triplet) {
         my $platform_bin_dir = "$erlangPrefixDir/bin/$triplet";
         my $platform_erl     = "$platform_bin_dir/erl";
         require File::Path; File::Path::make_path($platform_bin_dir) unless -d $platform_bin_dir;
         unless (-e $platform_erl) {
             symlink("../erl", $platform_erl)
-                or warn "Failed to create platform symlink: $platform_erl -> ../erl ($!)\n";
+                or warn "Failed platform symlink: $platform_erl -> ../erl ($!)\n";
             print "Created platform symlink: $platform_erl -> ../erl\n";
         }
     } else {
