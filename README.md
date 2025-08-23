@@ -30,8 +30,8 @@ bin/bootstrap
 > If you dont have a local Perl library set up on your PATH, you may need to add thse variables to your terminal session:
 
 ```bash
-    export PERL5LIB="\$HOME/perl5/lib/perl5:\$PERL5LIB"
-    export PATH="\$HOME/perl5/bin:\$PATH"
+    export PERL5LIB="$HOME/perl5/lib/perl5:$PERL5LIB"
+    export PATH="$HOME/perl5/bin:$PATH"
 ```
 
 ```bash
