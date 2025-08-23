@@ -43,6 +43,57 @@ sub _export_brew_env {
     $ENV{LDFLAGS}  = join(' ', (map { "-L$_" } grep {-d} @lib), split(' ', $ENV{LDFLAGS}  // ''));
 }
 
+sub _brew_prefix {
+    my ($formula) = @_;
+    chomp(my $p = `brew --prefix $formula 2>/dev/null`);
+    return $p if $p;
+    chomp($p = `brew --prefix 2>/dev/null`);
+    return $p || '/usr/local';
+}
+
+sub _prepare_build_env_macos {
+    # C toolchain flags
+    my $c_in = $ENV{CFLAGS} // '';
+    my @cflags = ('-std=gnu99', '-O2', '-g', '-fno-builtin', '-Werror=implicit-function-declaration');
+    push @cflags, $c_in if length $c_in;
+    $ENV{CFLAGS} = join(' ', @cflags);
+
+    my $cxx_in = $ENV{CXXFLAGS} // '';
+    my @cxx = ('-O2', '-g'); push @cxx, $cxx_in if length $cxx_in;
+    $ENV{CXXFLAGS} = join(' ', @cxx);
+
+    # Homebrew prefixes
+    my @keg = qw(openssl@3 icu4c libxml2 libxslt libzip oniguruma libiconv);
+    my @pc  = map { _brew_prefix($_).'/lib/pkgconfig' } @keg;
+    my @inc = map { _brew_prefix($_).'/include'       } @keg;
+    my @lib = map { _brew_prefix($_).'/lib'           } @keg;
+
+    $ENV{PKG_CONFIG_PATH} = join(':', (grep {-d} @pc), split(':', $ENV{PKG_CONFIG_PATH}//''));
+    $ENV{CPPFLAGS}        = join(' ', (map { "-I$_" } grep {-d} @inc), split(' ', $ENV{CPPFLAGS}//''));
+    $ENV{LDFLAGS}         = join(' ', (map { "-L$_" } grep {-d} @lib), split(' ', $ENV{LDFLAGS}//''));
+
+    # Make Autoconf’s “undeclared builtins” probe a no-op
+    $ENV{ac_cv_c_undeclared_builtin_options} //= 'none needed';
+
+    # Use clang explicitly on macOS
+    $ENV{CC} //= 'clang';
+
+    # Handy for CLT-only installs
+    chomp(my $sdk = `xcrun --sdk macosx --show-sdk-path 2>/dev/null`);
+    $ENV{SDKROOT} = $sdk if $sdk;
+
+    # Threading for make
+    $ENV{MAKEFLAGS} //= '-j' . (eval { require POSIX; POSIX::sysconf(POSIX::_SC_NPROCESSORS_ONLN()) } || 2);
+
+    # Erlang specific: point to OpenSSL via kerl if you use kerl
+    my $ossl = _brew_prefix('openssl@3');
+    my $kerl = $ENV{KERL_CONFIGURE_OPTIONS} // '';
+    $kerl = join(' ', grep { length } ($kerl, "--with-ssl=$ossl"));
+    $ENV{KERL_CONFIGURE_OPTIONS} = $kerl;
+
+    print "macOS build env primed for Erlang (CC=$ENV{CC}; CFLAGS='$ENV{CFLAGS}').\n";
+}
+
 # Installs OS level system dependencies.
 sub install_system_dependencies {
     print "Brew is required for updating and installing system dependencies.\n";
@@ -73,6 +124,7 @@ sub install_system_dependencies {
     }
 
     _export_brew_env();
+    _prepare_build_env_macos();
     install_pip();
     install_supervisor();
 }
