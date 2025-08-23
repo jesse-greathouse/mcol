@@ -15,11 +15,17 @@ sub install_bootstrap_toolchain {
     print "Installing minimal build toolchain for macOS...\n";
 
     # Ensure Xcode Command Line Tools are installed
-    system('xcode-select','-p','>/dev/null','2>&1');
+    system('bash','-lc','xcode-select -p >/dev/null 2>&1');
     if ($? != 0) {
         print "Xcode Command Line Tools are not installed.\n";
         print "Run: xcode-select --install\n";
         die "Aborting bootstrap until CLT is installed.\n";
+    }
+
+    # Ensure Homebrew exists
+    system('bash','-lc','command -v brew >/dev/null 2>&1');
+    if ($? != 0) {
+        die "Homebrew is required on macOS. Install from https://brew.sh and re-run bootstrap.\n";
     }
 
     system('brew','update');
