@@ -591,7 +591,6 @@ sub install_elixir {
 
 sub install_erlang {
     my ($dir) = @_;
-    my $threads = how_many_threads_should_i_use();
 
     # ---- macOS fast path ----
     if (defined $os && $os eq 'MacOS') {
@@ -604,6 +603,8 @@ sub install_erlang {
         return;  # return early; skip Linux-specific flow below
     }
     # ---- end macOS fast path ----
+
+    my $threads = how_many_threads_should_i_use();
 
     my $erlangSrcDir     = "$dir/opt/erlang-src";  # source checkout lives here
     my $erlangPrefixDir  = "$dir/opt/erlang";      # installed runtime lives here
