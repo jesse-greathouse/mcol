@@ -169,6 +169,58 @@ SH
     }
 }
 
+# Ensure there is a usable per-instance Redis config and data dir.
+# Returns 1 on success/existing, 0 on failure.
+sub _ensure_redis_instance_config {
+    my ($instance) = @_;
+    $instance ||= 'default';
+
+    my $conf_dir   = '/etc/redis';
+    my $conf_file  = "$conf_dir/$instance.conf";
+    my $data_dir   = "/var/lib/redis/$instance";
+    my $run_dir    = '/run/redis';
+
+    # If config already exists, we're done
+    if (-f $conf_file) {
+        print "Redis config exists: $conf_file\n";
+        return 1;
+    }
+
+    # Make required directories (use sudo because /etc and /var need root)
+    system('sudo','install','-d','-m','0755', $conf_dir);
+    system('sudo','install','-d','-m','0755', $run_dir);
+    system('sudo','install','-d','-o','redis','-g','redis','-m','0750', $data_dir);
+
+    # Write minimal config to a temp file, then move it into place with sudo
+    my ($fh, $tmp) = tempfile('mcol-redis-XXXX', TMPDIR => 1, UNLINK => 0);
+    print $fh <<"CONF";
+bind 127.0.0.1 ::1
+port 6379
+protected-mode yes
+supervised systemd
+pidfile $run_dir/$instance.pid
+dir $data_dir
+logfile ""
+daemonize no
+CONF
+    close $fh;
+
+    if (system('sudo','mv',$tmp,$conf_file) != 0) {
+        unlink $tmp;
+        warn "Failed to install $conf_file\n";
+        return 0;
+    }
+    system('sudo','chmod','0644',$conf_file);
+
+    # Ensure ownership of the data dir if the 'redis' user exists
+    if (defined getpwnam('redis')) {
+        system('sudo','chown','-R','redis:redis', $data_dir);
+    }
+
+    print "Wrote minimal Redis config to $conf_file\n";
+    return 1;
+}
+
 # Does a Redis unit exist (plain or template)?
 sub _has_redis_service {
     # plain unit: redis.service
@@ -253,6 +305,7 @@ sub install_system_dependencies {
     }
 
     _prepare_build_env();
+    _ensure_redis_instance_config();
     _start_redis_if_present();
     _ensure_passthrough_authbind();
 }
