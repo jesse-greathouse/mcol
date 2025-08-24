@@ -298,26 +298,73 @@ sub install_pip {
     }
 }
 
-# Installs Supervisor using pip, if not already installed.
+# Installs Supervisor using pip, if not already installed, and ensures shims.
 sub install_supervisor {
-    my $check = system('python3', '-m', 'pip', 'show', 'supervisor') == 0;
+    my $installed = (system('python3', '-m', 'pip', 'show', 'supervisor') == 0);
+    if ($installed) {
+        print "Supervisor already installed (via pip); ensuring shims...\n";
+    } else {
+        print "Installing Supervisor via pip...\n";
+        system('python3', '-m', 'pip', 'install', '--user', 'supervisor');
+        command_result($?, $!, "Installed Supervisor...", 'python3 -m pip install --user supervisor');
+    }
 
-    if ($check) {
-        print "Supervisor already installed (via pip), skipping.\n";
+    # Where pip put the scripts for THIS python3
+    chomp(my $user_base = `python3 -m site --user-base`);
+    my $user_bin = "$user_base/bin";
+    print "Supervisor scripts expected under: $user_bin\n";
+
+    # Ensure project-local symlinks (Queue.pm will call these directly)
+    require File::Path;
+    File::Path::make_path("$applicationRoot/bin") unless -d "$applicationRoot/bin";
+
+    for my $exe (qw(supervisord supervisorctl echo_supervisord_conf pidproxy)) {
+        my $src = "$user_bin/$exe";
+        my $dst = "$applicationRoot/bin/$exe";
+
+        unless (-x $src) {
+            warn "Expected $src not found or not executable; skipping link for $exe\n";
+            next;
+        }
+
+        if (-l $dst || -e $dst) {
+            my $cur = readlink($dst) // '';
+            if ($cur ne $src) {
+                unlink $dst or warn "unlink $dst failed: $!";
+                symlink $src, $dst or warn "symlink $src -> $dst failed: $!";
+                print "Updated symlink: $dst -> $src\n";
+            }
+        } else {
+            symlink $src, $dst or warn "symlink $src -> $dst failed: $!";
+            print "Created symlink: $dst -> $src\n";
+        }
+    }
+
+    # Optional: system-wide wrappers if /usr/local/bin is writable
+    _ensure_wrapper("/usr/local/bin/supervisord",    "$applicationRoot/bin/supervisord");
+    _ensure_wrapper("/usr/local/bin/supervisorctl",  "$applicationRoot/bin/supervisorctl");
+}
+
+# Tiny helper to create a passthrough shell wrapper if target doesn’t exist.
+sub _ensure_wrapper {
+    my ($target, $real) = @_;
+    return if -x $target;  # already present
+
+    my $dir;
+    if ($target =~ m{^(.*)/[^/]+$}) { $dir = $1 }
+
+    unless ($dir && -d $dir && -w $dir) {
+        # Not fatal; just skip if we can’t write there without sudo
         return;
     }
 
-    print "Installing Supervisor via pip...\n";
-    system('python3', '-m', 'pip', 'install', '--user', 'supervisor');
-    command_result($?, $!, "Installed Supervisor...", 'python3 -m pip install --user supervisor');
-
-    # Ensure binaries are reachable via your app bin
-    chomp(my $user_base = `python3 -m site --user-base`);
-    my $user_bin = "$user_base/bin";
-    for my $exe (qw(supervisord supervisorctl)) {
-        my $src = "$user_bin/$exe";
-        my $dst = "$applicationRoot/bin/$exe";
-        if (-x $src && !-e $dst) { symlink $src, $dst or warn "symlink $src -> $dst failed: $!"; }
+    if (open my $fh, '>', $target) {
+        print {$fh} "#!/bin/sh\nexec \"$real\" \"\$@\"\n";
+        close $fh;
+        chmod 0755, $target or warn "chmod 0755 $target failed: $!\n";
+        print "Created wrapper $target -> $real\n";
+    } else {
+        warn "Failed to write wrapper $target: $!\n";
     }
 }
 
