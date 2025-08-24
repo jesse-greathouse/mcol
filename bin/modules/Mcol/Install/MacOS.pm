@@ -18,7 +18,7 @@ my $applicationRoot = abs_path(dirname($bin));
 my @systemDependencies = qw(
     intltool autoconf automake expect gcc pcre2 curl libiconv pkg-config
     openssl@3 mysql-client oniguruma libxml2 libxslt icu4c imagemagick mysql
-    libsodium libzip glib webp go cpanminus redis python@3.12 libmd
+    libsodium libzip glib webp go cpanminus redis python@3.12 libmd wxwidgets
 );
 
 # ====================================
@@ -132,6 +132,17 @@ sub _prepare_build_env_macos_for_erlang {
 
     chomp(my $sdk = `xcrun --sdk macosx --show-sdk-path 2>/dev/null`);
     $ENV{SDKROOT} = $sdk if $sdk;
+
+    # Ensure wx-config is discoverable
+    my $wx_prefix = _brew_prefix('wxwidgets');
+    if (-d $wx_prefix) {
+        my $wx_bin = "$wx_prefix/bin";
+        $ENV{PATH} = join(':', $wx_bin, $ENV{PATH} // '');
+        # Not strictly needed (wx-config provides flags), but harmless:
+        $ENV{CPPFLAGS} = join(' ', $ENV{CPPFLAGS} // '', "-I$wx_prefix/include");
+        $ENV{LDFLAGS}  = join(' ', $ENV{LDFLAGS}  // '', "-L$wx_prefix/lib");
+        $ENV{WX_CONFIG} = "$wx_bin/wx-config" if -x "$wx_bin/wx-config";
+    }
 }
 
 # In Mcol::Install::MacOS
