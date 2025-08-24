@@ -119,7 +119,7 @@ sub _prepare_build_env_macos_for_erlang {
         split(':', $ENV{PKG_CONFIG_PATH}//'')
     );
 
-    # Make erl_interface emit ei_MD5* symbols
+    # Make erl_interface & micro-openssl emit ei_MD5* symbols
     my @ei_md5_fn_macros = (
         '-DMD5_INIT_FUNCTION_NAME=ei_MD5Init',
         '-DMD5_UPDATE_FUNCTION_NAME=ei_MD5Update',
@@ -142,7 +142,7 @@ sub _prepare_build_env_macos_for_erlang {
         $ENV{$k} =~ s/^\s+|\s+$//g;
     }
 
-    # Prefer a wx that works, if available
+    # Optional wx
     if (my $wx_cfg = _prefer_wx_config()) {
         $ENV{WX_CONFIG} = $wx_cfg;
         if ($wx_cfg =~ m{^(.+)/wx-config$}) {
@@ -184,43 +184,41 @@ sub build_erlang_otp_on_macos {
     system('bash','-lc', $configure_cmd);
     command_result($?, $!, 'Configure Erlang/OTP...', $configure_cmd);
 
-    # 1) Build erl_interface first
+    # 1) Build erl_interface first (produces libei.a with ei_MD5* too)
     system('bash','-lc', "make -C lib/erl_interface clean && make -C lib/erl_interface -j1");
     command_result($?, $!, "Build erl_interface (serialized)...", ['make','-C','lib/erl_interface','-j1']);
 
-    # 2) Locate libei.a and its obj dir
+    # 2) Determine triplet & erl_interface obj dir (used for -L if needed later)
     chomp(my $triplet = `bash -lc '$erlangSrcDir/erts/autoconf/config.guess'`);
     my $ei_objdir = "$erlangSrcDir/lib/erl_interface/obj/$triplet";
-    my $ei_lib_a  = "$ei_objdir/libei.a";
-    -f $ei_lib_a or die "libei.a not found at $ei_lib_a\n";
 
-    # 3) Build erts with a *local* env that:
-    #    - maps MD5* -> ei_MD5* for erts sources
-    #    - adds the obj dir to -L
-    #    - links against -lei
+    # 3) Build erts with Darwin symbol aliases so legacy MD5* resolve to ei_MD5*
     {
-        local $ENV{CPPFLAGS} = join(' ', $ENV{CPPFLAGS}//'',
-            '-DMD5Init=ei_MD5Init',
-            '-DMD5Update=ei_MD5Update',
-            '-DMD5Final=ei_MD5Final',
-            '-DMD5Transform=ei_MD5Transform',
+        # Map legacy MD5* call-sites to ei_* at **link time** on macOS
+        my @alias = (
+            '-Wl,-alias,_MD5Init,_ei_MD5Init',
+            '-Wl,-alias,_MD5Update,_ei_MD5Update',
+            '-Wl,-alias,_MD5Final,_ei_MD5Final',
+            '-Wl,-alias,_MD5Transform,_ei_MD5Transform',
         );
-        local $ENV{LDFLAGS}  = join(' ', $ENV{LDFLAGS}//'', "-L$ei_objdir");
-        local $ENV{LIBS}     = join(' ', $ENV{LIBS}//'',    "-lei");
 
-        # IMPORTANT: don’t override CFLAGS on the make command line
+        # Use local env so we don't pollute the rest of the tree.
+        local $ENV{LDFLAGS}  = join(' ', $ENV{LDFLAGS}//'', @alias);
+        local $ENV{LIBS};    # ensure no global -lei sneaks in (avoid duplicates)
+
+        # IMPORTANT: keep configure’s own flags; don’t pass CFLAGS=... on cmdline.
         system('bash','-lc', "make -C erts clean && make -C erts -j1");
-        command_result($?, $!, "Build erts (serialized, MD5 mapped to ei_)...", ['make','-C','erts','-j1']);
+        command_result($?, $!, "Build erts (serialized, alias MD5* -> ei_MD5*)...", ['make','-C','erts','-j1']);
     }
 
-    # 4) Finish the rest
+    # 4) Finish the tree
     system('bash','-lc', "make -j$threads");
     command_result($?, $!, "Build Erlang/OTP...", ["make","-j$threads"]);
 
     system('bash','-lc', "make install");
     command_result($?, $!, "Install Erlang/OTP...", ["make","install"]);
 
-    # Bazel OTP_VERSION copy + platform symlink (unchanged)
+    # (Bazel OTP_VERSION copy + platform symlink as you had before)
     my $otp_version_file = "$erlangPrefixDir/OTP_VERSION";
     if (-f $otp_version_file) {
         my $otp_release = `cat '$otp_version_file'`; chomp($otp_release);
@@ -230,8 +228,6 @@ sub build_erlang_otp_on_macos {
         my $target_file = "$release_dir/OTP_VERSION";
         require File::Copy; File::Copy::copy($otp_version_file, $target_file) unless -e $target_file;
         print "Copied OTP_VERSION to: $target_file\n";
-    } else {
-        warn "OTP_VERSION not found at $otp_version_file; skipping Bazel compatibility fix.\n";
     }
 
     if ($triplet) {
@@ -243,8 +239,6 @@ sub build_erlang_otp_on_macos {
                 or warn "Failed platform symlink: $platform_erl -> ../erl ($!)\n";
             print "Created platform symlink: $platform_erl -> ../erl\n";
         }
-    } else {
-        warn "Could not determine Darwin target triplet; skipping platform symlink.\n";
     }
 
     chdir $originalDir;
