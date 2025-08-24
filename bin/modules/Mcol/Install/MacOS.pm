@@ -136,8 +136,15 @@ sub build_erlang_otp_on_macos {
             $otp_major = $majors[0];
             my $vf = "$releases_dir/$otp_major/OTP_VERSION";
             if (-f $vf) {
-                $otp_version = do { local $/ = undef; open my $fh, '<', $vf and <$fh> };
-                chomp($otp_version) if defined $otp_version;
+                # Read $vf into $otp_version
+                my $otp_version = do {
+                    local $/ = undef;                          # slurp
+                    open(my $fh, '<', $vf) or die "open($vf): $!";
+                    my $s = <$fh>;
+                    close $fh;
+                    $s;
+                };
+                chomp $otp_version if defined $otp_version;
             }
         }
     }
