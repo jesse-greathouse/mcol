@@ -271,7 +271,6 @@ sub install_symlinks {
 # installs Perl Modules.
 sub install_perl_modules {
     my @cmd = ();
-    push @cmd, 'sudo' if $> != 0;
     push @cmd, 'cpanm', '--notest', '--quiet', '--no-man-pages', '--skip-satisfied', @perlModules;
 
     system(@cmd);

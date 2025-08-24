@@ -19,6 +19,7 @@ my @systemDependencies = qw(
     intltool autoconf automake expect gcc pcre2 curl libiconv pkg-config
     openssl@3 mysql-client oniguruma libxml2 libxslt icu4c imagemagick mysql
     libsodium libzip glib webp go cpanminus redis python@3.12 libmd wxwidgets
+    bzip2
 );
 
 # ====================================
@@ -34,7 +35,7 @@ sub _brew_prefix {
 }
 
 sub _export_brew_env {
-    my @keg = qw(openssl@3 icu4c libxml2 libzip oniguruma libxslt libiconv);
+    my @keg = qw(openssl@3 icu4c libxml2 libzip oniguruma libxslt libiconv bzip2);
     my @pc  = map { _brew_prefix($_).'/lib/pkgconfig' } @keg;
     my @inc = map { _brew_prefix($_).'/include'       } @keg;
     my @lib = map { _brew_prefix($_).'/lib'           } @keg;
@@ -56,7 +57,7 @@ sub _prepare_build_env_macos {
     $ENV{CXXFLAGS} = join(' ', @cxx);
 
     # Homebrew keg paths
-    my @keg = qw(openssl@3 icu4c libxml2 libxslt libzip oniguruma libiconv);
+    my @keg = qw(openssl@3 icu4c libxml2 libxslt libzip oniguruma libiconv bzip2);
     my @pc  = map { _brew_prefix($_).'/lib/pkgconfig' } @keg;
     my @inc = map { _brew_prefix($_).'/include'       } @keg;
     my @lib = map { _brew_prefix($_).'/lib'           } @keg;
