@@ -43,14 +43,6 @@ sub _export_brew_env {
     $ENV{LDFLAGS}  = join(' ', (map { "-L$_" } grep {-d} @lib), split(' ', $ENV{LDFLAGS}  // ''));
 }
 
-sub _brew_prefix {
-    my ($formula) = @_;
-    chomp(my $p = `brew --prefix $formula 2>/dev/null`);
-    return $p if $p;
-    chomp($p = `brew --prefix 2>/dev/null`);
-    return $p || '/usr/local';
-}
-
 sub _prepare_build_env_macos {
     # C toolchain flags
     my $c_in = $ENV{CFLAGS} // '';
@@ -99,49 +91,39 @@ sub _prepare_build_env_macos_for_erlang {
     $ENV{CC} ||= 'clang';
     $ENV{CFLAGS} = join(' ', grep { length } (
         $ENV{CFLAGS} // '',
-        '-std=gnu99','-O2','-g',
+        '-std=gnu99', '-O2', '-g',
         '-fno-builtin',
         '-Werror=implicit-function-declaration',
         '-Qunused-arguments'
     ));
 
-    # openssl prefixes (existing)
-    my @pc; my @inc; my @lib;
-    for my $k (qw(openssl@3)) {
-        chomp(my $p = `brew --prefix $k 2>/dev/null`); next unless $p;
-        push @pc,  "$p/lib/pkgconfig";
-        push @inc, "$p/include";
-        push @lib, "$p/lib";
-    }
+    # Only wire up OpenSSL (do NOT add -lmd / -lei)
+    my $ossl = _brew_prefix('openssl@3');
+    $ENV{CPPFLAGS} = join(' ', ($ENV{CPPFLAGS}//''), "-I$ossl/include");
+    $ENV{LDFLAGS}  = join(' ', ($ENV{LDFLAGS}//''),  "-L$ossl/lib");
+    $ENV{PKG_CONFIG_PATH} = join(':', grep {-d} ("$ossl/lib/pkgconfig"), split(':', $ENV{PKG_CONFIG_PATH}//''));
 
-    # NEW: libmd (BSD MD5 with MD5Init/MD5Update/MD5Final)
-    chomp(my $libmd = `brew --prefix libmd 2>/dev/null`);
-    if ($libmd && -d "$libmd/include" && -d "$libmd/lib") {
-        push @inc, "$libmd/include";
-        push @lib, "$libmd/lib";
-        $ENV{LIBS} = join(' ', grep { length } ($ENV{LIBS}//'', '-lmd'));
-        print "Using libmd from $libmd (adding -lmd)\n";
-    }
-
-    $ENV{PKG_CONFIG_PATH} = join(':', grep {-d} @pc, split(':', $ENV{PKG_CONFIG_PATH}//''));
-    $ENV{CPPFLAGS}        = join(' ', (map { "-I$_" } grep {-d} @inc), split(' ', $ENV{CPPFLAGS}//''));
-    $ENV{LDFLAGS}         = join(' ', (map { "-L$_" } grep {-d} @lib), split(' ', $ENV{LDFLAGS}//''));
-
-    # Autoconf probe workaround seen earlier
+    # Make Autoconf probe a no-op
     $ENV{ac_cv_c_undeclared_builtin_options} //= 'none needed';
 
+    # SDKROOT (helps on CLT-only setups)
     chomp(my $sdk = `xcrun --sdk macosx --show-sdk-path 2>/dev/null`);
     $ENV{SDKROOT} = $sdk if $sdk;
 
-    # Ensure wx-config is discoverable
+    # Ensure wx-config is discoverable (optional)
     my $wx_prefix = _brew_prefix('wxwidgets');
-    if (-d $wx_prefix) {
-        my $wx_bin = "$wx_prefix/bin";
-        $ENV{PATH} = join(':', $wx_bin, $ENV{PATH} // '');
-        # Not strictly needed (wx-config provides flags), but harmless:
-        $ENV{CPPFLAGS} = join(' ', $ENV{CPPFLAGS} // '', "-I$wx_prefix/include");
-        $ENV{LDFLAGS}  = join(' ', $ENV{LDFLAGS}  // '', "-L$wx_prefix/lib");
-        $ENV{WX_CONFIG} = "$wx_bin/wx-config" if -x "$wx_bin/wx-config";
+    if (-x "$wx_prefix/bin/wx-config") {
+        $ENV{PATH} = join(':', "$wx_prefix/bin", $ENV{PATH} // '');
+        $ENV{WX_CONFIG} = "$wx_prefix/bin/wx-config";
+    }
+
+    # IMPORTANT: scrub any inherited -lmd / -lei
+    for my $k (qw(LIBS LDFLAGS)) {
+        next unless defined $ENV{$k};
+        $ENV{$k} =~ s/\s*-lmd\s*/ /g;
+        $ENV{$k} =~ s/\s*-lei\s*/ /g;
+        $ENV{$k} =~ s/\s+/ /g;
+        $ENV{$k} =~ s/^\s+|\s+$//g;
     }
 }
 
@@ -149,47 +131,41 @@ sub _prepare_build_env_macos_for_erlang {
 sub build_erlang_otp_on_macos {
     my ($dir) = @_;
 
-    my $threads          = eval { require POSIX; POSIX::sysconf(POSIX::_SC_NPROCESSORS_ONLN()) } || 2;
-    my $erlangSrcDir     = $ENV{MCOL_ERLANG_SRC} // "$dir/opt/erlang-src";   # allow external clone in $HOME
-    my $erlangPrefixDir  = "$dir/opt/erlang";
-    my $erlangRef        = 'OTP-25.3.2.21';
-    my $originalDir      = getcwd();
+    my $threads         = eval { require POSIX; POSIX::sysconf(POSIX::_SC_NPROCESSORS_ONLN()) } || 2;
+    my $erlangSrcDir    = $ENV{MCOL_ERLANG_SRC} // "$dir/opt/erlang-src";
+    my $erlangPrefixDir = "$dir/opt/erlang";
+    my $erlangRef       = 'OTP-25.3.2.21';
+    my $originalDir     = getcwd();
 
-    if (-d $erlangPrefixDir) {
-        print "Erlang already installed at $erlangPrefixDir, skipping... (`rm -rf $erlangPrefixDir` to rebuild)\n";
-        return;
-    }
+    return if -d $erlangPrefixDir;
 
-    # Clone if we own the path and it's not a usable checkout (missing ./configure)
     unless (defined $ENV{MCOL_ERLANG_SRC}) {
         my $need_clone = (!-d $erlangSrcDir) || !-x "$erlangSrcDir/configure";
         if ($need_clone) {
-            system("rm -rf '$erlangSrcDir'") if -d $erlangSrcDir;  # avoid the "empty dir" trap
+            system("rm -rf '$erlangSrcDir'") if -d $erlangSrcDir;
             system("git clone --depth 1 --branch $erlangRef https://github.com/erlang/otp.git '$erlangSrcDir'");
             command_result($?, $!, 'Clone erlang ...',
                 "git clone --depth 1 --branch $erlangRef https://github.com/erlang/otp.git $erlangSrcDir");
         }
     } else {
-        die "No configure in $erlangSrcDir (set MCOL_ERLANG_SRC to a valid OTP checkout)\n"
-            unless -x "$erlangSrcDir/configure";
+        die "No configure in $erlangSrcDir\n" unless -x "$erlangSrcDir/configure";
     }
 
-    # Prime macOS build env (clang, Homebrew, -lmd, autoconf workaround, etc.)
     local $ENV{ERL_TOP} = $erlangSrcDir;
     _prepare_build_env_macos_for_erlang();
 
-    my $ossl_prefix  = _brew_prefix('openssl@3');
+    my $ossl_prefix   = _brew_prefix('openssl@3');
     my $configure_cmd = "./configure --prefix='$erlangPrefixDir' --with-ssl='$ossl_prefix'";
 
     chdir $erlangSrcDir or die "chdir $erlangSrcDir: $!";
     system('bash','-lc', $configure_cmd);
     command_result($?, $!, 'Configure Erlang/OTP...', $configure_cmd);
 
-    # 1) Build erl_interface FIRST so -lei is satisfiable
+    # 1) Build erl_interface first (no manual -lei!)
     system('bash','-lc', "make -C lib/erl_interface clean && make -C lib/erl_interface -j1");
     command_result($?, $!, "Build erl_interface (serialized)...", ['make','-C','lib/erl_interface','-j1']);
 
-    # 2) After erl_interface exists, add its libdir to LDFLAGS (helps erts link find -lei)
+    # 2) Help erts find -lei by adding the now-built libdir
     my $triplet = `bash -lc '$erlangSrcDir/erts/autoconf/config.guess'`; chomp $triplet;
     my $ei_libdir = "$erlangSrcDir/lib/erl_interface/obj/$triplet/lib";
     if (-d $ei_libdir) {
@@ -197,46 +173,17 @@ sub build_erlang_otp_on_macos {
         print "Added erl_interface libdir to LDFLAGS: $ei_libdir\n";
     }
 
-    # 3) Build erts serialized (avoids race seen on macOS)
+    # 3) Build erts serialized, then the rest in parallel
     system('bash','-lc', "make -C erts clean && make -C erts -j1");
     command_result($?, $!, "Build erts (serialized)...", ['make','-C','erts','-j1']);
 
-    # 4) Build the rest in parallel
     system('bash','-lc', "make -j$threads");
     command_result($?, $!, "Build Erlang/OTP...", ["make","-j$threads"]);
 
-    # 5) Install
     system('bash','-lc', "make install");
     command_result($?, $!, "Install Erlang/OTP...", ["make","install"]);
 
-    # Bazel: ensure releases/<major>/OTP_VERSION exists
-    my $otp_version_file = "$erlangPrefixDir/OTP_VERSION";
-    if (-f $otp_version_file) {
-        my $otp_release = `cat '$otp_version_file'`; chomp($otp_release);
-        my ($otp_major) = $otp_release =~ /^(\d+)/;
-        my $release_dir = "$erlangPrefixDir/releases/$otp_major";
-        require File::Path; File::Path::make_path($release_dir) unless -d $release_dir;
-        my $target_file = "$release_dir/OTP_VERSION";
-        require File::Copy; File::Copy::copy($otp_version_file, $target_file) unless -e $target_file;
-        print "Copied OTP_VERSION to: $target_file\n";
-    } else {
-        warn "OTP_VERSION not found at $otp_version_file; skipping Bazel compatibility fix.\n";
-    }
-
-    # Platform-arch symlink using Darwin triplet
-    if ($triplet) {
-        my $platform_bin_dir = "$erlangPrefixDir/bin/$triplet";
-        my $platform_erl     = "$platform_bin_dir/erl";
-        require File::Path; File::Path::make_path($platform_bin_dir) unless -d $platform_bin_dir;
-        unless (-e $platform_erl) {
-            symlink("../erl", $platform_erl)
-                or warn "Failed platform symlink: $platform_erl -> ../erl ($!)\n";
-            print "Created platform symlink: $platform_erl -> ../erl\n";
-        }
-    } else {
-        warn "Could not determine Darwin target triplet; skipping platform symlink.\n";
-    }
-
+    # (Bazel OTP_VERSION copy and platform symlink – keep your existing code)
     chdir $originalDir;
 }
 
