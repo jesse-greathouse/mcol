@@ -88,15 +88,18 @@ sub _prepare_build_env_macos {
 }
 
 # Helper: make sure a brew formula is installed and return its prefix
+# Helper: make sure a brew formula is installed and return its prefix
 sub _ensure_brew_formula {
     my ($formula) = @_;
-    my $installed = system("brew list --versions $formula >/dev/null 2>&1") == 0;
+
+    my $installed = (system("brew list --versions $formula >/dev/null 2>&1") == 0);
     unless ($installed) {
-        system('brew','install',$formula);
-        command_result($?, $!, "Installed $formula...", ['brew','install',$formula]);
+        system('brew', 'install', $formula);
+        command_result($?, $!, "Installed $formula...", ['brew', 'install', $formula]);
     } else {
         print "$formula already installed, skipping.\n";
     }
+
     my $prefix = _brew_prefix($formula);
     die "Could not find Homebrew prefix for $formula\n" unless $prefix && -d $prefix;
     return $prefix;
@@ -106,9 +109,9 @@ sub build_erlang_otp_on_macos {
     my ($dir) = @_;
     my $originalDir = getcwd();
 
-    # 1) Ensure Homebrew Erlang/OTP 25 is present
-    my $erl_prefix = _ensure_brew_formula('erlang@25');
-    print "Using Homebrew Erlang/OTP 25 at $erl_prefix\n";
+    # 1) Ensure Homebrew Erlang/OTP 26 is present
+    my $erl_prefix = _ensure_brew_formula('erlang@26');
+    print "Using Homebrew Erlang/OTP 26 at $erl_prefix\n";
 
     # 2) Provide a stable path in your tree (keeps existing callers happy)
     my $erlangPrefixDir = "$dir/opt/erlang";
@@ -119,42 +122,35 @@ sub build_erlang_otp_on_macos {
             symlink($erl_prefix, $erlangPrefixDir) or warn "symlink $erl_prefix -> $erlangPrefixDir failed: $!";
         }
     } else {
-        require File::Path; File::Path::make_path("$dir/opt") unless -d "$dir/opt";
+        require File::Path;
+        File::Path::make_path("$dir/opt") unless -d "$dir/opt";
         symlink($erl_prefix, $erlangPrefixDir) or warn "symlink $erl_prefix -> $erlangPrefixDir failed: $!";
     }
 
     # 3) Put the keg's bin on PATH for subsequent steps
     $ENV{PATH} = join(':', "$erl_prefix/bin", $ENV{PATH} // '');
 
-    # 4) Figure out OTP version from the Homebrew layout
-    my $releases_dir = "$erl_prefix/lib/erlang/releases";
-    my ($otp_major, $otp_version) = ('','');
-    if (-d $releases_dir) {
-        # pick the highest numeric major release dir (e.g. 25)
-        my @majors = sort { $b <=> $a } grep { /^\d+$/ && -d "$releases_dir/$_" } map { (File::Basename::basename($_)) } glob("$releases_dir/*");
-        if (@majors) {
-            $otp_major = $majors[0];
-            my $vf = "$releases_dir/$otp_major/OTP_VERSION";
-            if (-f $vf) {
-                # Read $vf into $otp_version
-                my $otp_version = do {
-                    local $/ = undef;                          # slurp
-                    open(my $fh, '<', $vf) or die "open($vf): $!";
-                    my $s = <$fh>;
-                    close $fh;
-                    $s;
-                };
-                chomp $otp_version if defined $otp_version;
-            }
+    # 4) Read OTP version from the Homebrew layout
+    my $vf = "$erl_prefix/lib/erlang/OTP_VERSION";
+    my $otp_version = '';
+    if (-f $vf) {
+        if (open my $fh, '<', $vf) {
+            local $/ = undef;               # slurp
+            my $s = <$fh>;
+            close $fh;
+            $otp_version = $s if defined $s;
+            $otp_version =~ s/\s+\z// if defined $otp_version;
+        } else {
+            warn "open($vf) failed: $!";
         }
     }
-    print "Detected OTP version: ".($otp_version||'unknown')."\n";
+    print "Detected OTP version: " . ($otp_version || 'unknown') . "\n";
 
-    # 5) Create a top-level OTP_VERSION in the keg (if missing) to match expectations of your Bazel step
+    # 5) Create a top-level OTP_VERSION in the keg (handy for Bazel or callers that expect it)
     my $top_otp_file = "$erl_prefix/OTP_VERSION";
     if ($otp_version && !-f $top_otp_file) {
         if (open my $out, '>', $top_otp_file) {
-            print $out "$otp_version\n";
+            print {$out} "$otp_version\n";
             close $out;
             print "Wrote top-level OTP_VERSION at $top_otp_file\n";
         } else {
@@ -163,17 +159,20 @@ sub build_erlang_otp_on_macos {
     }
 
     # 6) Create the platform-arch symlink inside the Homebrew keg:
-    #     <prefix>/bin/<triplet>/erl  ->  ../erl
-    #    We approximate the triplet (matches your previous usage well enough).
+    #    <prefix>/bin/<triplet>/erl  ->  ../erl
+    #    Triplet roughly matches GNU config.guess naming.
     my ($sysname, $nodename, $release, $version, $machine) = POSIX::uname();
-    my $arch = ($machine eq 'arm64') ? 'aarch64' : $machine;   # map arm64 -> aarch64 to match config.guess style
+    my $arch = ($machine eq 'arm64') ? 'aarch64' : $machine;  # map arm64 -> aarch64
     my $triplet = "${arch}-apple-darwin$release";
+
     my $platform_bin_dir = "$erl_prefix/bin/$triplet";
     my $platform_erl     = "$platform_bin_dir/erl";
-    require File::Path; File::Path::make_path($platform_bin_dir) unless -d $platform_bin_dir;
+
+    require File::Path;
+    File::Path::make_path($platform_bin_dir) unless -d $platform_bin_dir;
 
     unless (-e $platform_erl) {
-        # relative link keeps things tidy if the keg moves
+        # Relative link keeps things tidy if the keg ever moves
         symlink("../erl", $platform_erl)
             or warn "Failed platform symlink: $platform_erl -> ../erl ($!)\n";
         print "Created platform symlink: $platform_erl -> ../erl\n";
