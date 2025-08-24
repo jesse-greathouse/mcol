@@ -225,6 +225,8 @@ sub install_php {
     my $threads = how_many_threads_should_i_use();
 
     _export_brew_env();
+
+    my $bzip2_prefix = _brew_prefix('bzip2');
     my $iconv_prefix = _brew_prefix('libiconv');
 
     my @configurePhp = (
