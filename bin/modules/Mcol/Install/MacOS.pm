@@ -43,18 +43,31 @@ sub _export_brew_env {
     $ENV{LDFLAGS}  = join(' ', (map { "-L$_" } grep {-d} @lib), split(' ', $ENV{LDFLAGS}  // ''));
 }
 
+# Prefer a wx build that is compat with OTP-25 (wx 3.2 has compat30 by default)
+sub _prefer_wx_config {
+    for my $cand (
+        _brew_prefix('wxwidgets@3.2').'/bin/wx-config',      # best choice
+        _brew_prefix('wxwidgets').'/bin/wx-config',          # may be 3.3.x (often NOT compat)
+        $ENV{WX_CONFIG},                                     # user-provided
+    ) {
+        return $cand if defined $cand && -x $cand;
+    }
+    return undef;
+}
+
 sub _prepare_build_env_macos {
-    # C toolchain flags
+    # Toolchain flags
     my $c_in = $ENV{CFLAGS} // '';
-    my @cflags = ('-std=gnu99', '-O2', '-g', '-fno-builtin', '-Werror=implicit-function-declaration');
+    my @cflags = ('-std=gnu99','-O2','-g','-fno-builtin','-Werror=implicit-function-declaration');
     push @cflags, $c_in if length $c_in;
     $ENV{CFLAGS} = join(' ', @cflags);
 
     my $cxx_in = $ENV{CXXFLAGS} // '';
-    my @cxx = ('-O2', '-g'); push @cxx, $cxx_in if length $cxx_in;
+    my @cxx = ('-O2','-g');
+    push @cxx, $cxx_in if length $cxx_in;
     $ENV{CXXFLAGS} = join(' ', @cxx);
 
-    # Homebrew prefixes
+    # Homebrew keg paths
     my @keg = qw(openssl@3 icu4c libxml2 libxslt libzip oniguruma libiconv);
     my @pc  = map { _brew_prefix($_).'/lib/pkgconfig' } @keg;
     my @inc = map { _brew_prefix($_).'/include'       } @keg;
@@ -64,66 +77,75 @@ sub _prepare_build_env_macos {
     $ENV{CPPFLAGS}        = join(' ', (map { "-I$_" } grep {-d} @inc), split(' ', $ENV{CPPFLAGS}//''));
     $ENV{LDFLAGS}         = join(' ', (map { "-L$_" } grep {-d} @lib), split(' ', $ENV{LDFLAGS}//''));
 
-    # Make Autoconf probe a no-op
+    # Autoconf probe workaround
     $ENV{ac_cv_c_undeclared_builtin_options} //= 'none needed';
 
-    # Use clang explicitly on macOS
+    # Use clang & align SDK/deployment target
     $ENV{CC} //= 'clang';
-
-    # Handy for CLT-only installs
     chomp(my $sdk = `xcrun --sdk macosx --show-sdk-path 2>/dev/null`);
     $ENV{SDKROOT} = $sdk if $sdk;
+    $ENV{MACOSX_DEPLOYMENT_TARGET} //= (chomp(my $v = `sw_vers -productVersion 2>/dev/null`), (split(/\./,$v))[0] || '13');
 
-    # Threading for make
+    # Parallel make
     $ENV{MAKEFLAGS} //= '-j' . (eval { require POSIX; POSIX::sysconf(POSIX::_SC_NPROCESSORS_ONLN()) } || 2);
 
-    # Erlang specific: point to OpenSSL via kerl if you use kerl
+    # Point kerl at OpenSSL if used elsewhere
     my $ossl = _brew_prefix('openssl@3');
     my $kerl = $ENV{KERL_CONFIGURE_OPTIONS} // '';
     $kerl = join(' ', grep { length } ($kerl, "--with-ssl=$ossl"));
     $ENV{KERL_CONFIGURE_OPTIONS} = $kerl;
 
-    print "macOS build env primed for Erlang (CC=$ENV{CC}; CFLAGS='$ENV{CFLAGS}').\n";
+    print "macOS build env primed (CC=$ENV{CC}; CFLAGS='$ENV{CFLAGS}').\n";
 }
 
 sub _prepare_build_env_macos_for_erlang {
-    # toolchain
+    # Toolchain
     $ENV{CC} ||= 'clang';
     $ENV{CFLAGS} = join(' ', grep { length } (
         $ENV{CFLAGS} // '',
-        '-std=gnu99', '-O2', '-g',
+        '-std=gnu99','-O2','-g',
         '-fno-builtin',
         '-Werror=implicit-function-declaration',
         '-Qunused-arguments'
     ));
 
-    # Only wire up OpenSSL (do NOT add -lmd / -lei)
+    # Only wire up OpenSSL via Homebrew (do NOT add -lmd / -lei)
     my $ossl = _brew_prefix('openssl@3');
     $ENV{CPPFLAGS} = join(' ', ($ENV{CPPFLAGS}//''), "-I$ossl/include");
     $ENV{LDFLAGS}  = join(' ', ($ENV{LDFLAGS}//''),  "-L$ossl/lib");
     $ENV{PKG_CONFIG_PATH} = join(':', grep {-d} ("$ossl/lib/pkgconfig"), split(':', $ENV{PKG_CONFIG_PATH}//''));
 
-    # Make Autoconf probe a no-op
+    # Ensure the ei-internal MD5 symbol names are generated as _ei_MD5*
+    # (this prevents the undefined _ei_MD5* at link time)
+    my @md5_defines = (
+        '-DMD5_INIT_FUNCTION_NAME=ei_MD5Init',
+        '-DMD5_UPDATE_FUNCTION_NAME=ei_MD5Update',
+        '-DMD5_FINAL_FUNCTION_NAME=ei_MD5Final',
+        '-DMD5_TRANSFORM_FUNCTION_NAME=ei_MD5Transform',
+    );
+    $ENV{CPPFLAGS} = join(' ', $ENV{CPPFLAGS}//'', @md5_defines);
+
+    # Autoconf probe workaround
     $ENV{ac_cv_c_undeclared_builtin_options} //= 'none needed';
 
-    # SDKROOT (helps on CLT-only setups)
+    # SDK (helps on CLT-only)
     chomp(my $sdk = `xcrun --sdk macosx --show-sdk-path 2>/dev/null`);
     $ENV{SDKROOT} = $sdk if $sdk;
 
-    # Ensure wx-config is discoverable (optional)
-    my $wx_prefix = _brew_prefix('wxwidgets');
-    if (-x "$wx_prefix/bin/wx-config") {
-        $ENV{PATH} = join(':', "$wx_prefix/bin", $ENV{PATH} // '');
-        $ENV{WX_CONFIG} = "$wx_prefix/bin/wx-config";
-    }
-
-    # IMPORTANT: scrub any inherited -lmd / -lei
+    # Scrub inherited bad libs
     for my $k (qw(LIBS LDFLAGS)) {
         next unless defined $ENV{$k};
         $ENV{$k} =~ s/\s*-lmd\s*/ /g;
         $ENV{$k} =~ s/\s*-lei\s*/ /g;
         $ENV{$k} =~ s/\s+/ /g;
         $ENV{$k} =~ s/^\s+|\s+$//g;
+    }
+
+    # Prefer a wx that works (wx 3.2) if present
+    if (my $wx_cfg = _prefer_wx_config()) {
+        $ENV{WX_CONFIG} = $wx_cfg;
+        my ($wx_bin) = $wx_cfg =~ m{^(.+)/wx-config$};
+        $ENV{PATH} = join(':', ($wx_bin||()), $ENV{PATH}//'');
     }
 }
 
@@ -165,15 +187,15 @@ sub build_erlang_otp_on_macos {
     system('bash','-lc', "make -C lib/erl_interface clean && make -C lib/erl_interface -j1");
     command_result($?, $!, "Build erl_interface (serialized)...", ['make','-C','lib/erl_interface','-j1']);
 
-    # 2) Help erts find -lei by adding the now-built libdir
+    # 2) Add its libdir (correct path: .../obj/$triplet, no trailing /lib)
     my $triplet = `bash -lc '$erlangSrcDir/erts/autoconf/config.guess'`; chomp $triplet;
-    my $ei_libdir = "$erlangSrcDir/lib/erl_interface/obj/$triplet/lib";
+    my $ei_libdir = "$erlangSrcDir/lib/erl_interface/obj/$triplet";
     if (-d $ei_libdir) {
         $ENV{LDFLAGS} = join(' ', "-L$ei_libdir", ($ENV{LDFLAGS}//''));
         print "Added erl_interface libdir to LDFLAGS: $ei_libdir\n";
     }
 
-    # 3) Build erts serialized, then the rest in parallel
+    # 3) Build erts serialized, then all
     system('bash','-lc', "make -C erts clean && make -C erts -j1");
     command_result($?, $!, "Build erts (serialized)...", ['make','-C','erts','-j1']);
 
@@ -183,7 +205,34 @@ sub build_erlang_otp_on_macos {
     system('bash','-lc', "make install");
     command_result($?, $!, "Install Erlang/OTP...", ["make","install"]);
 
-    # (Bazel OTP_VERSION copy and platform symlink – keep your existing code)
+    # Bazel: ensure releases/<major>/OTP_VERSION exists
+    my $otp_version_file = "$erlangPrefixDir/OTP_VERSION";
+    if (-f $otp_version_file) {
+        my $otp_release = `cat '$otp_version_file'`; chomp($otp_release);
+        my ($otp_major) = $otp_release =~ /^(\d+)/;
+        my $release_dir = "$erlangPrefixDir/releases/$otp_major";
+        require File::Path; File::Path::make_path($release_dir) unless -d $release_dir;
+        my $target_file = "$release_dir/OTP_VERSION";
+        require File::Copy; File::Copy::copy($otp_version_file, $target_file) unless -e $target_file;
+        print "Copied OTP_VERSION to: $target_file\n";
+    } else {
+        warn "OTP_VERSION not found at $otp_version_file; skipping Bazel compatibility fix.\n";
+    }
+
+    # Platform-arch symlink using Darwin triplet
+    if ($triplet) {
+        my $platform_bin_dir = "$erlangPrefixDir/bin/$triplet";
+        my $platform_erl     = "$platform_bin_dir/erl";
+        require File::Path; File::Path::make_path($platform_bin_dir) unless -d $platform_bin_dir;
+        unless (-e $platform_erl) {
+            symlink("../erl", $platform_erl)
+                or warn "Failed platform symlink: $platform_erl -> ../erl ($!)\n";
+            print "Created platform symlink: $platform_erl -> ../erl\n";
+        }
+    } else {
+        warn "Could not determine Darwin target triplet; skipping platform symlink.\n";
+    }
+
     chdir $originalDir;
 }
 
