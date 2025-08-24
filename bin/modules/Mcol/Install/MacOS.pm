@@ -110,26 +110,26 @@ sub _prepare_build_env_macos_for_erlang {
         '-Qunused-arguments'
     ));
 
-    # Only wire up OpenSSL via Homebrew (do NOT add -lmd / -lei)
+    # OpenSSL via Homebrew (no -lei/-lmd globally)
     my $ossl = _brew_prefix('openssl@3');
     $ENV{CPPFLAGS} = join(' ', ($ENV{CPPFLAGS}//''), "-I$ossl/include");
     $ENV{LDFLAGS}  = join(' ', ($ENV{LDFLAGS}//''),  "-L$ossl/lib");
-    $ENV{PKG_CONFIG_PATH} = join(':', grep {-d} ("$ossl/lib/pkgconfig"), split(':', $ENV{PKG_CONFIG_PATH}//''));
+    $ENV{PKG_CONFIG_PATH} = join(':',
+        grep {-d} ("$ossl/lib/pkgconfig"),
+        split(':', $ENV{PKG_CONFIG_PATH}//'')
+    );
 
-    # Ensure the ei-internal MD5 symbol names are generated as _ei_MD5*
-    # (this prevents the undefined _ei_MD5* at link time)
-    my @md5_defines = (
+    # Make erl_interface emit ei_MD5* symbols
+    my @ei_md5_fn_macros = (
         '-DMD5_INIT_FUNCTION_NAME=ei_MD5Init',
         '-DMD5_UPDATE_FUNCTION_NAME=ei_MD5Update',
         '-DMD5_FINAL_FUNCTION_NAME=ei_MD5Final',
         '-DMD5_TRANSFORM_FUNCTION_NAME=ei_MD5Transform',
     );
-    $ENV{CPPFLAGS} = join(' ', $ENV{CPPFLAGS}//'', @md5_defines);
+    $ENV{CPPFLAGS} = join(' ', $ENV{CPPFLAGS}//'', @ei_md5_fn_macros);
 
-    # Autoconf probe workaround
+    # Autoconf & SDK
     $ENV{ac_cv_c_undeclared_builtin_options} //= 'none needed';
-
-    # SDK (helps on CLT-only)
     chomp(my $sdk = `xcrun --sdk macosx --show-sdk-path 2>/dev/null`);
     $ENV{SDKROOT} = $sdk if $sdk;
 
@@ -142,15 +142,15 @@ sub _prepare_build_env_macos_for_erlang {
         $ENV{$k} =~ s/^\s+|\s+$//g;
     }
 
-    # Prefer a wx that works (wx 3.2) if present
+    # Prefer a wx that works, if available
     if (my $wx_cfg = _prefer_wx_config()) {
         $ENV{WX_CONFIG} = $wx_cfg;
-        my ($wx_bin) = $wx_cfg =~ m{^(.+)/wx-config$};
-        $ENV{PATH} = join(':', ($wx_bin||()), $ENV{PATH}//'');
+        if ($wx_cfg =~ m{^(.+)/wx-config$}) {
+            $ENV{PATH} = join(':', $1, $ENV{PATH}//'');
+        }
     }
 }
 
-# In Mcol::Install::MacOS
 sub build_erlang_otp_on_macos {
     my ($dir) = @_;
 
@@ -184,33 +184,43 @@ sub build_erlang_otp_on_macos {
     system('bash','-lc', $configure_cmd);
     command_result($?, $!, 'Configure Erlang/OTP...', $configure_cmd);
 
-    # Build erl_interface first (no manual -lei!)
+    # 1) Build erl_interface first
     system('bash','-lc', "make -C lib/erl_interface clean && make -C lib/erl_interface -j1");
     command_result($?, $!, "Build erl_interface (serialized)...", ['make','-C','lib/erl_interface','-j1']);
 
-    # Work out paths to the built libei.a
+    # 2) Locate libei.a and its obj dir
     chomp(my $triplet = `bash -lc '$erlangSrcDir/erts/autoconf/config.guess'`);
-    my $ei_objdir  = "$erlangSrcDir/lib/erl_interface/obj/$triplet";
-    my $ei_lib_a   = "$ei_objdir/libei.a";
-    my $ei_ldflags = "-L$ei_objdir";
-    die "libei.a not found at $ei_lib_a\n" unless -f $ei_lib_a;
+    my $ei_objdir = "$erlangSrcDir/lib/erl_interface/obj/$triplet";
+    my $ei_lib_a  = "$ei_objdir/libei.a";
+    -f $ei_lib_a or die "libei.a not found at $ei_lib_a\n";
 
-    # Add its libdir (correct path: .../obj/$triplet, no trailing /lib)
-    my $ei_md5_cdefs = "-DMD5Init=ei_MD5Init -DMD5Update=ei_MD5Update -DMD5Final=ei_MD5Final";
-    my $CFLAGS_erts  = join(' ', $ENV{CFLAGS} // '', $ei_md5_cdefs);
-    my $LDFLAGS_erts = join(' ', $ENV{LDFLAGS} // '', $ei_ldflags);
-    my $LIBS_erts    = join(' ', $ENV{LIBS} // '', '-lei');
+    # 3) Build erts with a *local* env that:
+    #    - maps MD5* -> ei_MD5* for erts sources
+    #    - adds the obj dir to -L
+    #    - links against -lei
+    {
+        local $ENV{CPPFLAGS} = join(' ', $ENV{CPPFLAGS}//'',
+            '-DMD5Init=ei_MD5Init',
+            '-DMD5Update=ei_MD5Update',
+            '-DMD5Final=ei_MD5Final',
+            '-DMD5Transform=ei_MD5Transform',
+        );
+        local $ENV{LDFLAGS}  = join(' ', $ENV{LDFLAGS}//'', "-L$ei_objdir");
+        local $ENV{LIBS}     = join(' ', $ENV{LIBS}//'',    "-lei");
 
-    system('bash','-lc', "make -C erts clean && make -C erts -j1 CFLAGS='$CFLAGS_erts' LDFLAGS='$LDFLAGS_erts' LIBS='$LIBS_erts'");
-    command_result($?, $!, "Build erts (serialized, with ei_MD5)...", ['make','-C','erts','-j1']);
+        # IMPORTANT: don’t override CFLAGS on the make command line
+        system('bash','-lc', "make -C erts clean && make -C erts -j1");
+        command_result($?, $!, "Build erts (serialized, MD5 mapped to ei_)...", ['make','-C','erts','-j1']);
+    }
 
+    # 4) Finish the rest
     system('bash','-lc', "make -j$threads");
     command_result($?, $!, "Build Erlang/OTP...", ["make","-j$threads"]);
 
     system('bash','-lc', "make install");
     command_result($?, $!, "Install Erlang/OTP...", ["make","install"]);
 
-    # Bazel: ensure releases/<major>/OTP_VERSION exists
+    # Bazel OTP_VERSION copy + platform symlink (unchanged)
     my $otp_version_file = "$erlangPrefixDir/OTP_VERSION";
     if (-f $otp_version_file) {
         my $otp_release = `cat '$otp_version_file'`; chomp($otp_release);
@@ -224,7 +234,6 @@ sub build_erlang_otp_on_macos {
         warn "OTP_VERSION not found at $otp_version_file; skipping Bazel compatibility fix.\n";
     }
 
-    # Platform-arch symlink using Darwin triplet
     if ($triplet) {
         my $platform_bin_dir = "$erlangPrefixDir/bin/$triplet";
         my $platform_erl     = "$platform_bin_dir/erl";
