@@ -184,6 +184,71 @@ sub build_erlang_otp_on_macos {
     chdir $originalDir;
 }
 
+# Ensure Homebrew Redis runs persistently as a per-user LaunchAgent
+sub ensure_redis_service {
+    my $prefix = _ensure_brew_formula('redis');                # install if missing
+
+    my $cli = "$prefix/bin/redis-cli";
+    my $ok_ping = sub {
+        return 0 unless -x $cli;
+        my $out = `$cli -h 127.0.0.1 -p 6379 ping 2>/dev/null`;
+        return ($out =~ /^PONG\b/) ? 1 : 0;
+    };
+
+    # 1) Already up?
+    if ($ok_ping->()) {
+        print "Redis is already running (PONG).\n";
+        return;
+    }
+
+    # 2) Check brew services status
+    my $status = 'none';
+    my $sv = `brew services list 2>/dev/null`;
+    if ($sv) {
+        for my $line (split /\n/, $sv) {
+            next unless $line =~ /^\s*redis\s+/;
+            my @cols = split /\s+/, $line;
+            $status = $cols[1] // 'none';  # typically: started|stopped|none
+            last;
+        }
+    }
+
+    # 3) If not started, start it (per-user LaunchAgent)
+    if ($status ne 'started') {
+        print "Starting Redis via 'brew services start redis'...\n";
+        system('brew','services','start','redis');
+        command_result($?, $!, "Start Redis as LaunchAgent...", ['brew','services','start','redis']);
+    } else {
+        print "brew services says Redis is started; waiting for it to respond...\n";
+    }
+
+    # 4) Wait up to ~10s for Redis to respond
+    my $tries = 10;
+    while ($tries-- > 0) {
+        last if $ok_ping->();
+        sleep 1;
+    }
+
+    if ($ok_ping->()) {
+        print "Redis is up (PONG).\n";
+        return;
+    }
+
+    # 5) Still not up — print a hint and tail logs if available
+    my $log1 = "$prefix/var/log/redis.log";
+    my $log2 = (_brew_prefix('') . '/var/log/redis.log');  # fallback
+    print "Redis did not respond to ping after start.\n";
+    if (-f $log1) {
+        print "---- tail -n 100 $log1 ----\n";
+        system('tail','-n','100',$log1);
+    } elsif (-f $log2) {
+        print "---- tail -n 100 $log2 ----\n";
+        system('tail','-n','100',$log2);
+    } else {
+        print "Check: 'launchctl list | grep -i homebrew.mxcl.redis' and 'brew services list'.\n";
+    }
+}
+
 # Installs OS level system dependencies.
 sub install_system_dependencies {
     print "Brew is required for updating and installing system dependencies.\n";
@@ -217,6 +282,7 @@ sub install_system_dependencies {
     _prepare_build_env_macos();
     install_pip();
     install_supervisor();
+    ensure_redis_service();
 }
 
 # Installs PHP.
