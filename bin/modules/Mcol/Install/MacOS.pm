@@ -249,6 +249,84 @@ sub ensure_redis_service {
     }
 }
 
+# Inert authbind shim: lets callers keep using `authbind --deep ...` on macOS.
+sub _ensure_passthrough_authbind {
+    # If a real authbind exists anywhere common, bail out.
+    for my $p (split(/:/, $ENV{PATH} // ''), qw(/usr/local/bin /usr/bin /bin /usr/sbin /sbin)) {
+        return if -x "$p/authbind";
+    }
+
+    # Prefer system-wide if possible; else use per-user ~/.local/bin
+    my $system_dir = '/usr/local/bin';
+    my $home_dir   = ($ENV{HOME} // '.') . '/.local/bin';
+
+    my ($target_dir, $dest, $use_sudo);
+    if (-d $system_dir) {
+        ($target_dir, $dest, $use_sudo) = ($system_dir, "$system_dir/authbind", 1);
+    } else {
+        ($target_dir, $dest, $use_sudo) = ($home_dir,   "$home_dir/authbind",   0);
+    }
+
+    # Ensure target dir exists
+    if (!-d $target_dir) {
+        if ($use_sudo) {
+            system('sudo', 'mkdir', '-p', $target_dir) == 0
+              or warn "Could not create $target_dir with sudo\n";
+        } else {
+            require File::Path;
+            File::Path::make_path($target_dir);
+        }
+    }
+
+    # Write shim to a safe tmp file
+    require File::Temp;
+    my ($fh, $tmp) = File::Temp::tempfile('authbindXXXX',
+                                          DIR    => ($ENV{TMPDIR} // '/tmp'),
+                                          UNLINK => 0);
+    print {$fh} <<"SH";
+#!/usr/bin/env bash
+# inert authbind shim: ignore --deep and exec the program unchanged
+args=()
+for a in "\$@"; do
+  if [[ "\$a" == "--deep" ]]; then
+    continue
+  else
+    args+=( "\$a" )
+  fi
+done
+exec "\${args[@]}"
+SH
+    close $fh or warn "Close failed for shim: $!";
+    chmod 0755, $tmp;
+
+    # Install into place
+    my $ok;
+    if ($use_sudo) {
+        $ok = (system('sudo', 'install', '-m', '0755', $tmp, $dest) == 0);
+        unlink $tmp;
+    } else {
+        $ok = rename($tmp, $dest);
+        if (!$ok) {
+            require File::Copy;
+            $ok = File::Copy::copy($tmp, $dest) && chmod 0755, $dest;
+            unlink $tmp;
+        } else {
+            chmod 0755, $dest;
+        }
+    }
+
+    if ($ok) {
+        print "Installed inert authbind shim at $dest\n";
+        # If we used ~/.local/bin but PATH lacks it, add it for this process
+        if (!$use_sudo && (':' . ($ENV{PATH} // '') . ':') !~ /:\Q$target_dir\E:/) {
+            $ENV{PATH} = "$target_dir:" . ($ENV{PATH} // '');
+            print "Added $target_dir to PATH for this process.\n";
+        }
+    } else {
+        warn "Failed to install authbind shim to $dest\n";
+    }
+}
+
 # Installs OS level system dependencies.
 sub install_system_dependencies {
     print "Brew is required for updating and installing system dependencies.\n";
@@ -280,6 +358,7 @@ sub install_system_dependencies {
 
     _export_brew_env();
     _prepare_build_env_macos();
+    _ensure_passthrough_authbind();
     install_pip();
     install_supervisor();
     ensure_redis_service();

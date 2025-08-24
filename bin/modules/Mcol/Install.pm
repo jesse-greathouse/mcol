@@ -692,7 +692,7 @@ sub install_rabbitmq {
                 : 'darwin_x86_64-fastbuild';
         $rabbitmqSbin = "$rabbitmqDir/bazel-out/$cfg/bin/broker-home/sbin";
     } else {
-        # Linux defaults (what you had before)
+        # Linux defaults
         $rabbitmqSbin = "$rabbitmqDir/bazel-out/k8-fastbuild/bin/broker-home/sbin";
     }
 
