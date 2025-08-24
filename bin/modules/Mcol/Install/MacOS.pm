@@ -250,33 +250,21 @@ sub ensure_redis_service {
 }
 
 # Inert authbind shim: lets callers keep using `authbind --deep ...` on macOS.
+# Inert authbind shim for macOS: always install to /usr/local/bin via sudo
 sub _ensure_passthrough_authbind {
-    # If a real authbind exists anywhere common, bail out.
+    my $dir  = '/usr/local/bin';
+    my $dest = "$dir/authbind";
+
+    # If any real authbind exists anywhere, don't override it.
     for my $p (split(/:/, $ENV{PATH} // ''), qw(/usr/local/bin /usr/bin /bin /usr/sbin /sbin)) {
         return if -x "$p/authbind";
     }
+    # If our target already exists and is executable, we're done.
+    return if -x $dest;
 
-    # Prefer system-wide if possible; else use per-user ~/.local/bin
-    my $system_dir = '/usr/local/bin';
-    my $home_dir   = ($ENV{HOME} // '.') . '/.local/bin';
-
-    my ($target_dir, $dest, $use_sudo);
-    if (-d $system_dir) {
-        ($target_dir, $dest, $use_sudo) = ($system_dir, "$system_dir/authbind", 1);
-    } else {
-        ($target_dir, $dest, $use_sudo) = ($home_dir,   "$home_dir/authbind",   0);
-    }
-
-    # Ensure target dir exists
-    if (!-d $target_dir) {
-        if ($use_sudo) {
-            system('sudo', 'mkdir', '-p', $target_dir) == 0
-              or warn "Could not create $target_dir with sudo\n";
-        } else {
-            require File::Path;
-            File::Path::make_path($target_dir);
-        }
-    }
+    # Ensure target dir exists (sudo)
+    system('sudo', 'mkdir', '-p', $dir) == 0
+        or warn "Could not create $dir with sudo\n";
 
     # Write shim to a safe tmp file
     require File::Temp;
@@ -299,31 +287,18 @@ SH
     close $fh or warn "Close failed for shim: $!";
     chmod 0755, $tmp;
 
-    # Install into place
-    my $ok;
-    if ($use_sudo) {
-        $ok = (system('sudo', 'install', '-m', '0755', $tmp, $dest) == 0);
-        unlink $tmp;
-    } else {
-        $ok = rename($tmp, $dest);
-        if (!$ok) {
-            require File::Copy;
-            $ok = File::Copy::copy($tmp, $dest) && chmod 0755, $dest;
-            unlink $tmp;
-        } else {
-            chmod 0755, $dest;
-        }
-    }
-
-    if ($ok) {
+    # Install atomically with sudo
+    if (system('sudo', 'install', '-m', '0755', $tmp, $dest) == 0) {
         print "Installed inert authbind shim at $dest\n";
-        # If we used ~/.local/bin but PATH lacks it, add it for this process
-        if (!$use_sudo && (':' . ($ENV{PATH} // '') . ':') !~ /:\Q$target_dir\E:/) {
-            $ENV{PATH} = "$target_dir:" . ($ENV{PATH} // '');
-            print "Added $target_dir to PATH for this process.\n";
-        }
     } else {
         warn "Failed to install authbind shim to $dest\n";
+    }
+    unlink $tmp;
+
+    # Ensure /usr/local/bin is on PATH for this process so subsequent steps see it
+    if (( ':' . ($ENV{PATH} // '') . ':' ) !~ /:\Q$dir\E:/) {
+        $ENV{PATH} = "$dir:" . ($ENV{PATH} // '');
+        print "Added $dir to PATH for this process.\n";
     }
 }
 
