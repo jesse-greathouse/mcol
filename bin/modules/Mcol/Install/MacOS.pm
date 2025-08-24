@@ -84,7 +84,8 @@ sub _prepare_build_env_macos {
     $ENV{CC} //= 'clang';
     chomp(my $sdk = `xcrun --sdk macosx --show-sdk-path 2>/dev/null`);
     $ENV{SDKROOT} = $sdk if $sdk;
-    $ENV{MACOSX_DEPLOYMENT_TARGET} //= (chomp(my $v = `sw_vers -productVersion 2>/dev/null`), (split(/\./,$v))[0] || '13');
+    my $v = `sw_vers -productVersion 2>/dev/null`; chomp $v;
+    $ENV{MACOSX_DEPLOYMENT_TARGET} //= (split /\./, $v)[0] || '13';
 
     # Parallel make
     $ENV{MAKEFLAGS} //= '-j' . (eval { require POSIX; POSIX::sysconf(POSIX::_SC_NPROCESSORS_ONLN()) } || 2);
