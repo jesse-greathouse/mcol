@@ -238,7 +238,8 @@ sub install_php {
         '--enable-intl', '--enable-ftp', '--enable-pcntl', '--enable-gd',
         '--enable-soap', '--enable-sockets', '--without-sqlite3',
         '--without-pdo-sqlite', '--with-libxml', '--with-xsl', '--with-zlib',
-        '--with-curl', '--with-webp', '--with-openssl', '--with-zip', '--with-bz2',
+        '--with-curl', '--with-webp', '--with-openssl', '--with-zip',
+        '--with-bz2=' . $bzip2_prefix,
         '--with-sodium', '--with-mysqli', '--with-pdo-mysql',
         '--with-iconv=' . $iconv_prefix
     );
