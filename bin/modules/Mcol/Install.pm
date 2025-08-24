@@ -683,7 +683,19 @@ sub install_rabbitmq {
     my $rabbitmqVersion = 'v3.12.13';
     my $originalDir = getcwd();
     my $rabbitmqDir = glob("$dir/opt/rabbitmq");
-    my $rabbitmqSbin = glob("$rabbitmqDir/bazel-out/k8-fastbuild/bin/broker-home/sbin");
+
+    my $rabbitmqSbin;
+    if (defined $os && $os eq 'MacOS') {
+        chomp(my $arch = `uname -m 2>/dev/null`);             # arm64 or x86_64
+        my $cfg = ($arch && $arch eq 'arm64')
+                ? 'darwin_arm64-fastbuild'
+                : 'darwin_x86_64-fastbuild';
+        $rabbitmqSbin = "$rabbitmqDir/bazel-out/$cfg/bin/broker-home/sbin";
+    } else {
+        # Linux defaults (what you had before)
+        $rabbitmqSbin = "$rabbitmqDir/bazel-out/k8-fastbuild/bin/broker-home/sbin";
+    }
+
     my $erlangDir = glob("$dir/opt/erlang");
     my $erlangPath = "$erlangDir/bin";
     my $elixirPath = glob("$dir/opt/elixir/bin");
