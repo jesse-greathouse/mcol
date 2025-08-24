@@ -40,6 +40,7 @@ get-pip.py
 # bin
 bin/*-e
 bin/bazel
+bin/bazelisk
 bin/cerl
 bin/elixir
 bin/elixirc
@@ -94,7 +95,7 @@ etc/ssl/openssl.cnf
 etc/ssl/openssl.docker.cnf
 
 # opt
-opt/erlang/
+opt/erlang
 opt/php/
 opt/bazelisk/
 opt/elixir/
