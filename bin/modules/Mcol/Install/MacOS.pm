@@ -184,21 +184,25 @@ sub build_erlang_otp_on_macos {
     system('bash','-lc', $configure_cmd);
     command_result($?, $!, 'Configure Erlang/OTP...', $configure_cmd);
 
-    # 1) Build erl_interface first (no manual -lei!)
+    # Build erl_interface first (no manual -lei!)
     system('bash','-lc', "make -C lib/erl_interface clean && make -C lib/erl_interface -j1");
     command_result($?, $!, "Build erl_interface (serialized)...", ['make','-C','lib/erl_interface','-j1']);
 
-    # 2) Add its libdir (correct path: .../obj/$triplet, no trailing /lib)
-    my $triplet = `bash -lc '$erlangSrcDir/erts/autoconf/config.guess'`; chomp $triplet;
-    my $ei_libdir = "$erlangSrcDir/lib/erl_interface/obj/$triplet";
-    if (-d $ei_libdir) {
-        $ENV{LDFLAGS} = join(' ', "-L$ei_libdir", ($ENV{LDFLAGS}//''));
-        print "Added erl_interface libdir to LDFLAGS: $ei_libdir\n";
-    }
+    # Work out paths to the built libei.a
+    chomp(my $triplet = `bash -lc '$erlangSrcDir/erts/autoconf/config.guess'`);
+    my $ei_objdir  = "$erlangSrcDir/lib/erl_interface/obj/$triplet";
+    my $ei_lib_a   = "$ei_objdir/libei.a";
+    my $ei_ldflags = "-L$ei_objdir";
+    die "libei.a not found at $ei_lib_a\n" unless -f $ei_lib_a;
 
-    # 3) Build erts serialized, then all
-    system('bash','-lc', "make -C erts clean && make -C erts -j1");
-    command_result($?, $!, "Build erts (serialized)...", ['make','-C','erts','-j1']);
+    # Add its libdir (correct path: .../obj/$triplet, no trailing /lib)
+    my $ei_md5_cdefs = "-DMD5Init=ei_MD5Init -DMD5Update=ei_MD5Update -DMD5Final=ei_MD5Final";
+    my $CFLAGS_erts  = join(' ', $ENV{CFLAGS} // '', $ei_md5_cdefs);
+    my $LDFLAGS_erts = join(' ', $ENV{LDFLAGS} // '', $ei_ldflags);
+    my $LIBS_erts    = join(' ', $ENV{LIBS} // '', '-lei');
+
+    system('bash','-lc', "make -C erts clean && make -C erts -j1 CFLAGS='$CFLAGS_erts' LDFLAGS='$LDFLAGS_erts' LIBS='$LIBS_erts'");
+    command_result($?, $!, "Build erts (serialized, with ei_MD5)...", ['make','-C','erts','-j1']);
 
     system('bash','-lc', "make -j$threads");
     command_result($?, $!, "Build Erlang/OTP...", ["make","-j$threads"]);
