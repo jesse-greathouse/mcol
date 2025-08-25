@@ -5,17 +5,17 @@
 - Built with [PHP 8.4](https://www.php.net/releases/8.4/en.php) and [Openresty](https://openresty.org/en/).
 - Uses [Laravel](https://laravel.com/) and [ReactPHP](https://reactphp.org/) to connect to IRC networks and collect information about shared files.
 - With [Intertia](https://inertiajs.com/) and [Vue 3](https://vuejs.org/) to create a simple User Interface to download and interact with media.
-- Recommended for Linux servers (Not supported on Windows).
+- Recommended for Linux servers and MacOS (Not supported on Windows).
 - Pre Alpha (Not for distribution)
 
 ## 📚 Table of Contents
 
 - [Media Collector](#media-collector)
   - [📚 Table of Contents](#-table-of-contents)
+  - [System Requirements](#system-requirements)
   - [Install](#install)
     - [Download](#download)
     - [TLDR](#tldr)
-      - [_Some of the install operations require elevated privelages. DO NOT run as root or sudo, the scripts will prompt you for operations that require elevated privelages_](#some-of-the-install-operations-require-elevated-privelages-do-not-run-as-root-or-sudo-the-scripts-will-prompt-you-for-operations-that-require-elevated-privelages)
     - [Detailed instructions](#detailed-instructions)
   - [Configure](#configure)
   - [Run](#run)
@@ -28,6 +28,38 @@
     - [Hot Report](#hot-report)
     - [Packet Search](#packet-search)
   - [Config Appendix](#config-appendix)
+
+## System Requirements
+
+### Supported & tested platforms
+
+- **Ubuntu** 24.x, 25.x
+- **Debian** 12, 13
+- **Fedora** 40, 42
+- **Rocky Linux** 9, 10
+- **openSUSE Leap** 15.6
+- **openSUSE Tumbleweed**
+- **macOS Sequoia 15.1** — **Apple Silicon (arm64) only**; x86_64 macOS is **not** supported
+
+### Experimental / not supported (stubs exist)
+
+The repo includes install stubs for the following, but they are **untested and not supported**:
+**Alpine**, **Arch**, **CentOS**, **Gentoo**, **OpenMandriva**.
+Patches to improve these are welcome.
+
+### Hardware & connectivity
+
+- **CPU**:
+  - Linux: **x86_64**, **4+ cores**
+  - macOS: **Apple Silicon (arm64)**
+- **Memory**: **4+ GB RAM** (more is better)
+- **Storage**: **30 GB** free for system components; **200+ GB** recommended if you’ll download larger media
+- **Network**: **10 Mbit/s** or better
+
+### Privileges & user model
+
+- **Install/build**: requires **elevated privileges** (e.g., `sudo`) to install dependencies and perform builds.
+- **Runtime**: the application should be run as a **non-privileged user**.
 
 ## Install
 
